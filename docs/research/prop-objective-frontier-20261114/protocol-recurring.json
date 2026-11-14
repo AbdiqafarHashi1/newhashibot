@@ -1,0 +1,697 @@
+{
+  "schema": "native-funded-recurring/v1",
+  "engineSha256": "55d672b2dcdcbb0bf17e37d2e9173d307052c7c22c59e59df6ea4a26937b36eb",
+  "cases": [
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "MATCHED_PRODUCT",
+      "risk": 0.5,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.25,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.4,
+      "goal": 5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 2
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1794528000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "risk": 0.5,
+      "goal": 5
+    }
+  ],
+  "capital": 25000,
+  "entryRiskPct": "Per scenario, no production policy change",
+  "goalPct": "Per scenario",
+  "firstAndRepeatWaitDays": 14,
+  "modeledApprovalDelayDays": 1,
+  "minimumCycleSpacingDays": {
+    "2%": 14,
+    "5%": 30
+  },
+  "profitSplit": 0.8,
+  "serviceFeeSensitivityUSDPerCalendarMonth": 100,
+  "cashFlowRule": "Only after a flat eligible modeled request, withdraw the full trading profit, allocate 80% hypothetical customer reward, reset balance to original capital and subtract the SAME verified withdrawal from peak/day-start. This preserves drawdown distance; losses are not reset.",
+  "limitations": [
+    "Assumed payout approval/withdrawal for simulation; no actual firm approvals or payouts.",
+    "All source periods reused; retrospective research, not independent validation.",
+    "Fees are economic sensitivity, not an entitlement/billing mutation.",
+    "Neither actual news restrictions nor provider fills are verified.",
+    "Partial November and staggered starts remain censored."
+  ]
+}

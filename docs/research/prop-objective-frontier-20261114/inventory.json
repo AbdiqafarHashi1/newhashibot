@@ -1,0 +1,659 @@
+{
+  "schema": "reviewed-execution-inventory/v1",
+  "counts": {
+    "total": 13,
+    "crypto": 5,
+    "forex": 4,
+    "metals": 4
+  },
+  "meaning": "Exact configurations with positive recorded canonical review periods and compatible scanner/demo account choices; variants can share a family. Historical positives do not establish profitable months, each asset or live execution.",
+  "installation": "NOT_OBSERVED_IN_THIS_AUDIT",
+  "researchRsiTrailingIncluded": false,
+  "rows": [
+    {
+      "id": "crypto.launch-rsi2-48-3-3-h72",
+      "name": "Crypto RSI reversal · 3 ATR / 3R",
+      "market": "CRYPTO",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT",
+        "BNBUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT",
+        "AVAXUSDT",
+        "LTCUSDT"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "providers": [
+        "BINANCE",
+        "BYBIT"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 72,
+      "periods": [
+        {
+          "start": "2025-05-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 51,
+          "netReturnPct": 2.2999401522284186,
+          "profitFactor": 1.1174938521903413
+        },
+        {
+          "start": "2026-08-01T00:00:00.000Z",
+          "end": "2026-11-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 35,
+          "netReturnPct": 3.925474734461659,
+          "profitFactor": 1.258063209559731
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "crypto.launch-trend-pullback-48-1.5-5",
+      "name": "Crypto trend pullback · 1.5 ATR / 5R",
+      "market": "CRYPTO",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT",
+        "BNBUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT",
+        "AVAXUSDT",
+        "LTCUSDT"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "providers": [
+        "BINANCE",
+        "BYBIT"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 192,
+      "periods": [
+        {
+          "start": "2025-05-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 61,
+          "netReturnPct": 15.037738679799054,
+          "profitFactor": 1.5726953862271726
+        },
+        {
+          "start": "2026-08-01T00:00:00.000Z",
+          "end": "2026-11-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 48,
+          "netReturnPct": 6.920549228727419,
+          "profitFactor": 1.3024384523222083
+        }
+      ],
+      "limitations": [
+        "Historical native market account scenarios, not customer provider fills",
+        "Observed periods were used in research selection; not an untouched holdout certification",
+        "This review authorizes signal analysis and demo forward testing only"
+      ]
+    },
+    {
+      "id": "crypto.launch-trend-pullback-48-2-3-h72",
+      "name": "Crypto trend pullback · 2 ATR / 3R",
+      "market": "CRYPTO",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT",
+        "BNBUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "LINKUSDT",
+        "AVAXUSDT",
+        "LTCUSDT"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "providers": [
+        "BINANCE",
+        "BYBIT"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 72,
+      "periods": [
+        {
+          "start": "2025-05-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 69,
+          "netReturnPct": 4.631923845354914,
+          "profitFactor": 1.2147365929233123
+        },
+        {
+          "start": "2026-08-01T00:00:00.000Z",
+          "end": "2026-11-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 47,
+          "netReturnPct": 2.6518706740924247,
+          "profitFactor": 1.1154135411183028
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+      "name": "LTC failed breakout · 15m · 1.5R",
+      "market": "CRYPTO",
+      "symbols": [
+        "LTCUSDT"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "BINANCE",
+        "BYBIT"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "minimum_atr_fraction": 0.006,
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 24,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 23,
+          "netReturnPct": 0.22857212209473798,
+          "profitFactor": 1.0655895491821727
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 25,
+          "netReturnPct": 2.0313650961337317,
+          "profitFactor": 1.5291594227185448
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "name": "DOGE VWAP reclaim · 5m · 1.5R",
+      "market": "CRYPTO",
+      "symbols": [
+        "DOGEUSDT"
+      ],
+      "timeframes": [
+        "5m"
+      ],
+      "providers": [
+        "BINANCE",
+        "BYBIT"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "minimum_atr_fraction": 0.006,
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 12,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 33,
+          "netReturnPct": 1.3302658175646682,
+          "profitFactor": 1.1963396196890994
+        },
+        {
+          "start": "2026-08-01T00:00:00.000Z",
+          "end": "2026-11-01T00:00:00.000Z",
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 14,
+          "netReturnPct": 0.595949494565923,
+          "profitFactor": 1.289311629465028
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "forex.native-band-reentry-60-12-2-5",
+      "name": "USDJPY range re-entry · 1h · 5R",
+      "market": "FOREX",
+      "symbols": [
+        "USDJPY"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 48,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 17,
+          "netReturnPct": 2.780059171715111,
+          "profitFactor": 1.5404855631336125
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 26,
+          "netReturnPct": 2.0759287305655016,
+          "profitFactor": 1.2512497327717338
+        }
+      ],
+      "limitations": [
+        "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "name": "GBPUSD RSI reversal · 15m · 5R",
+      "market": "FOREX",
+      "symbols": [
+        "GBPUSD"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "minimum_atr_fraction": 0.0008,
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 24,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 22,
+          "netReturnPct": 5.738775310000074,
+          "profitFactor": 2.5782547391608013
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 15,
+          "netReturnPct": 0.34562634999982034,
+          "profitFactor": 1.109030255024396
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+      "name": "USDJPY compression breakout · 15m · 3R",
+      "market": "FOREX",
+      "symbols": [
+        "USDJPY"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 12,
+      "periods": [
+        {
+          "start": "2025-03-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 17,
+          "netReturnPct": 1.0772077326509861,
+          "profitFactor": 1.460550578520831
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 31,
+          "netReturnPct": 1.7919408563505201,
+          "profitFactor": 1.2786394149932365
+        }
+      ],
+      "limitations": [
+        "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only",
+        "Early window expanded to March–May after observing nine positive-period closed trades in April–May; retrospective additional sample, not an untouched holdout"
+      ]
+    },
+    {
+      "id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+      "name": "USDJPY sweep & retest · 1h · 5R",
+      "market": "FOREX",
+      "symbols": [
+        "USDJPY"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 72,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 16,
+          "netReturnPct": 1.0006872251063943,
+          "profitFactor": 1.16049367605527
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 30,
+          "netReturnPct": 0.4566449904381807,
+          "profitFactor": 1.0397825624738872
+        }
+      ],
+      "limitations": [
+        "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "gold.frontier-compression-15-24-1.5-5-h96",
+      "name": "Gold compression · 15m · 5R · up to 24h",
+      "market": "METALS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": false,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 96,
+      "periods": [
+        {
+          "start": "2026-05-05T00:00:00.000Z",
+          "end": "2026-07-01T00:00:00.000Z",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "closedTrades": 24,
+          "netReturnPct": 1.0644598234001024,
+          "profitFactor": 1.1374643717496788
+        },
+        {
+          "start": "2026-07-01T00:00:00.000Z",
+          "end": "2026-11-01T00:00:00.000Z",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "closedTrades": 59,
+          "netReturnPct": 1.2743639899999544,
+          "profitFactor": 1.0581259518068074
+        }
+      ],
+      "limitations": [
+        "Signal and forward demo scope only. No live authorization.",
+        "Retrospective May–June / July–October partitions. A May–July production-parity comparison lost 1.52%; it is retained in the research report.",
+        "The November 1–12 comparison has six closed trades and is a partial fresh observation, not a monthly return or independent success probability.",
+        "Native ordered-quote research and the shared OHLC account replay use different timing and lifecycle admission. Their returns are shown separately.",
+        "One full-position 5R target, up to 24-hour holding; commission, financing, slippage and contract rules remain scenarios.",
+        "New configuration is optional. The existing twelve-strategy bundle and seven-strategy Prop default are unchanged."
+      ]
+    },
+    {
+      "id": "gold.native-band-reentry-15-48-3-5",
+      "name": "Gold range re-entry · 15m · 5R",
+      "market": "METALS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 192,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 16,
+          "netReturnPct": 0.27008159400003934,
+          "profitFactor": 1.0642815427253178
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 31,
+          "netReturnPct": 4.73328303100021,
+          "profitFactor": 1.4975509755313503
+        }
+      ],
+      "limitations": [
+        "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+        "Research selection creates bias; no untouched holdout or customer-return claim",
+        "Positive separate account periods qualify for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "gold.native-momentum-15-48-2-5",
+      "name": "Gold momentum · 15m · 5R",
+      "market": "METALS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 192,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 39,
+          "netReturnPct": 5.392430661000216,
+          "profitFactor": 1.358844466014434
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 62,
+          "netReturnPct": 10.94486353300017,
+          "profitFactor": 1.5065777649085275
+        }
+      ],
+      "limitations": [
+        "Exness native reference bid/ask, not JustMarkets fills",
+        "Fees, carry, contract and slippage remain explicit scenarios",
+        "Research selection creates bias; approval is for signals and demo forward testing only"
+      ]
+    },
+    {
+      "id": "gold.native-momentum-60-24-2-5",
+      "name": "Gold momentum · 1h · 5R",
+      "market": "METALS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "providers": [
+        "MT5_PERSONAL",
+        "MT5_PROP"
+      ],
+      "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+      "liveApproved": false,
+      "inDefaultPropBundle": true,
+      "parameters": {
+        "entry_engine_version": 1
+      },
+      "maximumHoldingBars": 96,
+      "periods": [
+        {
+          "start": "2025-04-01T00:00:00.000Z",
+          "end": "2025-06-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 13,
+          "netReturnPct": 4.01826626600001,
+          "profitFactor": 2.47122254456985
+        },
+        {
+          "start": "2025-06-01T00:00:00.000Z",
+          "end": "2025-09-01T00:00:00.000Z",
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 24,
+          "netReturnPct": 2.5069676870000146,
+          "profitFactor": 1.4342183907309103
+        }
+      ],
+      "limitations": [
+        "Exness native reference bid/ask, not JustMarkets fills",
+        "Fees, carry, contract and slippage remain explicit scenarios",
+        "Research selection creates bias; approval is for signals and demo forward testing only"
+      ]
+    }
+  ]
+}
