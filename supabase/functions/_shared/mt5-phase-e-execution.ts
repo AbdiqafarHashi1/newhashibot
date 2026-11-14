@@ -1,3 +1,4 @@
+import {validateAtrTrailingPolicy,type AtrTrailingPolicy} from './atr-trailing-policy.ts';
 /**
  * Phase E boundary between the Phase-D account decision and the existing MT5
  * certified planner/command transport.  This module is deliberately pure: it
@@ -77,6 +78,7 @@ export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
   maximumIntentAgeMs: number;
   nativeChildOrders?: readonly Record<string,unknown>[];
   maximumHoldingSeconds?:number;
+  trailingPolicy?:AtrTrailingPolicy;
 }): Readonly<Mt5EntryCommand> {
   const { lineage, route } = input;
   requireValue(lineage.decision === "ALLOW" || lineage.decision === "REDUCE", "PHASE_D_DECISION_NOT_EXECUTABLE");
@@ -105,9 +107,11 @@ export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
     requireValue((single||c.length===2)&&c.every((x,i)=>x.role===(single||i===1?'ENTRY_TP2':'ENTRY_TP1')&&(x.action===undefined||x.action==='market')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(single||i===1?input.takeProfit2:input.takeProfit1)&&Number.isFinite(Number(x.quantity))&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');
   }
   if(input.maximumHoldingSeconds!==undefined)requireValue(Number.isSafeInteger(input.maximumHoldingSeconds)&&input.maximumHoldingSeconds>=60&&input.maximumHoldingSeconds<=30*86400,'MT5_HOLDING_LIMIT_INVALID');
+  if(input.trailingPolicy){validateAtrTrailingPolicy(input.trailingPolicy);requireValue(route.environment==='DEMO'&&input.maximumHoldingSeconds===86400&&input.takeProfit1===input.takeProfit2,'MT5_TRAILING_DEMO_CONTRACT_REQUIRED');}
   // Quantity and risk are copied from Phase D. MT5 is not permitted to resize.
   const payload = Object.freeze({
     certified: true,
+    ...(input.trailingPolicy?{trailing_policy:Object.freeze({...input.trailingPolicy})}:{}),
     ...(input.maximumHoldingSeconds!==undefined?{maximum_holding_seconds:input.maximumHoldingSeconds}:{}),
     ...(input.nativeChildOrders?{native_child_orders:Object.freeze(input.nativeChildOrders.map(x=>Object.freeze({...x})))}:{}),
     execution_plan_id: input.executionPlanId,

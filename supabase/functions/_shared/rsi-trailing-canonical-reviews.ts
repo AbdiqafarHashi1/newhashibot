@@ -1,0 +1,101 @@
+// Exact shared scanner/account evidence; optional demo configuration.
+export const RSI_TRAILING_CANONICAL_REVIEWS=[
+  {
+    "schema": "canonical-account-review/v1",
+    "strategyId": "gold.rsi-trailing-15-48-1.5-5-h96",
+    "periods": [
+      {
+        "reportSha256": "234ef52740026a92e21f42c67ddbd9d9febf56c84055ffd96722eeb80bf50559",
+        "engineSourceSha256": "d596b9c5220a0a020d61ac4e38d05421302156d2778e99fb7c3c89c08213c533",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "start": "2026-05-05T00:00:00.000Z",
+        "end": "2026-07-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 35,
+          "openPositions": 0,
+          "authorizedEntries": 35,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.4857142857142857,
+          "profitFactor": 1.331703779070633,
+          "expectancyR": 0.1981422017593263,
+          "realizedNet": 603.5953703500086,
+          "endingBalance": 25603.595370350016,
+          "endingEquity": 25603.595370350016,
+          "netReturnPct": 2.4143814814000653,
+          "maximumDrawdownPct": 2.686071023261808,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 5,
+          "costs": 22.470000000000006,
+          "financing": 54.764629649999996,
+          "tradesPerDay": 0.6140350877192983,
+          "tradesPerWeek": 4.298245614035088,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 25000,
+        "riskPct": 0.4
+      },
+      {
+        "reportSha256": "1309c86257a9723b5f256aa7187d23c93acc4e3b2834a1ff7d048dd2fdf7823d",
+        "engineSourceSha256": "21b5ee4835f285815a1196edbcfabe000750195013daef9a5c57fa9925eaa3e4",
+        "status": "COMPLETED",
+        "strategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "start": "2026-07-05T00:00:00.000Z",
+        "end": "2026-11-01T00:00:00.000Z",
+        "metrics": {
+          "closedTrades": 99,
+          "openPositions": 0,
+          "authorizedEntries": 99,
+          "rejectedAttempts": 0,
+          "rejectionReasons": {},
+          "winRate": 0.37373737373737376,
+          "profitFactor": 1.2470283612818058,
+          "expectancyR": 0.1581155141318155,
+          "realizedNet": 1475.8675188000016,
+          "endingBalance": 26475.867518800034,
+          "endingEquity": 26475.867518800034,
+          "netReturnPct": 5.903470075200137,
+          "maximumDrawdownPct": 4.327537432493518,
+          "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+          "maxLosingStreak": 7,
+          "costs": 84,
+          "financing": 173.3224812,
+          "tradesPerDay": 0.8319327731092437,
+          "tradesPerWeek": 5.8235294117647065,
+          "accountFailed": false,
+          "sharpe": null,
+          "sortino": null,
+          "riskOfRuin": null,
+          "qualification": "NOT_GRANTED",
+          "limitations": [
+            "Short/correlated samples do not establish risk of ruin or statistical confidence",
+            "Unclosed positions remain marked, not counted as completed wins"
+          ]
+        },
+        "capital": 25000,
+        "riskPct": 0.4
+      }
+    ],
+    "limitations": [
+      "Signals and forward demo only; no live authority or provider fill claim.",
+      "Retrospective May\u2013June and July\u2013October partitions reused during research selection; not independent holdouts.",
+      "Finite 240-bar seed, shared scanner/arbitration, actual account Brain and costed OHLC account ledger.",
+      "The OHLC replay updates trailing protection after closed five-minute observations. The demo agent manages observed native quotes; real provider timing and fills still require connected comparison.",
+      "These results are separate from the earlier 21.50% native research model and are never added to other account returns.",
+      "The full later-period ledger was rebuilt from all 99 recorded scanner events after fixing a fractional-risk CLI resume identity defect. No account cash resets or candidate changes."
+    ]
+  }
+] as const;

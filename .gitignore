@@ -34,3 +34,8 @@ cloud/infrastructure/terraform/**/.terraform/
 # Reproducible local research intermediates
 /.tmp/
 /scripts/research/launch/__pycache__/
+
+# Local Python bytecode and hosting state
+__pycache__/
+*.pyc
+.netlify/

@@ -30,7 +30,7 @@ export default function PersonalEA() {
               Crypto Personal Bot connects directly to your Binance or Bybit exchange account to automatically execute high-probability setups identified by HashiBot&apos;s arbitrator.
             </p>
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-200 mb-6">
-              Subscription: <span className="font-semibold text-white">$100/month per connected accountnth ($100/month)</span>
+              Subscription: <span className="font-semibold text-white">$100/month per connected account</span>
             </div>
             <p className="text-sm text-zinc-400 max-w-xl leading-relaxed mb-10">
               Non-custodial execution model. Funds remain safely in your exchange account while trades are sized and placed with sub-second latency.

@@ -40,7 +40,7 @@ test('actual embedded PostgreSQL: concrete store â†’ atomic transition/outbox â†
  const row=(await db.query('select * from canonical_lifecycle_events order by occurred_at desc limit 1')).rows[0] as any;
  const parts=renderCanonicalTruth({entityType:'lifecycle_event',entityId:row.id,eventType:row.event_type,eventVersion:1,occurredAt:new Date(now).toISOString(),customerId:null,payload:row.payload},'vip_crypto');
  const delivered:string[]=[];const injected={send:async(text:string)=>{delivered.push(text);return{kind:'accepted',messageId:'test-only'};}};
- for(const p of parts)await injected.send(p.text);assert.match(delivered.join(''),/Paper|paper/);
+ for(const p of parts)await injected.send(p.text);assert.match(delivered.join(''),/Signal entry reference|modeled/);
  const work=(await db.query('select * from signal_publication_work where entity_id=$1',[row.id])).rows[0] as any;
  const claim={id:work.id,entityType:work.entity_type,entityId:work.entity_id,eventType:work.event_type,eventVersion:work.event_version,destination:'vip_crypto' as const,customerId:null,attemptCount:1,leaseToken:'fixture-lease'};
  const truth={entityType:'lifecycle_event',entityId:row.id,eventType:row.event_type,eventVersion:1,occurredAt:new Date(now).toISOString(),customerId:null,payload:row.payload};

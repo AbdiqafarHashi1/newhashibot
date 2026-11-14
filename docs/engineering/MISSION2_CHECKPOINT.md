@@ -1,3 +1,5 @@
+> Current handoff: [Launch readiness — 15 November 2026](../launch/READINESS_20261115.md). The dated notes below preserve earlier states; the optional Gold trailing integration and sandbox expiry implementation supersede their unfinished-work statements.
+
 > Latest continuation: see [13 November strategy coverage](STRATEGY_COVERAGE_20261113.md). Twelve exact signal/demo configurations now have two positive costed canonical account periods; older checkpoint statements below describe their historical stage, not the current activation bundle. No production deployment or provider connectivity is claimed.
 
 # Mission 2 implementation checkpoint — canonical replay foundation
@@ -120,3 +122,20 @@ than interpreting an external data blocker as completed Mission 2.
 ## 12 November continuation: launch workspace and observed policy diagnostics
 
 See `HASHIBOT_LAUNCH_WORKSPACE_20261112.md` and `../research/mission2/WARMUP_POLICY_COMPARISON_20261112.md`. Public pages and admin research now expose genuine results without invented performance or provider-live claims. Three full current-source policy runs completed across ten symbols and two separate account-policy scenarios. Combined returned -2.477%, immediate-only -2.649%; conditional-only confirmed two signals but produced no spot-account entries. No profitable strategy or production activation is claimed. The published index now retains 15 studies, with exit/cost diagnostics and explicit history coverage. Mission 2 remains in progress; hosted full-account jobs and longer independent qualification remain unfinished.
+
+
+## 14 November continuation: focused income, static program basis and continued trading
+
+Read `../research/continuous-income-20261114/RESULTS.md`, full ledgers, source archive and SHA256SUMS before making return or readiness claims. The reviewed scanner/demo inventory remains thirteen configurations (5 crypto,4 Forex,4 Gold); the stronger dynamically trailed Gold RSI model is research-only and is not a fourteenth executable configuration.
+
+The bounded management follow-up selected M15 Gold RSI,0.4% risk, initial1.5ATR/structure stop,5R target, trail after2R by ONE closed-bar ATR, max24h. Six full months returned21.50%, five positive months, worst month−1.23%, maximum observed drawdown6.82%. Selected daily replay reconciles with management output. Its40-day marked-equity windows reached2% in93/133, median3.96%, worst−2.89%; windows overlap and are not independent pass probabilities or payouts. November remains partial through12Nov. All candidate selection reuses the source periods.
+
+Selected1ATR evaluation follow-up:1% risk funded7/13 8/5 starts within30days,8/13 within40; two guard failures over follow-up.0.75% funded5/13 within40 with zero modeled guard failures;0.5% funded0/13 within40. Above0.5% evaluation risks remain experimental and do not alter production Prop limits. Do not mistake no failure for completed funding or healthy ongoing participation. Retain complete censoring and losing results.
+
+Product code now defaults new onboarding preferences to0.5%, retains saved lower preferences/assignments, supports funded CONTINUE_TRADING objectives2/3/5%, and preserves optional STOP_AT_TARGET plus already-latched closures. Source-bound FTMO 2-Step Swing static original-balance / Prague midnight basis is supported without erasing observed peaks or changing loss percentages; custom/high-water profiles remain supported. Static authority is rebound to the current approved account profile at recording and authorization. Brain version1.1.2. Two new migrations are prepared, not hosted-applied. No deployment, account activation, orders, Telegram or payments occurred.
+
+The BTC/ETH August canonical ablation showed identical production/relaxed admission outcomes, while one-asset native comparisons favored Gold over adding USDJPY. 2–5% personal risk and leverage were tested across native crypto and short/long Gold setups; many paths were weak, inactive or deeply drawn down. Do not promote higher-risk stress scenarios. Customer pricing must reflect capital: a100USD fee on500USD capital requires20% just to cover software.
+
+Next engineering gap: implement the selected Gold RSI trailing policy in shared scanner/canonical lifecycle, certified execution transport and provider-owned stop management with restart parity, then run actual provider demo reconciliation and fresh forward observation. No paid-live or dependable-monthly-income conclusion follows from these retrospective tests. Existing thirteen reviewed signal/demo releases are unchanged.
+
+Additional cost check: selected0.4% still returned19.83% over the six full months when modeled commission, adverse fills and financing were doubled again. Native cost assumptions and reference quotes remain distinct from actual provider fills.

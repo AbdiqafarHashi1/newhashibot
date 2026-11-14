@@ -1,3 +1,5 @@
+> Superseded for current readiness by [15 November handoff](../launch/READINESS_20261115.md). This dated record describes the earlier branch state.
+
 # Strategy coverage — 13 November 2026
 
 Current code is in PR #271, not deployed to production. The original Gold releases remain in the exact signal/demo activation bundle. Twelve configurations have positive costed account outcomes in two separate complete canonical scanner/arbitration/account replays. These are forward-demo approvals, not live-account approval or a guaranteed monthly return.

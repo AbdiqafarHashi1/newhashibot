@@ -10,6 +10,7 @@ import os
 import time
 from pathlib import Path
 from config import Config
+from atr_trailing import validate_policy, closed_atr, next_stop
 
 
 class ManagedPositions:
@@ -52,6 +53,10 @@ class ManagedPositions:
         holding = payload.get('maximum_holding_seconds')
         if holding is not None and (isinstance(holding,bool) or not isinstance(holding,(int,float)) or not math.isfinite(holding) or holding != int(holding) or not 60 <= holding <= 30*86400):
             raise RuntimeError('CERTIFIED_HOLDING_LIMIT_INVALID')
+        if payload.get('trailing_policy') is not None:
+            validate_policy(payload['trailing_policy'])
+            if account.get('environment') != 'demo' or holding != 86400 or not single:
+                raise RuntimeError('MT5_TRAILING_DEMO_CONTRACT_REQUIRED')
         quantity = float(payload['quantity'])
         if not math.isfinite(quantity) or quantity <= 0 or abs(sum(float(c['quantity']) for c in children) - quantity) > 1e-9:
             raise RuntimeError('CHILD_APPROVED_QUANTITY_MISMATCH')
@@ -125,11 +130,51 @@ class ManagedPositions:
         self._save(path, record)
         return record['result']
 
+    def _trail(self, path, record, leg, position, market_cache):
+        validate_policy(record['payload']['trailing_policy'])
+        if self.client.get_account_info().get('environment') != 'demo':
+            raise RuntimeError('MT5_TRAILING_DEMO_ONLY')
+        side = 1 if leg['side'].lower() == 'buy' else -1
+        entry = float(leg.get('entry_price') or position['entry_price'])
+        initial_distance = side * (entry-float(leg['sl']))
+        current = float(position.get('sl') or 0)
+        price = float(position.get('current_price') or 0)
+        if not initial_distance > 0 or not current > 0 or not price > 0 or not math.isfinite(price):
+            return
+        state = leg.setdefault('trailing', {'initial_distance':initial_distance,'best_favorable':0})
+        if abs(state['initial_distance']-initial_distance) > 1e-8:
+            raise RuntimeError('TRAILING_INITIAL_RISK_CHANGED')
+        state['best_favorable'] = max(state['best_favorable'], side*(price-entry))
+        self._save(path, record)  # Survives cloud outages and restarts before modification.
+        symbol = leg['symbol']
+        if symbol not in market_cache:
+            market_cache[symbol] = self.client.get_market_data(record['payload']['symbol'], symbol, ['15m'], bars=32)
+        atr = closed_atr(market_cache[symbol], time.time())
+        if atr is None or time.time()-state.get('last_attempt_at',0) < 1:
+            return
+        spec = self.client.get_symbol_info(record['payload']['symbol'])
+        target = next_stop(side,entry,initial_distance,state['best_favorable'],current,atr,float(spec['tick_size']))
+        if side*(target-current) <= .5*float(spec['tick_size']):
+            return
+        state.update(last_attempt_at=time.time(),requested_stop=target,atr=atr)
+        self._save(path,record)
+        # A gap through the requested stop closes the exact owned ticket; never
+        # place an invalid stop behind the quote or move protection backwards.
+        if side*(price-target) <= 0:
+            self.client.close_position(str(position['ticket']),volume=None)
+            state['state'] = 'TRAIL_CLOSE_PENDING'
+        else:
+            result = self.client.modify_position(str(position['ticket']),sl=target,tp=leg['tp'])
+            observed = self._position(leg,self.client.get_positions())
+            state['state'] = 'OBSERVED' if result.get('success') and observed and side*(float(observed.get('sl') or 0)-target) >= -1e-8 else 'RETRY_REQUIRED'
+        self._save(path,record)
+
     def monitor(self):
         self._scope()
         if not self.directory.exists():
             return
         positions = self.client.get_positions()
+        market_cache = {}
         for path in self.directory.glob('*.json'):
             record = json.loads(path.read_text())
             if record.get('completed') and record.get('reported_lifecycle') == record['result'].get('lifecycle_event'):
@@ -151,6 +196,12 @@ class ManagedPositions:
                         record['management'] = {'reason':'MAXIMUM_HOLD','deadline_at':deadline,'state':'CLOSE_PENDING'}
                         self._save(path,record)
                         self.client.close_position(str(position['ticket']),volume=None)
+                if record['payload'].get('trailing_policy') is not None and not record.get('management'):
+                    try:
+                        self._trail(path, record, leg, position, market_cache)
+                    except Exception as error:
+                        leg.setdefault('trailing', {})['read_error'] = type(error).__name__
+                        self._save(path, record)
                 # Repair absent protection without loosening a better existing stop.
                 current_stop = float(position.get('sl') or 0)
                 buy = leg['side'].lower() == 'buy'

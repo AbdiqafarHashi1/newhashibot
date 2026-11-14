@@ -28,3 +28,4 @@ test('returning Prop buyers resume their saved phase and connection step',()=>{
  const saved={...initialOnboarding,provider:'MT5' as const,asset:'FOREX' as const,mode:'PROP' as const,access:'AUTO' as const,propPhase:'VERIFICATION' as const,stage:12,ack:true};
  const resumed=propOnboardingEntry(saved,true);assert.equal(resumed.stage,12);assert.equal(resumed.propPhase,'VERIFICATION');assert.equal(resumed.ack,true);
 });
+test('new onboarding starts at 0.5% while saved lower-risk preferences and Prop cap remain intact',()=>{assert.equal(initialOnboarding.risk,.5);const low=propOnboardingEntry({...initialOnboarding,mode:'PERSONAL',risk:.25},true);assert.equal(low.risk,.25);const high=propOnboardingEntry({...initialOnboarding,mode:'PERSONAL',risk:5},true);assert.equal(high.risk,.5)});

@@ -1,0 +1,228 @@
+{
+  "schema": "native-gold-management/v1",
+  "sourceSha256": "86c8350e0b7779af7aa83326d7c1b14306e15cbd5a0d99ff8157bf6406711533",
+  "cases": [
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 1.5,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.4,
+      "trigger": 2,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 1.5,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 1,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 1,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 1.5,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 1.5,
+      "holdMinutes": 1440
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 2,
+      "holdMinutes": 240
+    },
+    {
+      "risk": 0.5,
+      "trigger": 2,
+      "trailATR": 2,
+      "holdMinutes": 1440
+    }
+  ],
+  "capital": 25000,
+  "guard": "STATIC8% / daily4% at UTC reset; no target cutoff; leverage5",
+  "entry": "Fixed M15 RSI exhaustion,n12,1.5ATR/structural stop,5R target; only management variables change",
+  "trailing": "At the selected triggerR, tighten monotonically to max(+0.5R,bestMove-trailATR*latestClosedATR), delayed1s. Stops never widen.",
+  "selection": "Predeclare 36 management cases after baseline and short-frame results. All data reused; results remain development selection, not independent validation.",
+  "costs": "Same ordered Exness RawSpread bid/ask,commission5.25/lot/side,adversefill0.075/oz/side,entry3s,management1s,1.5bps/day adverse carry."
+}

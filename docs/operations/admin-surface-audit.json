@@ -2,7 +2,7 @@
   "baseCommit": "de55838aed5b2ace36098022b9032b3aef683403",
   "scope": "All available admin page and operations component source; static inventory, not proof of server permission or genuine provider behavior.",
   "routeCount": 72,
-  "surfaceCount": 140,
+  "surfaceCount": 151,
   "routes": [
     {
       "route": "/admin/investor",
@@ -506,7 +506,7 @@
     },
     {
       "file": "src/pages/admin/LaunchSetup.tsx",
-      "sourceHash": "65f2462c32fb0d10be35d685bcd39ba9687c9b2e90c5f37f169cd4aac80755fa",
+      "sourceHash": "8bd92d3e17885299ede3d5337bc0c06037ab5eef7cf8c8f0460511d881151b52",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -685,7 +685,7 @@
     },
     {
       "file": "src/pages/admin/PropTradingPanel.tsx",
-      "sourceHash": "5c67269ebacab6412910ae3da66e1a982ac1ab9cf85ac5def6a657a7844b97bd",
+      "sourceHash": "9ff0d1276b6c9c64f4d773062b040bab4e2c221176dbf1afb8fc137c52557180",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -819,7 +819,7 @@
     },
     {
       "file": "src/pages/admin/ProviderOverview.tsx",
-      "sourceHash": "75980d2b47ad64e08533dd56d8797accf9e921c8c0822d9aa19f8289a23af5a0",
+      "sourceHash": "a1be96e9abf1f1e0cf8751b088c80aa25e02b050b92714d84b6076ff631c08b5",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -878,7 +878,7 @@
     },
     {
       "file": "src/pages/admin/Research.tsx",
-      "sourceHash": "37e42790f3bfff854accb8fce19af16d7929a311d2553d6afb99aa2fd2ed2e4a",
+      "sourceHash": "c9772305ff1b06314ae7bf8ea5cf2daf8f4c5bd6f70c3f754c28927b4a4fbd46",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1073,7 +1073,7 @@
     },
     {
       "file": "src/pages/admin/TelegramHub.tsx",
-      "sourceHash": "76beae845e0e97942e9834b86c38c1c1a5e54fe8718d1336596a83a38e0c857a",
+      "sourceHash": "ebb43eb28f81048a492ab36a1e2239c738340aa3b751c1a7a83e6c5d0fc4b532",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1217,6 +1217,14 @@
     {
       "file": "src/pages/admin/backtest/KnowledgeGuide.tsx",
       "sourceHash": "f82ee9a836bf703a41eae2d7762a5ecc8dfe752a329d234e9cee41a4e9c57f2f",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/pages/admin/backtest/LaunchStrategyResearch.tsx",
+      "sourceHash": "d4221e2818bd752379f174c605d25d21b76d9b0d19f9de154ad3a3e41cf95f21",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -1496,7 +1504,7 @@
     },
     {
       "file": "src/components/operations/AccountPolicyOperations.tsx",
-      "sourceHash": "004013627f6a8a170775613cbd81f7c62cdaf5141353216d6f695c3489b51b0e",
+      "sourceHash": "b3a85ba03d408f0090cd672bb9ed1a3b87960d3a223e7ef0c28f0580bc8242c2",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1521,7 +1529,20 @@
     },
     {
       "file": "src/components/operations/AccountSnapshot.tsx",
-      "sourceHash": "df924eccc562be63a95178acc523c47c88eb82a27bc24fa4d90a217e5c45fce2",
+      "sourceHash": "3be1c8c8bdb6bf5002e217e8b3bf4802d52bf22e773d99a24bd31bca207abc9f",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/AccountStrategySelection.tsx",
+      "sourceHash": "5cf24bbb10dae0691dd5c87f7a74497f8b98e02a8cf02ecf40bb37d8d8d6e9f8",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1534,7 +1555,7 @@
     },
     {
       "file": "src/components/operations/AccountTradingControls.tsx",
-      "sourceHash": "3d4ad26370e785126bb2ee96cc607590c7dda9a0a3db08c74d831731bb9f1a0e",
+      "sourceHash": "7d8f9678322779410ca9015c78b1ed42aab4d4704c28d94f6d82d5ee90371388",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1542,6 +1563,14 @@
           "target": "'phase-h-authority'"
         }
       ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/AdminSetupWorkbench.tsx",
+      "sourceHash": "406bf53d49f483845b8fa497f69a585a6ff809b505d32a369533794ecc174034",
+      "internalUiLabels": [],
+      "backendReferences": [],
       "directMutationEdges": [],
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
@@ -1563,7 +1592,7 @@
     },
     {
       "file": "src/components/operations/CommerceConnections.tsx",
-      "sourceHash": "a215ea157d3f7a5cf7acfff64d475f3fcce09800e7e6c0d9296d3c96f91a4a2c",
+      "sourceHash": "af190d522b24d89a230b342f384e417afa12b6da001dc70f9a7ccc2693ca8f06",
       "internalUiLabels": [],
       "backendReferences": [
         {
@@ -1821,6 +1850,63 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/components/operations/PropCampaignResults.tsx",
+      "sourceHash": "5e4fe2779d41846823f4873cb048a6d9d2d139910d9cc6f67c47c6a9da188b93",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PropObjectiveResults.tsx",
+      "sourceHash": "af758e2438269b345c161377eed38884d50132e83a8e8bc31475acf91b2b4c47",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PropPayoutResults.tsx",
+      "sourceHash": "7aa3a5ab57d474e9ae86c789b93b26dfe8d79f668a1cd5b1bc2deeaed0fcbf07",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PropPracticalPlan.tsx",
+      "sourceHash": "44675347d9deba64ae92fbf66a7e92adeb78c35eda09e6609aec9879ad5b2d08",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PropProfitCycle.tsx",
+      "sourceHash": "b41d45222b71ce49211a538d3094bf841605063e3f35202849fa70d2684a8d64",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'prop_profit_cycles'"
+        },
+        {
+          "method": "rpc",
+          "target": "'reset_prop_profit_cycle'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/PropSpeedAudit.tsx",
+      "sourceHash": "925ece3ad077018989b4d14973085878507589305c6bd790c6699e394599dae4",
+      "internalUiLabels": [],
+      "backendReferences": [],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/components/operations/RegimeGapResearchPanel.tsx",
       "sourceHash": "7ea963132df26db776f535810c3851bc83c8dedc920cfbdce00ff356480326d3",
       "internalUiLabels": [],
@@ -1922,8 +2008,42 @@
       "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
     },
     {
+      "file": "src/components/operations/TelegramDayReview.tsx",
+      "sourceHash": "c226f8359db325bb92401240b4d3f0acff5f106b6551b2debef36a92e35e88ae",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "from",
+          "target": "'scanner_runs'"
+        },
+        {
+          "method": "from",
+          "target": "'conditional_setup_history'"
+        },
+        {
+          "method": "from",
+          "target": "'canonical_reporting_operations'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
+      "file": "src/components/operations/TestedStrategyActivation.tsx",
+      "sourceHash": "d178e4e3b1fa4adc85802ac9c8a89df8dad9db0df800d4fa11a84077f79df883",
+      "internalUiLabels": [],
+      "backendReferences": [
+        {
+          "method": "invoke",
+          "target": "'phase-h-authority'"
+        }
+      ],
+      "directMutationEdges": [],
+      "verification": "STATIC_SOURCE_INVENTORY_NOT_RUNTIME_CERTIFICATION"
+    },
+    {
       "file": "src/components/operations/mt5/MT5AccountsTab.tsx",
-      "sourceHash": "2c4c9f970230b8864d7a42efa3e0671e241b867cf28ccb6eb1231219b333e44f",
+      "sourceHash": "51daad04d232270d1c5c0973a9ae5412dce6bb7034023e73d44721efa37dc490",
       "internalUiLabels": [],
       "backendReferences": [],
       "directMutationEdges": [],
@@ -2017,7 +2137,7 @@
     },
     {
       "file": "src/components/operations/mt5/OwnerForexFeedSetup.tsx",
-      "sourceHash": "122fcdd511326a367e02d1d14ce239501fd6467d6d2f2f76e3a79f23ae6c879d",
+      "sourceHash": "6684b211c400215294d6eaa0a9ac0a24d28c0fbbd6ac7a8832e22af5addea3c7",
       "internalUiLabels": [],
       "backendReferences": [
         {

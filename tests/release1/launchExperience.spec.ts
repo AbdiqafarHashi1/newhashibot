@@ -1,3 +1,4 @@
+import {EXECUTION_CANONICAL_REVIEWS} from '../../supabase/functions/_shared/execution-canonical-reviews';
 import { test, expect } from '@playwright/test';
 // Explicit network-failure checks must reach the routed request, not an installed PWA worker.
 test.use({serviceWorkers:'block'});
@@ -27,16 +28,16 @@ test('admin workspace opens current state without fictional customers or the pre
  await page.route('**/*.supabase.co/**',r=>r.fulfill({status:503,json:{error:'Backend unavailable in UI test'}}));await page.goto('/');await page.getByRole('button',{name:'Admin workspace',exact:true}).filter({visible:true}).first().click();await expect(page).toHaveURL(/\/admin\/launch$/);await expect(page.getByRole('heading',{name:'Your launch workspace',exact:true})).toBeVisible();await expect(page.getByLabel('Preview customer',{exact:true})).toHaveCount(0);await expect(page.getByText('OWNER PREVIEW — simulated data; no real actions.',{exact:true})).toHaveCount(0);await expect(page.locator('body')).not.toContainText('Amina');await expect(page.locator('body')).not.toContainText('Yusuf');
 });
 
-test('launch setup exposes the twelve tested configurations and their exact account periods',async({page})=>{
+test('launch setup exposes the reviewed configurations and their exact account periods',async({page})=>{
  await page.addInitScript(()=>sessionStorage.setItem('hashibot.owner-preview.v1','admin-shell'));
  await page.route('**/*.supabase.co/**',route=>route.fulfill({status:503,json:{error:'Backend unavailable in UI test'}}));
  await page.goto('/admin/launch');
  const bundle=page.locator('section').filter({has:page.getByRole('heading',{name:'Enable tested strategies',exact:true})});
- await expect(bundle.getByRole('checkbox')).toHaveCount(12);
+ await expect(bundle.getByRole('checkbox')).toHaveCount(EXECUTION_CANONICAL_REVIEWS.length);
  await expect(bundle.getByRole('checkbox',{name:/^LTC range reversal/})).toBeVisible();
  await bundle.getByText('Inspect tested periods and account results',{exact:true}).click();
  const table=bundle.getByRole('table',{name:'Tested strategy account periods'});
- await expect(table.getByRole('row')).toHaveCount(25);
+ await expect(table.getByRole('row')).toHaveCount(1+EXECUTION_CANONICAL_REVIEWS.reduce((n,r)=>n+r.periods.length,0));
  await expect(table.getByRole('columnheader',{name:'Net return',exact:true})).toBeVisible();
  await expect(bundle.getByText(/not monthly returns or a combined portfolio result/)).toBeVisible();
  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);

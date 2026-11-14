@@ -1,3 +1,5 @@
+import {validateAtrTrailingPolicy,nextAtrTrailingStop,simpleClosedAtr,type AtrTrailingState} from './atr-trailing-policy.ts';
+import {closedAggregate} from './regime-opportunities.ts';
 import {evaluateAccountSignal,type AccountEvaluationInput,type AccountDecisionRecord} from './account-policy-authority.ts';
 import type {AccountExecutionContext,OpenPositionSummary} from './account-execution-brain/types.ts';
 import type {ConditionalSetup} from './conditional-signal-service.ts';
@@ -11,7 +13,7 @@ export interface HistoricalExecutionSpec {
  provenance:{kind:'HISTORICAL_VENUE_SPEC'|'DOCUMENTED_ASSUMPTION';source:string;limitations:string[]};
 }
 export interface HistoricalQuote {symbol:string;at:number;bid:number;ask:number;conversion:number;}
-export interface LedgerPosition {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;quantity:number;originalQuantity:number;entry:number;stop:number;tp1:number;tp2:number;partialFraction:number;breakEven:boolean;partialDone:boolean;openedAt:number;expiresAt:number;lastBar:number;mark:number;conversion:number;entryRisk:number;realizedGross:number;costs:number;funding:number;}
+export interface LedgerPosition {trailing?:{state:AtrTrailingState;atrRows:{open_time:string;high:number;low:number;close:number}[];pendingBars:StrategyCandle[]};id:string;signalId:string;strategy:string;symbol:string;side:1|-1;quantity:number;originalQuantity:number;entry:number;stop:number;tp1:number;tp2:number;partialFraction:number;breakEven:boolean;partialDone:boolean;openedAt:number;expiresAt:number;lastBar:number;mark:number;conversion:number;entryRisk:number;realizedGross:number;costs:number;funding:number;}
 export interface HistoricalTrade {id:string;signalId:string;strategy:string;symbol:string;side:1|-1;openedAt:number;closedAt:number;entry:number;exit:number;quantity:number;gross:number;costs:number;funding:number;net:number;netR:number;reason:string;}
 export interface LedgerSnapshot {schema:'historical-account-ledger/v1';balance:number;equity:number;peakEquity:number;maximumDrawdown:number;day:string;dayStart:number;dayPeak:number;dailyLocked:boolean;failed:boolean;through:number|null;priceUnavailable?:boolean;lastObservation?:number;lastBatchContent?:string;positions:LedgerPosition[];trades:HistoricalTrade[];seenSignals:string[];decisions:{signalId:string;at:number;decision:string;reasons:string[];quantity:number}[];equityPath:{at:number;balance:number;equity:number;kind:string;dailyLocked:boolean;failed:boolean;openPositions?:number;entries?:number}[];charged:string[];financingReceipts?:Record<string,string>;}
 export interface HistoricalAccountPolicy {purpose:'HISTORICAL_RESEARCH';initialCapital:number;timezone:string;dailyLossPct:number;overallLossPct:number;drawdown:'STATIC'|'TRAILING';dailyBasis:'DAY_START_BALANCE'|'INITIAL_BALANCE';stopOutMarginRatio:number;propContextModel?:'CONSERVATIVE_OBSERVED_HIGH_WATER'|'HISTORICAL_STATIC_INITIAL_BALANCE';}
@@ -77,7 +79,8 @@ export class HistoricalAccountLedger {
   if(q<spec.minimumQuantity||Math.abs(q/spec.quantityStep-Math.round(q/spec.quantityStep))>1e-6||q*price*spec.contractSize*quote.conversion<spec.minimumNotional)return reject('BROKER_QUANTITY_OR_NOTIONAL_INVALID');
   const fees=spec.commissionPerQuantityPerSide!==undefined?q*spec.commissionPerQuantityPerSide:q*price*spec.contractSize*quote.conversion*spec.feeBpsPerSide/10000;
   if(q*price*spec.contractSize*quote.conversion/spec.leverage+fees>context.free_margin)return reject('BROKER_MARGIN_INSUFFICIENT');
-  s.seenSignals.push(id);s.balance-=fees;s.positions.push({id:`simulated:${input.account.id}:${id}`,signalId:id,strategy:setup.strategy,symbol:setup.symbol,side,quantity:q,originalQuantity:q,entry:price,stop:setup.stop,tp1:setup.tp1,tp2:setup.tp2,partialFraction:setup.management?.partialFraction??.5,breakEven:setup.management?.breakEvenAfterTp1??false,partialDone:false,openedAt:quote.at,expiresAt:quote.at+setup.holdBars*watchWidth(setup.timeframe),lastBar:quote.at-1,mark:side===1?quote.bid:quote.ask,conversion:quote.conversion,entryRisk:distance*q*spec.contractSize*quote.conversion,realizedGross:0,costs:fees,funding:0});
+  if(setup.origin?.plan.management_intent?.trailing_policy)validateAtrTrailingPolicy(setup.origin.plan.management_intent?.trailing_policy);
+  s.seenSignals.push(id);s.balance-=fees;s.positions.push({...(setup.origin?.plan.management_intent?.trailing_policy?{trailing:{state:{initialDistance:distance,bestFavorable:0,stop:setup.stop},atrRows:structuredClone(setup.origin.plan.evidence.strategy_specific.atr_seed_rows) as {open_time:string;high:number;low:number;close:number}[],pendingBars:[]}}:{}),id:`simulated:${input.account.id}:${id}`,signalId:id,strategy:setup.strategy,symbol:setup.symbol,side,quantity:q,originalQuantity:q,entry:price,stop:setup.stop,tp1:setup.tp1,tp2:setup.tp2,partialFraction:setup.management?.partialFraction??.5,breakEven:setup.management?.breakEvenAfterTp1??false,partialDone:false,openedAt:quote.at,expiresAt:quote.at+setup.holdBars*watchWidth(setup.timeframe),lastBar:quote.at-1,mark:side===1?quote.bid:quote.ask,conversion:quote.conversion,entryRisk:distance*q*spec.contractSize*quote.conversion,realizedGross:0,costs:fees,funding:0});
   s.decisions.push({signalId:id,at:quote.at,decision:decision.decision,reasons:[...decision.reasonCodes],quantity:q});this.record(quote.at,'ENTRY');return decision;
  }
  private fill(p:LedgerPosition,quantity:number,reference:number,at:number,reason:string){
@@ -107,6 +110,16 @@ export class HistoricalAccountLedger {
    if(!p.partialDone&&(p.side===1?high>=p.tp1:low<=p.tp1)){const q=Math.floor(p.quantity*p.partialFraction/spec.quantityStep)*spec.quantityStep;if(q>=spec.minimumQuantity&&p.quantity-q>=spec.minimumQuantity){this.fill(p,q,p.tp1,markAt,'PARTIAL_TP1');p.partialDone=true;if(p.breakEven){p.stop=p.entry;if(p.side===1?low<=p.stop:high>=p.stop){this.fill(p,p.quantity,p.stop,markAt,'SAME_BAR_BREAK_EVEN_CONSERVATIVE');continue;}}}}
    p.mark=p.side===1?b.close:b.ask_close??b.close+spread;
    if(at>=p.expiresAt)this.fill(p,p.quantity,p.mark,markAt,'TIME_EXIT');
+   else if(p.trailing){
+    const t=p.trailing;t.pendingBars.push(structuredClone(b));t.pendingBars=t.pendingBars.slice(-3);
+    if(at%900000===0&&t.pendingBars.length===3&&t.pendingBars.every((r,i,a)=>r.timeframe==='5m'&&Date.parse(r.open_time)===at-900000+i*300000)){
+     const aggregate=closedAggregate(t.pendingBars,15,new Date(at).toISOString()).at(-1);
+     if(aggregate){t.atrRows.push({open_time:aggregate.open_time,high:aggregate.high,low:aggregate.low,close:aggregate.close});t.atrRows=t.atrRows.slice(-15);}
+    }
+    const atr=simpleClosedAtr(t.atrRows);
+    t.state.bestFavorable=Math.max(t.state.bestFavorable,p.side*((p.side===1?b.high:b.ask_low??b.low+spread)-p.entry));
+    if(atr){p.stop=nextAtrTrailingStop({side:p.side,entry:p.entry,initialDistance:t.state.initialDistance,bestFavorable:t.state.bestFavorable,currentStop:p.stop,atr,tick:spec.tickSize});t.state.stop=p.stop;}
+   }
   }
   this.record(markAt,'CLOSED_BAR_MARK');this.state.lastObservation=at;this.state.lastBatchContent=content;this.advance(at);
  }

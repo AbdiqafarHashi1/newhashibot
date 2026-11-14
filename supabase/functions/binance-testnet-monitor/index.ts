@@ -1,3 +1,4 @@
+import {executionAccessBoundary,ownedExpiryQuantity,type ExecutionAccessBoundary} from '../_shared/execution-access-expiry.ts';
 function binanceEnvironment(): 'testnet'|'live' {try{return currentEdgeProviderCredential('binance').ownership.environment==='live'?'live':'testnet'}catch{return 'testnet'}}
 import {mergeMonitorStatistics} from '../_shared/monitor-statistics.ts';
 import {admitBinanceFinancials,observedFinancialNumber} from '../_shared/provider-snapshot-admission.ts';
@@ -1125,7 +1126,8 @@ async function cancelOpenOrder(symbol: string, order: BinanceOrder) {
 
 async function cancelOpenConditionalsForRow(row: Row, openOrders: BinanceOrder[], stats: MonitorStats): Promise<Array<string | number | undefined>> {
   const cancelled: Array<string | number | undefined> = [];
-  for (const order of openOrders) {
+  const ownedIds=new Set(['replacement_sl_algo_id','replacement_sl_order_id','sl_algo_id','binance_sl_order_id','tp1_algo_id','binance_tp1_order_id','tp2_algo_id','binance_tp2_order_id','entry_order_id','binance_entry_order_id','sl_order_id','tp1_order_id','tp2_order_id'].map(k=>row[k]).filter(Boolean).map(String));
+  for (const order of openOrders.filter(o=>ownedIds.has(String(o.algoId??o.orderId??'')))) {
     try {
       await cancelOpenOrder(row.symbol, order);
       cancelled.push(order.algoId ?? order.orderId);
@@ -1197,12 +1199,36 @@ async function monitorRow(supabase: SupabaseClient, row: Row, stats: MonitorStat
   const hasPosition = Math.abs(positionAmt) > 0;
   const hasOpenOrders = openOrders.length > 0;
   const now = new Date().toISOString();
+  let access:ExecutionAccessBoundary|undefined;
+  try{access=await executionAccessBoundary(supabase,currentEdgeProviderCredential('binance').ownership,'BINANCE')}catch{addMonitorWarning(stats,{id:row.id,symbol:row.symbol,warning:'EXECUTION_ACCESS_READ_UNAVAILABLE',action:'retain_protection_retry_access_read',source:'row'});}
   const deadline = timeStopDeadline(row);
   const maxHoldMinutes = row.max_hold_minutes ?? timeStopMinutes(row.strategy_name, row.timeframe);
   const mode = profitLockMode(settings);
   const update: Record<string, unknown> = { current_position_size: positionAmt, latest_mark_price: markPrice, latest_unrealized_pnl: unrealizedPnl, latest_sync_at: now, last_monitor_checked_at: now, last_monitor_action: "synced", ...profitLockStudyUpdate(row, markPrice, unrealizedPnl, hasPosition, mode, stats) };
   if (deadline) { update.expires_at = deadline; update.time_stop_deadline_at = deadline; }
   if (maxHoldMinutes) update.max_hold_minutes = maxHoldMinutes;
+
+  if(access?.state==='EXPIRED'){
+    const entryId=String(row.binance_entry_order_id??row.entry_order_id??'');
+    if(!entryId)throw Error('EXPIRED_ENTRY_NATIVE_BINDING_REQUIRED');
+    const found=await fetchEntryOrder(row.symbol,entryId);if(!found.order)throw Error('EXPIRED_ENTRY_LOOKUP_UNAVAILABLE');
+    if(['NEW','PARTIALLY_FILLED'].includes(String(found.order.status)))await cancelEntryOrder(row.symbol,entryId);
+    const final=await fetchEntryOrder(row.symbol,entryId);if(!final.order||!['FILLED','CANCELED','EXPIRED','REJECTED'].includes(String(final.order.status)))throw Error('EXPIRED_ENTRY_CANCELLATION_UNCONFIRMED');
+    const filled=n(final.order.executedQty),owned=n(row.remaining_quantity)||n(row.remaining_qty)||filled;
+    const freshBody=await binanceRequest('/fapi/v2/positionRisk',{symbol:row.symbol});
+    if(!Array.isArray(freshBody))throw Error('EXPIRY_POSITION_SNAPSHOT_UNAVAILABLE');
+    const fresh=freshBody.filter((p:BinancePosition)=>p.symbol===row.symbol&&Math.abs(n(p.positionAmt))>0);if(fresh.length>1)throw Error('EXPIRY_POSITION_AMBIGUOUS');
+    const currentAmt=fresh.length?n(fresh[0].positionAmt):0;
+    if(currentAmt!==0&&filled>0){
+      const qty=ownedExpiryQuantity(Math.abs(currentAmt),Math.min(owned,filled));
+      if((currentAmt>0?'BUY':'SELL')!==String(row.direction).toUpperCase().replace('LONG','BUY').replace('SHORT','SELL'))throw Error('EXPIRY_POSITION_SIDE_MISMATCH');
+      if(qty>0)await closeReduceOnly(row,qty,`subscription-${access.entitlement_id}`);
+    }else if(currentAmt!==0&&filled===0)throw Error('EXPIRY_POSITION_OWNERSHIP_UNCONFIRMED');
+    // A native filled close is required above. Failure leaves SL/TP installed.
+    await cancelRemainingProtection(row,stats);await cancelOpenConditionalsForRow(row,openOrders,stats);
+    const saved=await supabase.from('execution_orders').update({...update,status:'closed_expired',lifecycle_state:'CLOSED',expiry_reason:'EXECUTION_ACCESS_EXPIRED',expiry_status:'NATIVE_CLOSE_CONFIRMED',remaining_quantity:0,remaining_qty:0,runner_active:false}).eq('id',row.id).eq('execution_scope_key',row.execution_scope_key);
+    if(saved.error)throw Error('EXPIRY_CLOSE_RESULT_NOT_PERSISTED');stats.updated++;return;
+  }
 
   if (deadline && Date.now() >= new Date(deadline).getTime() && ACTIVE_STATUSES.includes(row.status)) {
     const afterTp1 = Boolean(row.tp1_filled || row.tp1_closed_at || row.runner_active);

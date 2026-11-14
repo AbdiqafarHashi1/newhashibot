@@ -1,4 +1,4 @@
-import {isFtmoSwingRules} from '../prop-program.ts';
+import {isFtmoSwingRules,isSourceBoundFtmoStaticRules} from '../prop-program.ts';
 /**
  * HashiBot Account Execution Brain — MT5 Prop Brain Implementation
  * Phase 3 MT5 Prop Account Execution Brain
@@ -25,7 +25,7 @@ import {
 
 export class Mt5PropBrain implements AccountExecutionBrain {
   readonly provider = "MT5_PROP" as const;
-  readonly brain_version = "1.1.1";
+  readonly brain_version = "1.1.2";
 
   /**
    * Evaluates a prop account's operational state against hard drawdown rules, trailing drawdown caps,
@@ -85,7 +85,8 @@ export class Mt5PropBrain implements AccountExecutionBrain {
     const floatingDrawdownAmount = context.total_drawdown.high_water_mark - context.equity;
     const floatingDrawdownPct = (floatingDrawdownAmount / context.total_drawdown.high_water_mark) * 100;
     const isolatedStaticStudy=policy.historical_static_loss_basis===true&&context.user_id==='isolated-research-customer'&&context.environment==='DEMO';
-    if (!isolatedStaticStudy && floatingDrawdownPct >= policy.max_total_drawdown_pct) {
+    const approvedStaticProgram=isSourceBoundFtmoStaticRules(context.prop_rules);
+    if (!isolatedStaticStudy && !approvedStaticProgram && floatingDrawdownPct >= policy.max_total_drawdown_pct) {
       violations.push(
         createRuleViolation({
           rule_id: "rule_prop_floating_drawdown_limit",

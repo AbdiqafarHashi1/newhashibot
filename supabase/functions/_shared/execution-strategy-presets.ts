@@ -1,3 +1,4 @@
+import {GOLD_RSI_TRAILING} from './atr-trailing-policy.ts';
 import {EXECUTION_CANONICAL_REVIEWS} from './execution-canonical-reviews.ts';
 import {FRONTIER_CANONICAL_REVIEWS} from './frontier-canonical-reviews.ts';
 import {LAUNCH_CANONICAL_REVIEWS} from './launch-canonical-reviews.ts';
@@ -11,6 +12,8 @@ export function executionStrategyPresets(provider:string,environment:string){
  const reviewed=LAUNCH_CANONICAL_REVIEWS.map(r=>r.strategyId).filter(id=>available.has(id));
  const definitions=[
   {id:'reviewed',label:provider.toUpperCase()==='MT5_PROP'?'Prop · reviewed Forex & Gold':'All reviewed configurations',ids:reviewed},
+  {id:'gold-trailing',label:'Gold · focused RSI trailing',ids:available.has(GOLD_RSI_TRAILING)&&EXECUTION_CANONICAL_REVIEWS.some(r=>r.strategyId===GOLD_RSI_TRAILING)?[GOLD_RSI_TRAILING]:[]},
+  {id:'crypto-focused',label:'Crypto · focused trend pullback',ids:available.has('crypto.launch-trend-pullback-48-1.5-5')?['crypto.launch-trend-pullback-48-1.5-5']:[]},
   {id:'gold-compression',label:'Gold · compression · full 5R',ids:FRONTIER_CANONICAL_REVIEWS.map(r=>r.strategyId).filter(id=>available.has(id))},
   {id:'gold',label:'Gold · momentum & reversal',ids:reviewed.filter(id=>id.startsWith('gold.'))},
   {id:'forex',label:'Forex · Yen & Sterling',ids:reviewed.filter(id=>id.startsWith('forex.'))},
@@ -21,6 +24,7 @@ export function executionStrategyPresets(provider:string,environment:string){
  return definitions.filter(p=>p.ids.length>0);
 }
 const friendlyNames:Record<string,string>={
+ [GOLD_RSI_TRAILING]:'Gold RSI trailing · 15m · one ATR after 2R',
  'gold.frontier-compression-15-24-1.5-5-h96':'Gold compression · 15m · 5R · up to 24h',
  'crypto.launch-trend-pullback-48-1.5-5':'Crypto trend pullback · 1.5 ATR / 5R',
  'crypto.launch-trend-pullback-48-2-3-h72':'Crypto trend pullback · 2 ATR / 3R',

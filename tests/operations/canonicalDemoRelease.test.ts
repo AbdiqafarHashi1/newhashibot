@@ -16,3 +16,21 @@ test('LTC retains its small positive 2026 observation without counting it as a q
  const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto'),review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId==='crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006')!;
  assert.equal(review.periods.length,2);assert(review.periods.every(p=>p.metrics.closedTrades>=10));assert('supportingObservations' in review);const observation=review.supportingObservations[0],raw=gunzipSync(readFileSync('docs/research/launch-20261113/canonical/crypto-ltc-range-2026.json.gz')),report=JSON.parse(raw.toString());assert.equal(observation.metrics.closedTrades,9);assert.equal(createHash('sha256').update(raw).digest('hex'),observation.reportSha256);assert.deepEqual(report.accounts[0].metrics,observation.metrics);
 });
+
+test('optional Gold trailing releases bind the complete integrated account ledgers rather than native research returns',async()=>{
+ const {RSI_TRAILING_CANONICAL_REVIEWS}=await import('../../supabase/functions/_shared/rsi-trailing-canonical-reviews');
+ const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto');
+ const review=RSI_TRAILING_CANONICAL_REVIEWS[0],root='docs/research/demo-completion-20261114/';
+ const manifest=JSON.parse(readFileSync(root+'SHA256SUMS.json','utf8'));
+ for(const [file,digest] of Object.entries(manifest))assert.equal(createHash('sha256').update(readFileSync(root+file)).digest('hex'),digest,file);
+ for(const [i,period] of ['early','later'].entries()){
+  const raw=gunzipSync(readFileSync(root+`gold-rsi-${period}.json.gz`)),report=JSON.parse(raw.toString()),proof=review.periods[i];
+  assert.equal(createHash('sha256').update(raw).digest('hex'),proof.reportSha256);
+  assert.equal(report.status,'COMPLETED');assert.equal(report.engineSourceSha256,proof.engineSourceSha256);
+  assert.equal(report.experiment.strategyScope,review.strategyId);assert.equal(report.accounts.length,1);
+  const account=report.accounts[0];assert.equal(account.capital,proof.capital);assert.equal(account.riskPct,proof.riskPct);
+  assert.deepEqual(account.metrics,proof.metrics);assert(account.metrics.expectancyR>0);assert.equal(account.metrics.openPositions,0);
+ }
+ const bundle=buildCanonicalDemoBundle([review.strategyId],RSI_TRAILING_CANONICAL_REVIEWS);
+ assert.equal(bundle.strategies.length,1);assert.equal(bundle.strategies[0].strategyId,review.strategyId);
+});

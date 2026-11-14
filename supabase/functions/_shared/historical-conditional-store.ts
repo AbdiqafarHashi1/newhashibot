@@ -1,3 +1,4 @@
+import {validateTrailingTransition,validateAtrTrailingPolicy} from './atr-trailing-policy.ts';
 import type {ConditionalStore} from './conditional-signal-runtime.ts';
 import {resolvedWatchState} from './conditional-signal-runtime.ts';
 import {entryPolicyQualified,entryPolicyResearchAuthorized} from './entry-decision.ts';
@@ -11,7 +12,7 @@ export interface HistoricalStoreSnapshot {
  events:HistoricalLifecycleEvent[];
  rejections:{setupId:string;reason:string;at:string}[];
 }
-const mutable=new Set(['status','version','lastBar','armedAt','fill','bars','partial','netR','result','exit','fillAt','observedAt','confirmationIntelligence','entryDecision','evaluationOutcome','watchOutcome','confirmationEvidence']);
+const mutable=new Set(['trailingState','status','version','lastBar','armedAt','fill','bars','partial','netR','result','exit','fillAt','observedAt','confirmationIntelligence','entryDecision','evaluationOutcome','watchOutcome','confirmationEvidence']);
 const canonical=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
 const frozen=(s:ConditionalSetup)=>canonical(Object.fromEntries(Object.entries(s).filter(([k])=>!mutable.has(k))));
 const open=(s:ConditionalSetup)=>['WAITING','ARMED','ACTIVE'].includes(s.status);
@@ -46,6 +47,7 @@ export class HistoricalConditionalStore implements ConditionalStore {
   if(old){
    if(old.state.version===s.version){if(canonical(old.state)===canonical(s))return true;throw Error('CONDITIONAL_CONTENT_CONFLICT');}
    if(old.state.version!==expected||s.version!==expected+1)return false;
+   if(s.trailingState||old.state.trailingState){validateAtrTrailingPolicy(s.origin.plan.management_intent?.trailing_policy);validateTrailingTransition(old.state.trailingState,s.trailingState,s.side==='buy'?1:-1,s.fill!,s.stop);}
    if(frozen(old.state)!==frozen(s))throw Error('IMMUTABLE_SETUP_PLAN');
    if(old.state.watchOutcome&&old.state.watchOutcome!==s.watchOutcome)throw Error('TERMINAL_WATCH_OUTCOME');
    if(old.state.fill!==undefined&&(old.state.fill!==s.fill||old.state.fillAt!==s.fillAt||canonical(old.state.confirmationEvidence)!==canonical(s.confirmationEvidence)))throw Error('IMMUTABLE_PAPER_ENTRY');
@@ -80,7 +82,7 @@ export class HistoricalConditionalStore implements ConditionalStore {
   }
   const message=conditionalMessage(s); // Validate serialization before committing any mutation.
   this.records.set(s.id,{state:s,createdAt:old?.createdAt??now,updatedAt:now});
-  if(!old||s.status!==old.state.status||s.partial!==old.state.partial){
+  if(!old||s.status!==old.state.status||s.partial!==old.state.partial||s.trailingState?.stop!==old.state.trailingState?.stop){
    this.events.push({id:`conditional:${s.id}:${s.version}`,at:new Date(now).toISOString(),setupId:s.id,version:s.version,status:s.status,confirmedSignalId:s.status==='ACTIVE'&&s.entryDecision?.executionEligible?`historical-confirmed:${s.id}`:null,...(s.status==='ACTIVE'&&s.entryDecision?.authorizationScope==='RESEARCH'?{researchSignalId:`historical-research:${s.id}`}:{ }),message});
   }
   return true;

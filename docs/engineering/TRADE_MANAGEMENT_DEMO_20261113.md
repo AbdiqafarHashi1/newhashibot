@@ -1,3 +1,5 @@
+> Superseded for current readiness by [15 November handoff](../launch/READINESS_20261115.md). This dated record describes the earlier branch state.
+
 # Trade-management demo handoff
 
 Scope: code readiness for authorized demo/testnet integration testing, not proof of connected broker operation or live customer profitability.

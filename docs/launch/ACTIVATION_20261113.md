@@ -1,3 +1,5 @@
+> Superseded for current readiness by [15 November handoff](READINESS_20261115.md). This dated record describes the earlier branch state.
+
 # HashiBot activation handoff — 13 November 2026
 
 This supersedes the strategy and readiness counts in the 12 November handoff. Continue PR #271 on `codex/mission2-historical-qualification`; do not rebuild or create another site.

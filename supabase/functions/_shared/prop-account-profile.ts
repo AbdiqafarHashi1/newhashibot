@@ -2,7 +2,8 @@ import {PROP_SERVICE_MAX_INITIAL_USD} from './prop-service-limits.ts';
 import {FTMO_SWING_PROGRAM,isFtmoSwingRules,FTMO_SWING_SOURCE} from './prop-program.ts';
 /** Owner-approved firm constraints. No inferred firm rules, reset clock or breach status. */
 export function validatePropAccountProfile(value:any){
- if(!value||value.schema_version!=='prop-account-rules/v1'||!String(value.firm_name??'').trim()||!String(value.source_reference??'').trim()||value.drawdown_model!=='CONSERVATIVE_OBSERVED_HIGH_WATER')throw Error('APPROVED_PROP_RULE_SOURCE_REQUIRED');
+ if(!value||value.schema_version!=='prop-account-rules/v1'||!String(value.firm_name??'').trim()||!String(value.source_reference??'').trim()||!['CONSERVATIVE_OBSERVED_HIGH_WATER','FTMO_2STEP_STATIC_INITIAL'].includes(value.drawdown_model))throw Error('APPROVED_PROP_RULE_SOURCE_REQUIRED');
+ if(value.drawdown_model==='FTMO_2STEP_STATIC_INITIAL'&&(value.program_id!==FTMO_SWING_PROGRAM||!isFtmoSwingRules(value)||value.reset_timezone!=='Europe/Prague'||value.source_reference!==FTMO_SWING_SOURCE))throw Error('STATIC_PROP_PROGRAM_TERMS_REQUIRED');
  for(const key of ['initial_balance','daily_loss_cap_pct','total_loss_cap_pct'])if(typeof value[key]!=='number'||!Number.isFinite(value[key])||value[key]<=0||(key!=='initial_balance'&&value[key]>100))throw Error('PROP_RULE_LIMIT_REQUIRED');
  if(value.initial_balance>PROP_SERVICE_MAX_INITIAL_USD)throw Error('PROP_SERVICE_MAX_INITIAL_USD_25000');
  for(const key of ['news_trading_allowed','weekend_holding_allowed'])if(typeof value[key]!=='boolean')throw Error('PROP_RULE_PERMISSION_REQUIRED');
@@ -10,7 +11,8 @@ export function validatePropAccountProfile(value:any){
  try{new Intl.DateTimeFormat('en',{timeZone:value.reset_timezone}).format()}catch{throw Error('PROP_RESET_TIMEZONE_REQUIRED')}
  if(typeof value.reset_timezone!=='string'||!value.reset_timezone)throw Error('PROP_RESET_TIMEZONE_REQUIRED');
  if(value.program_id!==undefined&&(value.program_id!==FTMO_SWING_PROGRAM||!isFtmoSwingRules(value)||value.reset_timezone!=='Europe/Prague'||value.source_reference!==FTMO_SWING_SOURCE))throw Error('MATCHING_PROP_PROGRAM_TERMS_REQUIRED');
- if(value.funded_profit_target_pct!==undefined&&![2,5].includes(value.funded_profit_target_pct))throw Error('PROP_FUNDED_TARGET_REQUIRED');
+ if(value.funded_profit_behavior!==undefined&&!['CONTINUE_TRADING','STOP_AT_TARGET'].includes(value.funded_profit_behavior))throw Error('PROP_FUNDED_BEHAVIOR_REQUIRED');
+ if(value.funded_profit_target_pct!==undefined&&![2,3,5].includes(value.funded_profit_target_pct))throw Error('PROP_FUNDED_TARGET_REQUIRED');
  for(const key of ['payout_wait_days_initial','payout_wait_days_repeat'])if(value[key]!==undefined&&(!Number.isInteger(value[key])||value[key]<1||value[key]>60))throw Error('PROP_PAYOUT_WAIT_REQUIRED');
  if(value.program_id===FTMO_SWING_PROGRAM&&((value.payout_wait_days_initial??14)!==14||(value.payout_wait_days_repeat??14)!==14))throw Error('MATCHING_PROP_PROGRAM_PAYOUT_TERMS_REQUIRED');
  return value;

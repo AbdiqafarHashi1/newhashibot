@@ -1,3 +1,5 @@
+import {approvedPropAccountProfile} from './prop-account-profile.ts';
+import {isSourceBoundFtmoStaticRules} from './prop-program.ts';
 import {assertPropServiceCapital} from './prop-service-limits.ts';
 import {loadConfirmedEntry} from './confirmed-entry.ts';
 import {prepareAutomaticBybitEvidence} from './automatic-bybit-policy-evidence.ts';
@@ -18,6 +20,8 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  const at=Date.parse(now),observed=Date.parse(x.observed_at),context=x.context;
  await loadConfirmedEntry(db,signal,at);
  const reasons:string[]=[];
+ if(provider==='MT5_PROP'&&(context?.prop_rules?.drawdown_model==='FTMO_2STEP_STATIC_INITIAL'||account.policy_overrides?.approved_prop_rules?.drawdown_model==='FTMO_2STEP_STATIC_INITIAL'))try{if(!isSourceBoundFtmoStaticRules(context?.prop_rules)||!isSourceBoundFtmoStaticRules(approvedPropAccountProfile(account)))throw Error('scope')}catch{reasons.push('CURRENT_APPROVED_STATIC_PROP_BASIS_REQUIRED')}
+
  if(provider==='MT5_PROP'&&account.account_mode==='PROP_FUNDED'){const g=await db.from('prop_profit_cycles').select('state').eq('execution_account_id',account.id).eq('customer_id',account.customer_id).order('cycle_number',{ascending:false}).limit(1).maybeSingle();if(g.error||!g.data||g.data.state!=='ACTIVE')reasons.push('PROP_PROFIT_CYCLE_PAUSED_OR_UNAVAILABLE')}
  if(provider==='MT5_PROP')try{assertPropServiceCapital(context?.total_drawdown?.initial_balance,x.contract?.account_currency)}catch(e){reasons.push(e instanceof Error?e.message:'PROP_SERVICE_CAPITAL_LIMIT_REQUIRED')}
  if(!x.entitlement?.expiresAt||!Number.isFinite(Date.parse(x.entitlement.expiresAt)))reasons.push('FINITE_EXECUTION_ACCESS_REQUIRED');

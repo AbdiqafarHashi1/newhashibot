@@ -28,7 +28,7 @@ test('already-funded cohorts measure survival separately from challenge completi
 });
 test('only the explicit matching Swing program grants its news and holding permissions',()=>{
  const p=ftmoSwingAccountRules(10000);assert.equal(validatePropAccountProfile(p).program_id,FTMO_SWING_PROGRAM);
- for(const patch of [{program_id:'invented'},{daily_loss_cap_pct:6},{reset_timezone:'UTC'},{news_trading_allowed:false},{source_reference:'unrelated'}])assert.throws(()=>validatePropAccountProfile({...p,...patch}),/MATCHING_PROP_PROGRAM/);
+ for(const patch of [{program_id:'invented'},{daily_loss_cap_pct:6},{reset_timezone:'UTC'},{news_trading_allowed:false},{source_reference:'unrelated'}])assert.throws(()=>validatePropAccountProfile({...p,...patch}),/STATIC_PROP_PROGRAM_TERMS_REQUIRED/);
 });
 test('prop resimulation uses the same conservative daily and total high-water context as buyer accounts',()=>{
  const f=fixture(),ledger=new HistoricalAccountLedger({purpose:'HISTORICAL_RESEARCH',initialCapital:10000,timezone:'Europe/Prague',dailyLossPct:5,overallLossPct:10,drawdown:'STATIC',dailyBasis:'INITIAL_BALANCE',stopOutMarginRatio:50,propContextModel:'CONSERVATIVE_OBSERVED_HIGH_WATER'},[spec]);

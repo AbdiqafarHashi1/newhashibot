@@ -1,3 +1,5 @@
+import {goldRsiTrailingDefinition} from './gold-rsi-trailing.ts';
+import {GOLD_RSI_TRAILING} from './atr-trailing-policy.ts';
 import type {LegacyStrategyResult,StrategyDefinition,StrategyEvaluationContext} from './professional-strategies.ts';
 import {nativeCandleEvidence} from './native-candle-evidence.ts';
 export const GOLD_FRONTIER_COMPRESSION='gold.frontier-compression-15-24-1.5-5-h96';
@@ -19,5 +21,5 @@ export function evaluateGoldFrontierCompression(ctx:StrategyEvaluationContext):L
  if(!(distance>0&&stop>0&&target>0))return reject('GOLD_FRONTIER_PRICE_GEOMETRY_INVALID');
  return {status:'candidate',direction:buy?'buy':'sell',entry_low:b.close,entry_high:b.close,stop_loss:stop,tp1:target,tp2:target,risk_reward:5,confidence_score:80,grade:'A',reason:'Closed Gold compression break; 24-bar channel, 1.5 ATR / structure protection, full-position 5R target.',rejection_reason:'',score_breakdown:{research_only:true,score_is_probability:false,atr14:a,stop_atr:1.5,reward_r:5,max_bars_in_trade:96,lookback:24,management_model:'FULL_POSITION_FIXED_TARGET',seed_policy:'FINITE_ROLLING_CLOSED_BARS'}};
 }
-export function goldFrontierDefinitions():StrategyDefinition[]{return [{id:GOLD_FRONTIER_COMPRESSION,version:'1.0.0',legacyName:GOLD_FRONTIER_COMPRESSION,market:'forex',lifecycle:'RESEARCH',publicationMode:'SHADOW',certification:'RESEARCH',config:{strategy_name:GOLD_FRONTIER_COMPRESSION,enabled:false,min_score:75,min_rr:4.4,max_bars_in_trade:96,allowed_symbols:['XAUUSD'],allowed_timeframes:['15m'],params:{}},evaluate:evaluateGoldFrontierCompression}];}
-export const goldFrontierProfile=(id:string)=>id===GOLD_FRONTIER_COMPRESSION?{family:'BREAKOUT' as const}:null;
+export function goldFrontierDefinitions():StrategyDefinition[]{return [goldRsiTrailingDefinition(),{id:GOLD_FRONTIER_COMPRESSION,version:'1.0.0',legacyName:GOLD_FRONTIER_COMPRESSION,market:'forex',lifecycle:'RESEARCH',publicationMode:'SHADOW',certification:'RESEARCH',config:{strategy_name:GOLD_FRONTIER_COMPRESSION,enabled:false,min_score:75,min_rr:4.4,max_bars_in_trade:96,allowed_symbols:['XAUUSD'],allowed_timeframes:['15m'],params:{}},evaluate:evaluateGoldFrontierCompression}];}
+export const goldFrontierProfile=(id:string)=>id===GOLD_FRONTIER_COMPRESSION?{family:'BREAKOUT' as const}:id===GOLD_RSI_TRAILING?{family:'TREND' as const}:null;

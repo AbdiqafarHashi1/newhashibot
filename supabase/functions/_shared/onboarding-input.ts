@@ -3,7 +3,7 @@ import {providerEnvironmentContract} from './provider-environment.ts';
 export function onboardingBrain(provider:string,mode:string) {
  const profiles:Record<string,readonly [string,string,number,readonly string[]]>={
   'MT5:PERSONAL':['PERSONAL_MT5_GROWTH','1.0.0',1,['FOREX_TREND','GOLD_BREAKOUT']],
-  'MT5:PROP':['PROP_MT5_STRICT','1.0.0',.5,['FOREX_TREND']],
+  'MT5:PROP':['PROP_MT5_STRICT','1.0.0',.5,['FOREX_TREND','GOLD_BREAKOUT']],
   'BINANCE:PERSONAL':['PERSONAL_BINANCE_CRYPTO','1.0.0',.75,['CRYPTO_TREND']],
   'BYBIT:PERSONAL':['PERSONAL_BYBIT_CRYPTO','1.0.0',.75,['CRYPTO_TREND']],
  };return profiles[`${provider}:${mode}`];

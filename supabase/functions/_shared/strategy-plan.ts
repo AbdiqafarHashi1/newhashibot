@@ -1,3 +1,4 @@
+import {GOLD_RSI_TRAILING,GOLD_TRAILING_POLICY,type AtrTrailingPolicy} from './atr-trailing-policy.ts';
 import {DAILY_TREND_ID,dailyEvidence} from './daily-trend-contract.ts';
 import type {
   LegacyStrategyResult,
@@ -87,6 +88,7 @@ export interface StrategyPlan {
   management_intent: {
     break_even: string;
     trailing: string;
+    trailing_policy?: AtrTrailingPolicy;
     partial_exits: readonly string[];
     cancel_conditions: readonly string[];
     time_exit: string;
@@ -220,6 +222,7 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
 }
 
 function managementIntent(definition: StrategyDefinition, maxBars: number): StrategyPlan["management_intent"] {
+  if(definition.id===GOLD_RSI_TRAILING)return {break_even:'No separate break-even or partial exits.',trailing:'After 2R favorable movement, trail the best executable price by one latest closed M15 ATR14; lock at least 0.5R and never loosen protection.',trailing_policy:{...GOLD_TRAILING_POLICY},partial_exits:['One full-position 5R target; no partial exits.'],cancel_conditions:['Original entry deadline and account risk remain authoritative.'],time_exit:'Close after 24 hours from the observed provider fill.'};
   if(definition.id===DAILY_TREND_ID)return {break_even:'No break-even or partial-exit mutation.',trailing:'Raise protection to the greater of the existing stop and closed daily close minus 3 Wilder ATR14; apply from the following candle.',partial_exits:['No fixed take-profit levels. One full virtual exit; no account sizing or execution authority.'],cancel_conditions:['Cancel if next-open entry gaps below the initial 2ATR protection.','Missing/non-native SPOT daily history blocks evaluation.'],time_exit:'Exit next open after EMA20 <= EMA50 or close < EMA200. No arbitrary bar-age liquidation; unfinished positions remain OPEN.'};
   if(definition.id.startsWith('crypto.team-')||definition.id.startsWith('crypto.launch-')||/^(gold|forex|crypto)\.native-/.test(definition.id))return {
     break_even:'No break-even mutation in the tested signal contract.',
@@ -246,7 +249,8 @@ export function createStrategyPlan(definition: StrategyDefinition, context: Stra
   const last = context.candles[context.candles.length - 1] ?? null, first = context.candles[0] ?? null;
   const configHash = stableFingerprint(definition.config);
   const expiresAt = action === "NO_TRADE" ? null : expiryFromBars(context.evaluated_at, context.timeframe, definition.config.max_bars_in_trade);
-  const evidence = clone(legacy.score_breakdown);
+  const evidence:Record<string,unknown> = clone(legacy.score_breakdown);
+  if(definition.id===GOLD_RSI_TRAILING&&action!=='NO_TRADE')evidence.atr_seed_rows=context.candles.slice(-15).map(b=>({open_time:b.open_time,high:b.high,low:b.low,close:b.close}));
   const sessionEvidence = evidence.session ?? evidence.session_context;
   const session = typeof sessionEvidence === "string" || typeof sessionEvidence === "number" ? String(sessionEvidence) : "UNKNOWN";
   const warnings = ["liquidity_context_unknown", "news_context_unknown"];
