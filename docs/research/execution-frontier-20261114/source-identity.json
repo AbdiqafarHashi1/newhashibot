@@ -1,0 +1,4 @@
+{
+  "canonicalSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+  "note": "Source captured before adding review evidence constants. Canonical review will retain the exact archive hash. Raw broker data is not in git."
+}

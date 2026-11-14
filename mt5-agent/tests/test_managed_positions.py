@@ -34,6 +34,53 @@ class ManagedTests(unittest.TestCase):
         self.scope=patch.multiple(Config,DATA_ONLY=False,OWNER_ID='owner',ACCOUNT_ID='account',BRIDGE_ID='bridge',ACCOUNT_NUMBER=123,SERVER='demo-server');self.scope.start();self.addCleanup(self.scope.stop)
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.client=Client();self.cloud=Cloud();self.manager=ManagedPositions(self.client,self.cloud,self.temp.name)
         self.payload={'certified':True,'phase_d_intent_id':'intent','quantity':1,'symbol':'EURUSD','side':'BUY','stop_loss':90,'take_profit_1':110,'take_profit_2':120,'native_child_orders':[{'role':'ENTRY_TP1','symbol':'EURUSD','side':'buy','quantity':.5,'sl':90,'tp':110,'client_order_id':'leg1','fill_policy':'IOC'},{'role':'ENTRY_TP2','symbol':'EURUSD','side':'buy','quantity':.5,'sl':90,'tp':120,'client_order_id':'leg2','fill_policy':'IOC'}]}
+    def test_single_target_minimum_lot_is_protected_idempotent_and_reconciled(self):
+        self.payload['quantity'] = .1
+        self.payload['take_profit_1'] = self.payload['take_profit_2'] = 120
+        self.payload['native_child_orders'] = [{**self.payload['native_child_orders'][1], 'quantity':.1}]
+        result = self.manager.execute('single', self.payload)
+        self.assertEqual(result['lifecycle_event'], 'PROTECTION_CONFIRMED')
+        self.assertEqual(len(self.client.sent), 1)
+        self.assertEqual(self.client.sent[0]['volume'], .1)
+        self.manager.monitor()
+        self.assertEqual(self.client.modified, [])
+        ManagedPositions(self.client,self.cloud,self.temp.name).execute('single',self.payload)
+        self.assertEqual(len(self.client.sent), 1)
+        self.client.positions=[]
+        self.client.deals['1']=[{'position_id':'1','volume':.1,'is_exit':True,'is_tp_exit':True}]
+        self.manager.monitor()
+        self.assertEqual(self.cloud.events[-1], 'TP2_FILLED')
+    def test_holding_deadline_survives_restart_and_waits_for_native_exit_confirmation(self):
+        self.payload['maximum_holding_seconds'] = 60
+        with patch('managed_positions.time.time', return_value=1000):
+            self.manager.execute('timed', self.payload)
+        manager = ManagedPositions(self.client,self.cloud,self.temp.name)
+        with patch('managed_positions.time.time', return_value=1059), patch.object(self.client,'close_position',return_value={'success':False}) as close:
+            manager.monitor()
+            close.assert_not_called()
+        with patch('managed_positions.time.time', return_value=1060), patch.object(self.client,'close_position',return_value={'success':False}) as close:
+            manager.monitor()
+            self.assertEqual(close.call_count,2)
+            self.assertNotIn('POSITION_CLOSED',self.cloud.events)
+        with patch('managed_positions.time.time', return_value=1061), patch.object(self.client,'close_position') as close:
+            manager.monitor()
+            close.assert_not_called()
+        self.client.positions=[]
+        for i in ['1','2']:
+            self.client.deals[i]=[{'position_id':i,'volume':.5,'is_exit':True,'is_tp_exit':False}]
+        with patch('managed_positions.time.time',return_value=1062):manager.monitor()
+        self.assertEqual(self.cloud.events[-1],'POSITION_CLOSED')
+        record=json.loads(next(manager.directory.glob('*.json')).read_text())
+        self.assertEqual(record['result']['management']['state'],'CLOSED')
+    def test_invalid_holding_duration_is_rejected_before_any_order(self):
+        self.payload['maximum_holding_seconds']=True
+        with self.assertRaisesRegex(RuntimeError,'HOLDING_LIMIT'):self.manager.execute('bad',self.payload)
+        self.assertEqual(self.client.sent,[])
+    def test_single_child_cannot_collapse_different_targets(self):
+        self.payload['native_child_orders']=[{**self.payload['native_child_orders'][1], 'quantity':1}]
+        with self.assertRaisesRegex(RuntimeError,'PROTECTED_PLAN'):
+            self.manager.execute('single',self.payload)
+        self.assertEqual(self.client.sent, [])
     def test_exact_quantity_attached_protection_and_restart_no_resubmission(self):
         r=self.manager.execute('cmd',self.payload);self.assertEqual(r['lifecycle_event'],'PROTECTION_CONFIRMED');self.assertEqual(sum(p['volume'] for p in self.client.sent),1);self.assertTrue(all(p['sl']==90 for p in self.client.sent));self.assertEqual([p['tp'] for p in self.client.sent],[110,120]);ManagedPositions(self.client,self.cloud,self.temp.name).execute('cmd',self.payload);self.assertEqual(len(self.client.sent),2)
     def test_uncertain_second_child_never_repeats_or_exceeds_budget(self):

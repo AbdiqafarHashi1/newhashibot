@@ -1,3 +1,4 @@
+import {goldFrontierProfile} from './gold-frontier-strategies.ts';
 import {cryptoShortProfile} from './crypto-short-families.ts';
 import {brokerFamilyProfile} from './broker-strategy-families.ts';
 import {launchFamilyProfile} from './launch-strategy-families.ts';
@@ -31,7 +32,7 @@ export function watchedSetupFromEvaluation(e:RegistryEvaluation,ctx:StrategyEval
  const side=r.direction as 'buy'|'sell',sign=side==='buy'?1:-1,trigger=side==='buy'?r.entry_high:r.entry_low,risk=sign*(trigger-r.stop_loss),cost=conditionalCost(ctx.symbol,trigger,last.instrument_type);
  if(![trigger,r.stop_loss,r.tp1,r.tp2,cost.price,r.confidence_score].every(Number.isFinite)||!(risk>0&&r.stop_loss>0&&sign*(r.tp1-trigger)>0&&sign*(r.tp2-r.tp1)>=0)||cost.price/risk>.4||r.confidence_score<d.config.min_score||sign*(r.tp2-trigger)/risk<d.config.min_rr)return reject('SETUP_GEOMETRY_COST_SCORE_OR_RR');
  if(([[d.config.min_stop_distance_pct,risk],[d.config.min_tp1_distance_pct,Math.abs(r.tp1-trigger)],[d.config.min_tp2_distance_pct,Math.abs(r.tp2-trigger)]] as [number|undefined,number][]).some(([minimum,distance])=>typeof minimum==='number'&&distance/trigger*100<minimum))return reject('SETUP_MINIMUM_DISTANCE');
- const launch=launchFamilyProfile(d.id)??brokerFamilyProfile(d.id)??cryptoShortProfile(d.id);
+ const launch=goldFrontierProfile(d.id)??launchFamilyProfile(d.id)??brokerFamilyProfile(d.id)??cryptoShortProfile(d.id);
  const family:StrategyThesis['family']=launch?.family??(/reversal|range|auction|exhaustion/.test(d.id)?'REVERSAL':/breakout|expansion|compression/.test(d.id)?'BREAKOUT':'TREND');
  const keys=side==='buy'?['asian_range_high','range_high','box_high','channel_high','breakout_level']:['asian_range_low','range_low','box_low','channel_low','breakout_level'];
  const observedBoundary=keys.map(k=>r.score_breakdown[k]).find(v=>typeof v==='number'&&Number.isFinite(v));

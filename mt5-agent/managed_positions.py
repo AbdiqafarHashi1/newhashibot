@@ -1,4 +1,4 @@
-"""Execute one approved two-leg plan once; retain native protection and manage its runner.
+"""Execute one approved protected plan once; retain native protection and manage its runner.
 
 The journal contains no credentials. An uncertain send is never automatically repeated.
 Only source-confirmed TP1 exits allow breakeven on that plan's exact remaining ticket.
@@ -46,8 +46,12 @@ class ManagedPositions:
         if account.get('hedging') is not True:
             raise RuntimeError('MT5_TWO_TARGETS_REQUIRE_HEDGING_DEMO')
         children = payload.get('native_child_orders')
-        if not payload.get('certified') or not isinstance(children, list) or len(children) != 2:
-            raise RuntimeError('CERTIFIED_TWO_LEG_PLAN_REQUIRED')
+        single = isinstance(children, list) and len(children) == 1 and payload.get('take_profit_1') == payload.get('take_profit_2') and children[0].get('role') == 'ENTRY_TP2'
+        if not payload.get('certified') or not isinstance(children, list) or not (single or len(children) == 2):
+            raise RuntimeError('CERTIFIED_PROTECTED_PLAN_REQUIRED')
+        holding = payload.get('maximum_holding_seconds')
+        if holding is not None and (isinstance(holding,bool) or not isinstance(holding,(int,float)) or not math.isfinite(holding) or holding != int(holding) or not 60 <= holding <= 30*86400):
+            raise RuntimeError('CERTIFIED_HOLDING_LIMIT_INVALID')
         quantity = float(payload['quantity'])
         if not math.isfinite(quantity) or quantity <= 0 or abs(sum(float(c['quantity']) for c in children) - quantity) > 1e-9:
             raise RuntimeError('CHILD_APPROVED_QUANTITY_MISMATCH')
@@ -55,7 +59,7 @@ class ManagedPositions:
         for index, child in enumerate(children):
             if child.get('action','market') != 'market':
                 raise RuntimeError('MT5_AUTOMATIC_MARKET_ENTRY_REQUIRED')
-            if child.get('role') != ('ENTRY_TP1' if index == 0 else 'ENTRY_TP2') or child['symbol'] != payload['symbol'] or child['side'].upper() != payload['side'] or float(child['sl']) != float(payload['stop_loss']) or float(child['tp']) != float(payload['take_profit_1' if index == 0 else 'take_profit_2']):
+            if child.get('role') != ('ENTRY_TP2' if single or index == 1 else 'ENTRY_TP1') or child['symbol'] != payload['symbol'] or child['side'].upper() != payload['side'] or float(child['sl']) != float(payload['stop_loss']) or float(child['tp']) != float(payload['take_profit_2' if single or index == 1 else 'take_profit_1']):
                 raise RuntimeError('CHILD_PROTECTION_LINEAGE_MISMATCH')
             if not all(math.isfinite(float(child[k])) and float(child[k]) > 0 for k in ('quantity','sl','tp')):
                 raise RuntimeError('INVALID_CHILD_PLAN')
@@ -83,7 +87,7 @@ class ManagedPositions:
             raise RuntimeError('NATIVE_PLAN_HISTORY_UNAVAILABLE')
         if any(p.get('comment') in {l['comment'] for l in legs} for p in current + history):
             raise RuntimeError('NATIVE_PLAN_EXISTS_JOURNAL_RECONCILIATION_REQUIRED')
-        record = {'command_id':command_id,'payload':payload,'legs':legs,'result':{'success':True,'lifecycle_event':'SUBMISSION_UNCERTAIN'},'completed':False}
+        record = {'submitted_at':time.time(),'command_id':command_id,'payload':payload,'legs':legs,'result':{'success':True,'lifecycle_event':'SUBMISSION_UNCERTAIN'},'completed':False}
         self._save(path, record)
         for leg in legs:
             leg['state'] = 'SUBMITTING'
@@ -107,6 +111,10 @@ class ManagedPositions:
                 record['result'] = {'success':True,'lifecycle_event':'PROTECTION_MISSING','children':legs}
                 self._save(path, record)
                 return record['result']
+            opened = float(position.get('time') or record['submitted_at'])
+            if not math.isfinite(opened) or opened <= 0 or opened > time.time()+5:
+                raise RuntimeError('MANAGED_POSITION_OPEN_TIME_INVALID')
+            leg['opened_at'] = opened
             leg['state'] = 'PROTECTED'
             self._save(path, record)
             if abs(leg['filled_quantity']-float(leg['quantity'])) > 1e-9:
@@ -132,6 +140,17 @@ class ManagedPositions:
                 if not position:
                     continue
                 leg['position_id'] = str(position['ticket'])
+                holding = record['payload'].get('maximum_holding_seconds')
+                if holding is not None:
+                    opened = float(leg.get('opened_at') or position.get('time') or record.get('submitted_at') or 0)
+                    if not math.isfinite(opened) or opened <= 0:
+                        raise RuntimeError('MANAGED_POSITION_OPEN_TIME_REQUIRED')
+                    deadline = opened + float(holding)
+                    if time.time() >= deadline and time.time()-float(leg.get('timeout_close_attempt_at',0)) >= 5:
+                        leg['timeout_close_attempt_at'] = time.time()
+                        record['management'] = {'reason':'MAXIMUM_HOLD','deadline_at':deadline,'state':'CLOSE_PENDING'}
+                        self._save(path,record)
+                        self.client.close_position(str(position['ticket']),volume=None)
                 # Repair absent protection without loosening a better existing stop.
                 current_stop = float(position.get('sl') or 0)
                 buy = leg['side'].lower() == 'buy'
@@ -143,35 +162,51 @@ class ManagedPositions:
                     if time.time()-leg['protection_incident_at']>30:
                         self.client.close_position(str(position['ticket']),volume=None)
                     record['result']={'success':True,'lifecycle_event':'PROTECTION_MISSING','children':legs}
-            first, runner = legs
-            first_open = self._position(first, positions)
-            runner_open = self._position(runner, positions)
-            if not first_open and first.get('position_id'):
-                deals = self.client.position_deals(first['position_id'])
-                closed = sum(float(d['volume']) for d in deals if d.get('is_tp_exit') and str(d['position_id']) == first['position_id'])
-                if closed + 1e-9 >= float(first.get('filled_quantity', first['quantity'])):
-                    record['result']={'success':True,'lifecycle_event':'TP1_FILLED','children':legs}
-                    if runner_open:
-                        entry = float(runner_open['entry_price'])
-                        stop = float(runner_open.get('sl') or 0)
-                        better = stop >= entry if runner['side'].lower() == 'buy' else 0 < stop <= entry
-                        if not better:
-                            self.client.modify_position(str(runner_open['ticket']), sl=entry, tp=float(runner['tp']))
-                        observed = self._position(runner,self.client.get_positions())
-                        if observed and (float(observed.get('sl') or 0) >= entry if runner['side'].lower() == 'buy' else 0 < float(observed.get('sl') or 0) <= entry):
-                            record['result']={'success':True,'lifecycle_event':'BREAKEVEN_CONFIRMED','children':legs}
-            if not first_open and not runner_open and all(l.get('position_id') for l in legs):
-                closed_all = True
-                runner_tp = False
-                for leg in legs:
+            if len(legs) == 1:
+                leg = legs[0]
+                if leg.get('position_id') and not self._position(leg, positions):
                     deals = self.client.position_deals(leg['position_id'])
-                    exited = sum(float(d['volume']) for d in deals if d.get('is_exit') and str(d['position_id']) == leg['position_id'])
-                    closed_all = closed_all and exited + 1e-9 >= float(leg.get('filled_quantity',leg['quantity']))
-                    if leg is runner:
-                        runner_tp = sum(float(d['volume']) for d in deals if d.get('is_tp_exit') and str(d['position_id']) == leg['position_id']) + 1e-9 >= float(leg.get('filled_quantity',leg['quantity']))
-                if closed_all:
-                    record['result']={'success':True,'lifecycle_event':'TP2_FILLED' if runner_tp else 'POSITION_CLOSED','children':legs}
-                    record['completed']=True
+                    scoped = [d for d in deals if str(d.get('position_id')) == leg['position_id']]
+                    volume = float(leg.get('filled_quantity', leg['quantity']))
+                    exited = sum(float(d['volume']) for d in scoped if d.get('is_exit'))
+                    if exited + 1e-9 >= volume:
+                        target = sum(float(d['volume']) for d in scoped if d.get('is_tp_exit'))
+                        record['result'] = {'success':True,'lifecycle_event':'TP2_FILLED' if target + 1e-9 >= volume else 'POSITION_CLOSED','children':legs}
+                        record['completed'] = True
+            else:
+                first, runner = legs
+                first_open = self._position(first, positions)
+                runner_open = self._position(runner, positions)
+                if not first_open and first.get('position_id'):
+                    deals = self.client.position_deals(first['position_id'])
+                    closed = sum(float(d['volume']) for d in deals if d.get('is_tp_exit') and str(d['position_id']) == first['position_id'])
+                    if closed + 1e-9 >= float(first.get('filled_quantity', first['quantity'])):
+                        record['result']={'success':True,'lifecycle_event':'TP1_FILLED','children':legs}
+                        if runner_open:
+                            entry = float(runner_open['entry_price'])
+                            stop = float(runner_open.get('sl') or 0)
+                            better = stop >= entry if runner['side'].lower() == 'buy' else 0 < stop <= entry
+                            if not better:
+                                self.client.modify_position(str(runner_open['ticket']), sl=entry, tp=float(runner['tp']))
+                            observed = self._position(runner,self.client.get_positions())
+                            if observed and (float(observed.get('sl') or 0) >= entry if runner['side'].lower() == 'buy' else 0 < float(observed.get('sl') or 0) <= entry):
+                                record['result']={'success':True,'lifecycle_event':'BREAKEVEN_CONFIRMED','children':legs}
+                if not first_open and not runner_open and all(l.get('position_id') for l in legs):
+                    closed_all = True
+                    runner_tp = False
+                    for leg in legs:
+                        deals = self.client.position_deals(leg['position_id'])
+                        exited = sum(float(d['volume']) for d in deals if d.get('is_exit') and str(d['position_id']) == leg['position_id'])
+                        closed_all = closed_all and exited + 1e-9 >= float(leg.get('filled_quantity',leg['quantity']))
+                        if leg is runner:
+                            runner_tp = sum(float(d['volume']) for d in deals if d.get('is_tp_exit') and str(d['position_id']) == leg['position_id']) + 1e-9 >= float(leg.get('filled_quantity',leg['quantity']))
+                    if closed_all:
+                        record['result']={'success':True,'lifecycle_event':'TP2_FILLED' if runner_tp else 'POSITION_CLOSED','children':legs}
+                        record['completed']=True
+            if record.get('management'):
+                if record.get('completed'):
+                    record['management']['state'] = 'CLOSED'
+                record['result']['management'] = record['management']
             record['result']['provider_position_ids']=[l['position_id'] for l in legs if l.get('position_id')]
             self._save(path, record)
             event=record['result'].get('lifecycle_event')

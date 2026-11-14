@@ -1,0 +1,64 @@
+{
+  "frozenAt": "2026-11-13T23:34:11.378492+00:00",
+  "selection": "Predeclare RSI pullback + compression combination before inspecting November results. One XAUUSD position; RSI priority on agreement, conflicting directions no trade; compression-only uses fixed target, RSI uses delayed ATR trail. No lookahead or capital increase.",
+  "rsi": {
+    "family": "rsi_exhaustion",
+    "minutes": 15,
+    "n": 12,
+    "stop": 1.5,
+    "rr": 5,
+    "hold": 1440,
+    "style": 2
+  },
+  "compression": {
+    "family": "compression_expand",
+    "minutes": 15,
+    "n": 24,
+    "stop": 1.5,
+    "rr": 5,
+    "hold": 1440,
+    "style": 0
+  },
+  "candidateNames": [
+    "RSI",
+    "COMPRESSION",
+    "ARBITRATED"
+  ],
+  "profiles": [
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "prop": 0
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 1,
+      "leverage": 10,
+      "prop": 0
+    },
+    {
+      "profile": "PROP_FUNDED",
+      "risk": 0.25,
+      "leverage": 5,
+      "prop": 1
+    },
+    {
+      "profile": "PROP_EVAL",
+      "risk": 0.5,
+      "leverage": 5,
+      "prop": 1
+    }
+  ],
+  "capital": 25000,
+  "stress": 1.5,
+  "delayMs": 3000,
+  "carryBpsPerCalendarDay": 1.5,
+  "sourceSha256": "714605fb65392f5493442099f2c28b4ee71d0b4a1a7f9674a3f5ed25d7f6c8a2",
+  "limitations": [
+    "Numerical guard scenarios, not firm approvals.",
+    "No actual payout/withdrawal.",
+    "May\u2013October development; November is a partial archive.",
+    "Monthly snapshots do not force positions closed; only final boundary closes remaining exposure."
+  ]
+}

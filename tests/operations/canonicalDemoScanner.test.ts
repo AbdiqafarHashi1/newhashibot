@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import {buildCanonicalDemoBundle} from '../../supabase/functions/_shared/canonical-demo-release';
+import {FRONTIER_CANONICAL_REVIEWS} from '../../supabase/functions/_shared/frontier-canonical-reviews';
+import {PROP_STRATEGY_BUNDLES} from '../../supabase/functions/_shared/prop-strategy-bundles';
 import {LAUNCH_CANONICAL_REVIEWS} from '../../supabase/functions/_shared/launch-canonical-reviews';
 import {watchedStrategyCatalog} from '../../supabase/functions/_shared/watched-strategy-catalog';
 
@@ -51,5 +53,15 @@ test('the installed twelve-strategy SQL bundle resolves into the actual scanner 
     assert.ok(item); assert.deepEqual(entry.strategyParameters,item.configuration.strategies[0].parameters);
    }
   }
+  // Installing the optional add-on preserves all baseline measured configurations
+  // (including the independent disable above) and the seven-strategy Prop default.
+  const extra=buildCanonicalDemoBundle(FRONTIER_CANONICAL_REVIEWS.map(r=>r.strategyId),FRONTIER_CANONICAL_REVIEWS);
+  await db.query('select install_canonical_demo_strategy_bundle($1,$2)',['00000000-0000-0000-0000-000000000001',JSON.stringify(extra)]);
+  const after=await load(),addon=after.find(d=>d.id===FRONTIER_CANONICAL_REVIEWS[0].strategyId)!;
+  assert.equal(addon.config.enabled,true);assert.equal(after.filter(d=>d.config.enabled).length,12);
+  assert.equal(after.find(d=>d.id===first.strategyId)!.config.enabled,false);
+  assert.equal(PROP_STRATEGY_BUNDLES.ALL_TESTED.ids.length,7);
+  const addonSets=(await db.query<{result_summary:any}>('select result_summary from backtest_runs')).rows.filter(r=>r.result_summary.qualifiedSet.entries.some((e:any)=>e.strategyId===addon.id));
+  assert.equal(addonSets.length,2); // Personal and Prop Forex products, both demo-scoped.
  }finally{await db.close();}
 });

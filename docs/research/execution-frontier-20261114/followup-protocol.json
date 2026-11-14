@@ -1,0 +1,408 @@
+{
+  "selected": [
+    {
+      "symbol": "EURUSD",
+      "config": {
+        "family": "session_break",
+        "minutes": 15,
+        "n": 12,
+        "stop": 2.5,
+        "rr": 2,
+        "hold": 360,
+        "style": 0
+      },
+      "development": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 1.2231600000003562,
+          "drawdownPct": 3.6026825082707084,
+          "closedTrades": 16,
+          "profitFactor": 1.293219672634266,
+          "winRatePct": 50.0,
+          "expectancyR": 0.17025644256541753,
+          "blocked": 0,
+          "failed": false,
+          "commission": 98.21000000000001,
+          "losingStreak": 5,
+          "endingBalance": 25305.79000000009,
+          "meanWinR": 1.4017091736611083,
+          "meanLossR": -1.0611962885302733
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 1.5877999999999837,
+          "drawdownPct": 1.7971143351150582,
+          "closedTrades": 17,
+          "profitFactor": 1.3886256388165388,
+          "winRatePct": 52.94117647058824,
+          "expectancyR": 0.20067633954295577,
+          "blocked": 0,
+          "failed": false,
+          "commission": 106.46999999999997,
+          "losingStreak": 3,
+          "endingBalance": 25396.949999999997,
+          "meanWinR": 1.3272027173504837,
+          "meanLossR": -1.0666658354905132
+        }
+      ],
+      "stress": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 0.9620200000001189,
+          "drawdownPct": 3.6336709587130556,
+          "closedTrades": 16,
+          "profitFactor": 1.230337885724178,
+          "winRatePct": 50.0,
+          "expectancyR": 0.13586268675145433,
+          "blocked": 0,
+          "failed": false,
+          "commission": 143.535,
+          "losingStreak": 5,
+          "endingBalance": 25240.50500000003,
+          "meanWinR": 1.363499103317143,
+          "meanLossR": -1.0917737298142347
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 1.2614399999998804,
+          "drawdownPct": 1.792729435022181,
+          "closedTrades": 17,
+          "profitFactor": 1.3073654252882048,
+          "winRatePct": 52.94117647058824,
+          "expectancyR": 0.16417205407440114,
+          "blocked": 0,
+          "failed": false,
+          "commission": 154.97999999999996,
+          "losingStreak": 3,
+          "endingBalance": 25315.359999999968,
+          "meanWinR": 1.2877282024638539,
+          "meanLossR": -1.0998286128637331
+        }
+      ]
+    },
+    {
+      "symbol": "USDJPY",
+      "config": {
+        "family": "band_reentry",
+        "minutes": 5,
+        "n": 12,
+        "stop": 1.5,
+        "rr": 8,
+        "hold": 360,
+        "style": 1
+      },
+      "development": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 5.677371985517321,
+          "drawdownPct": 2.7197730299471483,
+          "closedTrades": 35,
+          "profitFactor": 1.9123776720651928,
+          "winRatePct": 65.71428571428571,
+          "expectancyR": 0.3508440574727391,
+          "blocked": 52,
+          "failed": false,
+          "commission": 447.23000000000025,
+          "losingStreak": 4,
+          "endingBalance": 26419.34299637933,
+          "meanWinR": 1.124624906273897,
+          "meanLossR": -1.1322359027294808
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 2.8500936641293606,
+          "drawdownPct": 1.7868417108802577,
+          "closedTrades": 26,
+          "profitFactor": 1.7324757498432246,
+          "winRatePct": 61.53846153846154,
+          "expectancyR": 0.2520762986838936,
+          "blocked": 97,
+          "failed": false,
+          "commission": 333.41000000000014,
+          "losingStreak": 2,
+          "endingBalance": 25712.523416032338,
+          "meanWinR": 0.943296971282983,
+          "meanLossR": -0.8538767774746493
+        }
+      ],
+      "stress": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 3.7532585661143925,
+          "drawdownPct": 1.949256951681639,
+          "closedTrades": 19,
+          "profitFactor": 2.0343585333833287,
+          "winRatePct": 63.1578947368421,
+          "expectancyR": 0.4374243363818642,
+          "blocked": 81,
+          "failed": false,
+          "commission": 253.15499999999994,
+          "losingStreak": 3,
+          "endingBalance": 25938.3146415286,
+          "meanWinR": 1.3626071271785474,
+          "meanLossR": -1.1486033049838784
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 2.9428665412742028,
+          "drawdownPct": 1.7268451268792409,
+          "closedTrades": 12,
+          "profitFactor": 2.45595402706356,
+          "winRatePct": 66.66666666666666,
+          "expectancyR": 0.5873108225685905,
+          "blocked": 117,
+          "failed": false,
+          "commission": 148.785,
+          "losingStreak": 2,
+          "endingBalance": 25735.716635318553,
+          "meanWinR": 1.442189399993445,
+          "meanLossR": -1.1224463322811185
+        }
+      ]
+    },
+    {
+      "symbol": "XAUUSD",
+      "config": {
+        "family": "pullback_resume",
+        "minutes": 15,
+        "n": 12,
+        "stop": 2.5,
+        "rr": 3,
+        "hold": 120,
+        "style": 0
+      },
+      "development": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 2.796320000000363,
+          "drawdownPct": 2.3903223155790867,
+          "closedTrades": 64,
+          "profitFactor": 1.3840719049764532,
+          "winRatePct": 50.0,
+          "expectancyR": 0.10113765891256261,
+          "blocked": 0,
+          "failed": false,
+          "commission": 23.24000000000006,
+          "losingStreak": 5,
+          "endingBalance": 25699.080000000093,
+          "meanWinR": 0.6974734951112095,
+          "meanLossR": -0.49519817728608423
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1,
+          "capital": 25000,
+          "returnPct": 3.213280000000318,
+          "drawdownPct": 2.5755179778640573,
+          "closedTrades": 59,
+          "profitFactor": 1.4475370199110948,
+          "winRatePct": 55.932203389830505,
+          "expectancyR": 0.12374142159268617,
+          "blocked": 0,
+          "failed": false,
+          "commission": 20.79000000000003,
+          "losingStreak": 4,
+          "endingBalance": 25803.32000000008,
+          "meanWinR": 0.698364724643073,
+          "meanLossR": -0.6055881553558817
+        }
+      ],
+      "stress": [
+        {
+          "month": "2026-05",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 2.68780000000004,
+          "drawdownPct": 2.415952409533274,
+          "closedTrades": 64,
+          "profitFactor": 1.3665738343912186,
+          "winRatePct": 50.0,
+          "expectancyR": 0.09742262447636532,
+          "blocked": 0,
+          "failed": false,
+          "commission": 34.86000000000003,
+          "losingStreak": 5,
+          "endingBalance": 25671.95000000001,
+          "meanWinR": 0.6935344893467386,
+          "meanLossR": -0.4986892403940079
+        },
+        {
+          "month": "2026-06",
+          "profile": "PERSONAL",
+          "stress": 1.5,
+          "capital": 25000,
+          "returnPct": 3.1157000000001878,
+          "drawdownPct": 2.620157890340644,
+          "closedTrades": 59,
+          "profitFactor": 1.4312268172507474,
+          "winRatePct": 54.23728813559322,
+          "expectancyR": 0.12014400040478622,
+          "blocked": 0,
+          "failed": false,
+          "commission": 31.18500000000001,
+          "losingStreak": 4,
+          "endingBalance": 25778.925000000047,
+          "meanWinR": 0.7165648556387056,
+          "meanLossR": -0.5867251613539332
+        }
+      ]
+    }
+  ],
+  "arms": [
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 1000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 15000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 1000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 15000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 1000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1,
+      "delayMs": 15000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 1000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PROP",
+      "risk": 0.25,
+      "leverage": 5,
+      "capital": 25000,
+      "stress": 1.5,
+      "delayMs": 15000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 500,
+      "stress": 1.5,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 1000,
+      "stress": 1.5,
+      "delayMs": 3000
+    },
+    {
+      "profile": "PERSONAL",
+      "risk": 0.5,
+      "leverage": 10,
+      "capital": 5000,
+      "stress": 1.5,
+      "delayMs": 3000
+    }
+  ],
+  "periods": [
+    "2026-08",
+    "2026-09",
+    "2026-10"
+  ],
+  "disclosure": "Gold August\u2013October prices were already examined for a different micro strategy. Later Gold results are robustness checks, not untouched holdout. EURUSD/USDJPY later periods were acquired after candidate freeze; no retuning. July survivor selection retained."
+}

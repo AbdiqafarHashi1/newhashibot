@@ -39,7 +39,7 @@ class Config:
     MARKET_DATA_FEED_ID = os.getenv("MT5_MARKET_DATA_FEED_ID", "")
     ALLOW_OFFLINE_TEST_MODE = os.getenv("ALLOW_OFFLINE_TEST_MODE", "false").lower() in ("1", "true", "yes")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-    AGENT_VERSION = "1.2.0-prop-profit-cutoff"
+    AGENT_VERSION = "1.2.1-history-single-target"
 
     # Populated only after the authorized credential exchange.
     ACCOUNT_NUMBER: Optional[int] = None
