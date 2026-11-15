@@ -35,7 +35,7 @@ export default function Home() {
 
             {/* Supporting Copy */}
             <p className="text-base sm:text-lg text-zinc-300 max-w-2xl mx-auto leading-relaxed">
-              HashiBot combines structured market scanning, rule-based strategy evaluation, one deterministic arbitrator, automated execution, risk and capital controls, trade protection, and operational monitoring across Crypto and MetaTrader 5.
+              Get Crypto, Forex and Gold signals on Telegram, or automate your connected trading account. Choose strategies and risk limits, follow market conditions, and track each trade from setup to exit.
             </p>
 
             {/* CTAs */}
@@ -70,7 +70,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>Deterministic Arbitrator</span>
+                <span>Ranked trading opportunities</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
@@ -87,7 +87,7 @@ export default function Home() {
       <div className="bg-zinc-900/60 border-b border-zinc-800/80 py-3 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 flex-wrap text-xs">
           <span className="text-zinc-500 font-mono font-semibold uppercase tracking-wider text-[11px] shrink-0">
-            Active Scanned Markets:
+            Markets covered:
           </span>
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             {markets.map(m => (
@@ -102,25 +102,25 @@ export default function Home() {
       {/* 1. Platform Architecture Pipeline */}
       <section className="py-20 px-4 sm:px-6 max-w-7xl mx-auto">
         <div className="text-center space-y-3 mb-14">
-          <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Pipeline Engineering</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-blue-400">From opportunity to outcome</div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white">
-            End-to-End Platform Architecture
+            A clear plan for every trade
           </h2>
           <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
-            From continuous market data feeds to position protection and operational reconciliation.
+            Find opportunities, define risk and follow every entry, update and exit.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[
-            { step: '01', title: 'Market Data & Scanning', desc: 'Continuous WebSocket and REST polling across Binance, Bybit, and Forex data adapters.', icon: Search },
-            { step: '02', title: 'Strategy Qualification', desc: 'Rule-based evaluation across compression breakouts, trend pullbacks, and volatility structures.', icon: Layers },
-            { step: '03', title: 'Deterministic Arbitrator', desc: 'One shared arbitrator ranks setup quality scores and approves exactly one winner or rejects all.', icon: Cpu },
-            { step: '04', title: 'Immutable Signal Truth', desc: 'Approved setups are saved with full evidence hash, trade parameters, and strict risk levels.', icon: CheckCircle2 },
-            { step: '05', title: 'Risk & Capital Engine', desc: 'User-specific risk limits, leverage boundaries, and account drawdown safety checks.', icon: Shield },
-            { step: '06', title: 'Execution Routing', desc: 'Order dispatch to Binance, Bybit, or MetaTrader 5 durable command queue with atomic claims.', icon: Terminal },
-            { step: '07', title: 'Trade Protection', desc: 'Continuous position monitoring, break-even adjustments, and SL/TP drift enforcement.', icon: Lock },
-            { step: '08', title: 'Operations & Telegram', desc: 'Real-time telemetry, Telegram channel notifications, customer dashboard, and audit logs.', icon: Activity },
+            { step: '01', title: 'Market scanning', desc: 'Track price action across your selected Crypto, Forex and Gold markets.', icon: Search },
+            { step: '02', title: 'Trading setups', desc: 'Identify trend pullbacks, breakouts and other setups using defined strategy rules.', icon: Layers },
+            { step: '03', title: 'Opportunity selection', desc: 'Rank competing setups and resolve conflicting trade directions.', icon: Cpu },
+            { step: '04', title: 'A defined trade plan', desc: 'See entry conditions, stop loss and targets, with updates as the setup develops.', icon: CheckCircle2 },
+            { step: '05', title: 'Account risk settings', desc: 'Size positions around your capital, available margin and chosen risk limits.', icon: Shield },
+            { step: '06', title: 'Account automation', desc: 'Route eligible trades to your connected Binance, Bybit or MetaTrader 5 account.', icon: Terminal },
+            { step: '07', title: 'Trade management', desc: 'Manage stops, targets and exits according to the selected strategy.', icon: Lock },
+            { step: '08', title: 'Updates and history', desc: 'Follow Telegram updates and review account activity and completed trades.', icon: Activity },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -143,8 +143,8 @@ export default function Home() {
       <section id="product-modes" className="py-20 px-4 sm:px-6 bg-zinc-900/40 border-y border-zinc-800/80 scroll-mt-20">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Five Execution Products</div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">Choose Your Operational Product</h2>
+            <div className="text-xs font-bold uppercase tracking-wider text-blue-400">Signals & account automation</div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white">Choose how you trade</h2>
             <p className="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
               Select structured manual signals, automated crypto execution, personal MT5 broker bridge, Forex prop automation, or 24/7 cloud crypto prop challenges.
             </p>
@@ -158,7 +158,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Account-based automation
+                    Telegram signals
                   </span>
                   <Zap size={18} className="text-blue-400" />
                 </div>
@@ -288,18 +288,18 @@ export default function Home() {
                     $100 <span className="text-xs text-zinc-500 font-normal">/ mo ($100/month)</span>
                   </div>
                   <div className="text-[11px] text-purple-400 font-medium mt-0.5">
-                    Windows MT5 Visual Bridge Agent
+                    Connect through HashiBridge
                   </div>
                 </div>
                 
                 <ul className="space-y-2 text-xs text-zinc-300">
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Windows MT5 Daemon Bridge Agent</span>
+                    <span>HashiBridge account connection</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
-                    <span>Durable command queue with 120s lease</span>
+                    <span>Account-specific orders and position tracking</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <Check size={13} className="text-emerald-400 shrink-0" />
@@ -322,7 +322,7 @@ export default function Home() {
                   to="/mt5-automation"
                   className="w-full text-center text-zinc-400 hover:text-zinc-200 text-xs py-1 block transition-colors"
                 >
-                  Explore MT5 Architecture
+                  Explore MT5 automation
                 </Link>
               </div>
             </div>
