@@ -29,7 +29,7 @@ test('entry quality rejects unavailable and future observations without fabricat
 test('Personal defaults use audited growth strategies while all earlier engines remain Admin comparisons',async()=>{
  const {executionStrategyPresets}=await import('../../../supabase/functions/_shared/execution-strategy-presets.ts');
  const all=executionStrategyPresets('BINANCE','testnet','PERSONAL');assert.equal(all.find(p=>p.id==='reviewed')?.ids.length,1);assert.equal(all.find(p=>p.id==='all-reviewed-comparison')?.ids.length,6);
- assert.ok(!all.some(p=>p.id==='crypto-eth-doge-demo'));
+ assert.ok(!all.some(p=>p.id==='crypto-eth-doge-demo'));assert.deepEqual(all.find(p=>p.id==='crypto-intraday')?.ids,['crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006']);assert.ok(!all.find(p=>p.id==='crypto-swing')?.ids.includes('crypto.launch-rsi2-48-3-3-h72'));
 });
 
 test('drop-best sensitivity uses an admitted winner, not a higher-R source trade rejected for symbol conflict',()=>{
