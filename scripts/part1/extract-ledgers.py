@@ -42,6 +42,6 @@ for t in trades:
  k=(t['strategy'],t['id'])
  if k in unique and unique[k]['netR']!=t['netR']:raise RuntimeError('Conflicting duplicate '+str(k))
  unique[k]=t
-out={'sources':sources,'coverage':coverage,'trades':list(unique.values()),'missingReports':missing,'missingStrategies':sorted({wanted[h][0] for h in missing}),'limitations':['Saved realized outcomes only: intratrade equity drawdown and forced Friday exit fills are not reconstructed.','Configurations have unequal historical coverage; no synthetic alignment or candle downloads.']}
+out={'sources':sources,'coverage':coverage,'trades':list(unique.values()),'missingReports':missing,'missingStrategies':sorted({wanted[h][0] for h in missing}),'limitations':['Saved realized outcomes only: intratrade equity drawdown is not reconstructed; Friday close scenarios are stored separately in part1-backfill/friday-closes.json.','Configurations have unequal historical coverage; recovered original reports preserve their exact periods without synthetic alignment.']}
 (root/'.tmp/part1-ledgers.json').write_text(json.dumps(out))
 print('matched reports',len(seen),'configs',len({t['strategy'] for t in unique.values()}),'trades',len(unique))
