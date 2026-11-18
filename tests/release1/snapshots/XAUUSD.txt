@@ -1,24 +1,17 @@
-*HASHIBOT VIP • GOLD / METALS*
+HASHIBOT VIP · GOLD / METALS
+⚡ INTRADAY SETUP · Same-Day Target
+XAUUSD · BUY / LONG
+Entry Zone: 2700.00 – 2700.27
+Stop Loss (-1R): 2673.00
+TP1 subscriber checkpoint (1.5R — Move SL to Breakeven): 2741.18
+TP2 canonical target (1.97R): 2754.00
+Target R:R ratio: 1:1.97
+Canonical target is below 3.0R; do not extend it to match the runner label.
+Setup tags describe subscriber objectives, not guaranteed holding times. The 1.5R checkpoint is subscriber guidance; automated execution retains its assigned plan.
+Time: 9:00 AM EAT
+Reference: sig_1
 
-*XAUUSD — BUY*
-
-*Entry*
-2700.00 – 2700.27
-
-*Stop Loss*
-2673.00
-
-*TP1*
-2727.00
-
-*TP2*
-2754.00
-
-*Strategy*
-A\_\*\[B]
-
-*Time*
-9:00 AM EAT
-
-Reference: sig\_1
-HashiBot Qualified Signal · Manage risk independently.
+Risk & Discipline
+• Standard Account: Risk 0.5%–1.0% max per trade (Max 3 open trades total; max 1 per symbol)
+• Prop Firm Account: Risk 0.25%–0.50% max per trade (Max 2 open trades total; max 1 per symbol)
+• Never stack same-direction trades or over-leverage.

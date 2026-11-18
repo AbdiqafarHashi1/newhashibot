@@ -1,3 +1,4 @@
+import {VIP_EXCLUDED_STRATEGIES} from './vip-signal-policy.ts';
 import {resolveHubChat} from './telegram-hub.ts';
 import { loadPublishableSignal } from "./signal-publication-guard.ts";
 import {editorialDestinations} from './telegram-product.ts';
@@ -10,7 +11,6 @@ import {editorialDestinations} from './telegram-product.ts';
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   categorizeEvent,
-  TelegramEventCategory,
   TelegramEventSeverity,
   TelegramVisibility,
 } from "./telegram-taxonomy.ts";
@@ -23,7 +23,6 @@ import {
 
 export { vipChatId };
 import {
-  formatEastAfricaTime,
   renderTelegramTemplate,
   splitMessageSafely,
   TemplateMessagePayload,
@@ -248,13 +247,14 @@ export async function routeTelegramEvent(supabase: SupabaseClient, event: Telegr
       const signal = await loadPublishableSignal(supabase, event.signal_id);
       for (const channel of publicDestinations) {
         const destination=channel==="vip"?(String(signal.market_type).toLowerCase()==="crypto"?"vip_crypto":"vip_forex_gold"):channel;
+        if(destination.startsWith("vip")&&VIP_EXCLUDED_STRATEGIES.has(String(signal.strategy_id??signal.strategy_name)))continue;
         const { error } = await supabase.from("signal_publication_work").insert({ signal_id: signal.id, entity_type: "signal", entity_id: signal.id, event_type: "SIGNAL_QUALIFIED", event_version: 1, destination, event_key: `signal:${signal.signal_identity}:${channel}` });
         if (error) {
           const { data: existing, error: lookupError } = await supabase.from("signal_publication_work").select("id").eq("entity_type", "signal").eq("entity_id", signal.id).eq("event_type", "SIGNAL_QUALIFIED").eq("event_version", 1).eq("destination", destination).maybeSingle();
           if (lookupError || !existing) throw Error("PUBLICATION_QUEUE_UNAVAILABLE");
         }
       }
-      return publicDestinations.map(channel => ({ channel, chat_id: "durable_queue", status: "queued" as const }));
+      return publicDestinations.map(channel => channel==="vip"&&VIP_EXCLUDED_STRATEGIES.has(String(signal.strategy_id??signal.strategy_name))?({channel,chat_id:"blocked",status:"skipped" as const,error_message:"VIP_STRATEGY_NOT_ADMITTED"}):({ channel, chat_id: "durable_queue", status: "queued" as const }));
     } catch (error) {
       return publicDestinations.map(channel => ({ channel, chat_id: "blocked", status: "skipped" as const, error_message: error instanceof Error ? error.message : "QUALIFICATION_UNAVAILABLE" }));
     }

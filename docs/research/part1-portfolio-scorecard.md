@@ -86,3 +86,18 @@ Counts are **attempt/event occurrences across overlapping windows**, not unique 
 | Friday pending orders canceled | N/A | N/A | N/A | Not modeled / not recorded |
 
 Friday close counts are admitted FX/Metals positions actually repriced and removed, not all 90 priced source records. Unpriced close requirements are separate and do not imply successful execution. The simulation has no pending-order lifecycle, so cancellation counts cannot be established from these inputs; N/A does not mean zero. Historical risk evidence uses each replay event's timestamp, so zero stale-evidence rejections does not audit production account-feed freshness. This is an audit of the existing replay, not proof that every live gate was exercised.
+
+## Diagnostic 3 — one-trade-per-day VIP subscriber replay
+
+Fourteen VIP configs; the two broadcast exclusions apply only here. Starting equity $10,000 per window; flat 1.0% cash risk frozen at entry; maximum one admitted entry per UTC day, one open position per symbol and three open positions total. Select the earliest eligible saved entry (ties by source signal ID), without knowing its outcome. A skipped conflicting entry does not consume the daily slot. Source fees/carry remain netted in R. No House-Money scaling, new candle data, Friday repricing or invented replacement signals. Source exits retain their original management; the optional subscriber 1.5R breakeven checkpoint is not replayed or validated by this table. These are realized-close results from previously account-admitted source trades, not the full live subscriber opportunity stream. Open positions are unmarked; source-period gaps and overlapping windows remain. Entry count is a cap, not a promise of a daily signal. Win rates below are research diagnostics, never Telegram signal-card text.
+
+| Window | Full-period coverage | Entries / closes | Closed win % | Cash PF | Realized return % | Realized DD % | End-open |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 2025-04-01 / 30d | 10/14 | 21 / 21 | 38.10 | 1.83 | 9.16 | 5.65 | 0 |
+| 2025-06-01 / 30d | 12/14 | 24 / 22 | 36.36 | 0.79 | -2.75 | 8.49 | 2 |
+| 2026-08-01 / 30d | 7/14 | 22 / 21 | 33.33 | 0.61 | -5.73 | 8.98 | 1 |
+| 2026-10-01 / 30d | 7/14 | 23 / 23 | 39.13 | 1.14 | 2.04 | 6.84 | 0 |
+| 2025-04-01 / 60d | 10/14 | 45 / 44 | 34.09 | 1.15 | 4.36 | 9.79 | 1 |
+| 2025-06-01 / 60d | 12/14 | 48 / 46 | 41.30 | 1.53 | 15.39 | 10.17 | 2 |
+| 2026-07-05 / 60d | 3/14 | 44 / 44 | 29.55 | 0.54 | -14.03 | 14.22 | 0 |
+| 2026-09-01 / 60d | 7/14 | 44 / 44 | 34.09 | 0.89 | -3.25 | 11.77 | 0 |

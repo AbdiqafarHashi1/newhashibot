@@ -1,4 +1,4 @@
-import {CRYPTO_TEAM_ROLES} from './coordinated-crypto-contract.ts';
+import {assertVipStrategy,vipSetupTag,VIP_RISK_FOOTER} from './vip-signal-policy.ts';
 import type { TelegramChannelKey } from "./telegram-registry.ts";
 import { escapeMarkdown, formatEastAfricaTime, formatInstrumentPrice } from "./telegram-templates.ts";
 
@@ -79,19 +79,26 @@ export function marketLabel(market: string, symbol = ""): string {
 }
 
 export function renderCanonicalVipSignal(signal: CanonicalSignalPresentation): string {
-  const direction = /^(buy|long)$/i.test(signal.direction) ? (marketLabel(signal.market, signal.symbol) === "CRYPTO" ? "LONG" : "BUY") : (marketLabel(signal.market, signal.symbol) === "CRYPTO" ? "SHORT" : "SELL");
-  const entry = signal.entry_low != null && signal.entry_high != null
-    ? `${formatInstrumentPrice(signal.entry_low, signal.market, signal.symbol)} – ${formatInstrumentPrice(signal.entry_high, signal.market, signal.symbol)}`
-    : signal.entry_low != null || signal.entry_high != null ? formatInstrumentPrice(signal.entry_low ?? signal.entry_high, signal.market, signal.symbol) : undefined;
-  const rows = [`*HASHIBOT VIP • ${escapeMarkdown(marketLabel(signal.market, signal.symbol))}*`, "", `*${escapeMarkdown(signal.symbol.toUpperCase())} — ${direction}*`];
-  const add = (label: string, value: string | number | undefined) => { if (value !== undefined && value !== "") rows.push("", `*${label}*`, escapeMarkdown(value)); };
-  add("Entry", entry); add("Stop Loss", signal.stop_loss == null ? undefined : formatInstrumentPrice(signal.stop_loss, signal.market, signal.symbol));
-  [...new Set(signal.targets??[])].forEach((target, index) => add(`TP${index + 1}`, formatInstrumentPrice(target, signal.market, signal.symbol)));
-  add("Risk / Reward", signal.risk_reward == null ? undefined : `1 : ${signal.risk_reward}`); add("Strategy", signal.strategy); add("Grade", signal.grade);
-  add("Scanner score (not win probability)", signal.confidence == null ? undefined : `${signal.confidence}/100`); add("Session", signal.session); add("Exchange", signal.exchange);
-  if(CRYPTO_TEAM_ROLES.some(r=>r.name===signal.strategy)){add('Tracking','Signal-only alert; virtual outcomes are not provider fills.');add('Management','Full target or protective stop; no partial exits, break-even or trailing. Maximum 24 hours; unresolved fills/results remain unknown.');}
-  add("Time", formatEastAfricaTime(signal.occurred_at, false)); rows.push("", `Reference: ${escapeMarkdown(signal.signal_id)}`, "HashiBot Qualified Signal · Manage risk independently.");
-  return rows.join("\n");
+  assertVipStrategy(signal.strategy);
+  const buy=/^(buy|long)$/i.test(signal.direction);
+  const entry=buy?signal.entry_high??signal.entry_low:signal.entry_low??signal.entry_high;
+  const stop=signal.stop_loss,targets=signal.targets??[];
+  if(entry==null||stop==null||!targets.length||![entry,stop,...targets].every(Number.isFinite))throw Error('VIP_PLAN_GEOMETRY_REQUIRED');
+  const risk=(entry-stop)*(buy?1:-1),last=targets.at(-1)!;
+  if(risk<=0||targets.some(t=>(t-entry)*(buy?1:-1)<=0))throw Error('VIP_PLAN_GEOMETRY_REQUIRED');
+  const rr=(last-entry)*(buy?1:-1)/risk;
+  const price=(n:number)=>formatInstrumentPrice(n,signal.market,signal.symbol);
+  const checkpoint=entry+(buy?1:-1)*1.5*risk;
+  const rows=[`HASHIBOT VIP · ${marketLabel(signal.market,signal.symbol)}`,vipSetupTag(signal.strategy!),`${signal.symbol.toUpperCase()} · ${buy?'BUY / LONG':'SELL / SHORT'}`,
+   `Entry Zone: ${price(signal.entry_low??entry)} – ${price(signal.entry_high??entry)}`,
+   `Stop Loss (-1R): ${price(stop)}`,
+   rr>=1.5?`TP1 subscriber checkpoint (1.5R — Move SL to Breakeven): ${price(checkpoint)}`:`TP1: ${price(targets[0])} · target is below the 1.5R checkpoint`,
+   `TP2 canonical target (${rr.toFixed(2)}R): ${price(last)}`,
+   `Target R:R ratio: 1:${rr.toFixed(2)}`,
+   rr<3?'Canonical target is below 3.0R; do not extend it to match the runner label.':'TP2: 3.0R+ target',
+   'Setup tags describe subscriber objectives, not guaranteed holding times. The 1.5R checkpoint is subscriber guidance; automated execution retains its assigned plan.',
+   `Time: ${formatEastAfricaTime(signal.occurred_at,false)}`,`Reference: ${signal.signal_id}`,'',VIP_RISK_FOOTER];
+  return rows.join('\n');
 }
 
 export interface AuthoritativeOutcome { signal_id: string; market: string; strategy?: string; status: "OPEN" | "WIN" | "LOSS" | "BREAK_EVEN" | "CANCELLED"; realized_r?: number; evidence_class: EvidenceClass; symbol?: string; }
