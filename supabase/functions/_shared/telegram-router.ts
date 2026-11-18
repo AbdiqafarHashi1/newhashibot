@@ -1,4 +1,5 @@
 import {loadProductEntryQuality} from './strategy-deployment-policy.ts';
+// VIP trade cards use the shared 0.5%–1.5% Standard / 0.25%–0.50% Prop footer.
 import {VIP_EXCLUDED_STRATEGIES} from './vip-signal-policy.ts';
 import {resolveHubChat} from './telegram-hub.ts';
 import { loadPublishableSignal } from "./signal-publication-guard.ts";

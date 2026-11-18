@@ -1,3 +1,4 @@
+import {PERSONAL_CAPITAL_NOTICE} from '../_shared/capital-suitability.ts';
 import {requireTradingAdmin} from '../_shared/execution-tier-presets.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
       await service.rpc("rollback_onboarded_execution_account", { p_account_id: accountId });
       return await fail("POST_CREATE_STATE_MISMATCH", "post_create_state_validation", 500, { account_id: accountId });
     }
-    return reply({ status: "ACCOUNT_CREATED", verification, account: safeAccountSummary(persisted), execution_default_off: true }, 201);
+    return reply({ status: "ACCOUNT_CREATED", verification, account: safeAccountSummary(persisted), execution_default_off: true,personal_default_risk_profile:'STANDARD',capital_notice:PERSONAL_CAPITAL_NOTICE }, 201);
   } catch (error) {
     return await fail(safeError(error), "edge_request", 400);
   } finally {

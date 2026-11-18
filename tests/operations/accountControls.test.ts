@@ -42,7 +42,7 @@ test('Personal Growth and Aggressive profiles produce scoped risk decisions with
  const {houseMoneyRisk}=await import('../../supabase/functions/_shared/house-money-risk.ts');
  const {validateAdminAccountControls}=await import('../../supabase/functions/_shared/admin-account-controls.ts');
  const facts={customerId:'customer-a',accountId:'a1',observedAt:now,monthlyPnlPct:0,dailyPnlPct:0,peakDrawdownPct:0,totalDrawdownPct:0,consecutiveLosses:0,phase:1 as const};
- for(const [profile,risk] of [['GROWTH_2',2],['AGGRESSIVE_5',5]] as const){
+ for(const [profile,risk] of [['GROWTH_2PCT',2],['AGGRESSIVE_5PCT',5]] as const){
   const configured={...input(),configuration:{...config('GROWTH'),houseMoney:'house-money/v1' as const,personalRiskProfile:profile},houseMoneyFacts:facts,context:context('a1','customer-a',false,{leverage:100})};
   const allowed=evaluateAccountSignal(configured);assert.equal(allowed.decision,'ALLOW');assert.equal(allowed.authorizedRiskPct,risk);assert.equal(allowed.equity_phase,'PERSONAL_'+profile);
   assert.throws(()=>evaluateAccountSignal({...configured,context:{...configured.context,environment:'LIVE'}}),/SANDBOX/);
@@ -50,18 +50,18 @@ test('Personal Growth and Aggressive profiles produce scoped risk decisions with
   const stale=evaluateAccountSignal({...configured,houseMoneyFacts:{...facts,observedAt:'2026-09-25T11:58:00Z'}});assert.equal(stale.authorizedRiskPct,0);
   assert.equal(houseMoneyRisk('PERSONAL',facts,now,false,.75,profile).applied_risk_pct,risk*.75);
   const admin={id:'a1',customer_id:'customer-a',provider:'MT5_PERSONAL',account_mode:'PERSONAL',environment:'demo',policy_profile_id:DEFAULT_MT5_PERSONAL_POLICY.policy_id,policy_version:DEFAULT_MT5_PERSONAL_POLICY.policy_version,policy_overrides:{policy_configuration:{preset:'GROWTH',houseMoney:'house-money/v1'}}};
-  const saved=validateAdminAccountControls(admin,{limits:{personalRiskProfile:profile}});assert.equal(saved.configuration.riskPerTradePct,risk);assert.equal(saved.configuration.maxLeverage,100);
-  assert.throws(()=>validateAdminAccountControls({...admin,environment:'live'},{limits:{personalRiskProfile:profile}}),/SANDBOX/);
+  const saved=validateAdminAccountControls(admin,{limits:{personalRiskProfile:profile}},{actorRole:'admin'});assert.equal(saved.configuration.riskPerTradePct,risk);assert.equal(saved.configuration.maxLeverage,100);
+  assert.throws(()=>validateAdminAccountControls({...admin,environment:'live'},{limits:{personalRiskProfile:profile}},{actorRole:'admin'}),/SANDBOX/);
  }
  assert.equal(houseMoneyRisk('PROP_CHALLENGE_PASS',facts,now).applied_risk_pct,.85);
- assert.equal(houseMoneyRisk('PROP_CHALLENGE_PASS',facts,now,false,1,'AGGRESSIVE_5').block_reason,'PERSONAL_RISK_PROFILE_FORBIDDEN_FOR_PROP');
- assert.equal(houseMoneyRisk('PERSONAL',{...facts,dailyPnlPct:-8},now,false,1,'GROWTH_2').block_reason,'PERSONAL_GROWTH_DAILY_HALT');
- assert.equal(houseMoneyRisk('PERSONAL',{...facts,peakDrawdownPct:60},now,false,1,'AGGRESSIVE_5').block_reason,'PERSONAL_GROWTH_PEAK_HALT');
+ assert.equal(houseMoneyRisk('PROP_CHALLENGE_PASS',facts,now,false,1,'AGGRESSIVE_5PCT').block_reason,'PERSONAL_RISK_PROFILE_FORBIDDEN_FOR_PROP');
+ assert.equal(houseMoneyRisk('PERSONAL',{...facts,dailyPnlPct:-8},now,false,1,'GROWTH_2PCT').block_reason,'PERSONAL_GROWTH_DAILY_HALT');
+ assert.equal(houseMoneyRisk('PERSONAL',{...facts,peakDrawdownPct:60},now,false,1,'AGGRESSIVE_5PCT').block_reason,'PERSONAL_GROWTH_PEAK_HALT');
 });
 
 test('Personal growth respects a narrower Admin risk ceiling and a 50% entry margin budget',()=>{
  const facts={customerId:'customer-a',accountId:'a1',observedAt:now,monthlyPnlPct:0,dailyPnlPct:0,peakDrawdownPct:0,totalDrawdownPct:0,consecutiveLosses:0,phase:1 as const};
- const configured={...input(),configuration:{...config('GROWTH'),houseMoney:'house-money/v1' as const,personalRiskProfile:'GROWTH_2' as const,riskPerTradePct:1},houseMoneyFacts:facts,context:context('a1','customer-a',false,{leverage:100})};
+ const configured={...input(),configuration:{...config('GROWTH'),houseMoney:'house-money/v1' as const,personalRiskProfile:'GROWTH_2PCT' as const,riskPerTradePct:1},houseMoneyFacts:facts,context:context('a1','customer-a',false,{leverage:100})};
  assert.equal(evaluateAccountSignal(configured).authorizedRiskPct,1);
  const margin=evaluateAccountSignal({...configured,configuration:{...configured.configuration,riskPerTradePct:2,maxLeverage:5}});assert.equal(margin.authorizedRiskPct,0);assert.ok(margin.reasonCodes.includes('PERSONAL_GROWTH_MARGIN_BUDGET'));
 });
