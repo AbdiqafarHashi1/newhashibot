@@ -126,7 +126,7 @@ export async function recordCampaignDelivery(
   }
 }
 
-export const VIP_UPGRADE_LINK = "https://hashibot.trade/vip";
+export const VIP_UPGRADE_LINK = "https://hashibot.app/vip";
 export const VIP_CONTACT_HANDLE = "@Abdihashi1";
 
 export function getUpgradeIncentiveBlock(customCta?: string): string {

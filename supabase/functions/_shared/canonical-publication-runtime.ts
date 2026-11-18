@@ -1,3 +1,4 @@
+import {assertVipStrategy,VIP_RISK_FOOTER,removeRawWinRates,vipSetupTag} from './vip-signal-policy.ts';
 import {subscriberCopySafe} from './subscriber-copy.ts';
 import {resolveHubChat} from './telegram-hub.ts';
 import {validateEditorialPublication,renderEditorialPublication,renderCanonicalVipSignal} from "./telegram-product.ts";
@@ -5,13 +6,13 @@ import {loadPublishableSignal} from "./signal-publication-guard.ts";
 import {processCanonicalPublicationBatch,type CanonicalPublicationTruth,type PublicationClaim,type PublicationStore,type PublicationTransport,type SendResult} from "./canonical-publication-worker.ts";
 import {channelRegistry,getBotToken} from "./telegram-registry.ts";
 import {classifyDeliveryError} from "./telegram-router.ts";
-import {formatEastAfricaTime,renderTelegramTemplate,splitMessageSafely} from "./telegram-templates.ts";
+import {renderTelegramTemplate,splitMessageSafely} from "./telegram-templates.ts";
 
 const safeTransportError=(error:unknown)=>String(error instanceof Error?error.message:error).replace(/https?:\/\/\S+/g,"[redacted]").replace(/bot[0-9]+:[A-Za-z0-9_-]+/g,"bot[redacted]").slice(0,300);
 const rowClaim=(r:any):PublicationClaim=>({id:r.id,entityType:r.entity_type,entityId:r.entity_id,eventType:r.event_type,eventVersion:Number(r.event_version),destination:r.destination,customerId:r.customer_id,attemptCount:Number(r.attempt_count),leaseToken:r.lease_token});
 export class SupabasePublicationStore implements PublicationStore{
  constructor(private db:any){}
- async claim(i:{workerId:string;limit:number;leaseSeconds:number;maxAttempts:number}){const {data,error}=await this.db.rpc("claim_signal_publication_work",{p_worker:i.workerId,p_limit:i.limit,p_lease_seconds:i.leaseSeconds,p_max_attempts:i.maxAttempts});if(error)throw error;return(data??[]).map(rowClaim)}
+ async claim(i:{workerId:string;limit:number;leaseSeconds:number;maxAttempts:number}){const {data,error}=await this.db.rpc("claim_signal_publication_work",{p_worker:i.workerId,p_limit:i.limit,p_lease_seconds:i.leaseSeconds,p_max_attempts:i.maxAttempts});if(error)throw error;const ready:PublicationClaim[]=[];for(const row of data??[]){const c=rowClaim(row);if(c.eventType==='EDITORIAL'&&['free','vip','vip_crypto','vip_forex_gold'].includes(c.destination)){const truth=await this.loadTruth(c);const checked=truth?.payload?.editorial?validateEditorialPublication(truth.payload.editorial as any):{valid:false};if(!checked.valid){await this.finishClaim({claim:c,state:'SUPPRESSED',reason:'EDITORIAL_STALE_OR_INVALID'});continue;}const r=await this.db.rpc('reserve_editorial_channel_slot',{p_work:c.id,p_lease:c.leaseToken});if(r.error)throw r.error;if(r.data?.allowed!==true){await this.finishClaim({claim:c,state:'RETRY',reason:'EDITORIAL_CHANNEL_COOLDOWN',nextAttemptAt:r.data?.next_attempt_at??new Date(Date.now()+7200000).toISOString()});continue;}}ready.push(c);}return ready}
  async loadTruth(c:PublicationClaim):Promise<CanonicalPublicationTruth|null>{
   if(c.entityType==="signal"){const {data,error}=await this.db.from("signals").select("*").eq("id",c.entityId).maybeSingle();if(error)throw error;if(!data)return null;try{await loadPublishableSignal(this.db,data.id)}catch(error){data._publication_hold=error instanceof Error?error.message:"SIGNAL_QUALIFICATION_UNAVAILABLE"}return{entityType:"signal",entityId:data.id,eventType:c.eventType,eventVersion:c.eventVersion,occurredAt:data.updated_at??data.created_at,customerId:null,payload:Object.freeze({...data})}}
   const table=c.entityType==="lifecycle_event"?"canonical_lifecycle_events":c.entityType==="account_event"?"execution_event_logs":c.entityType==="certification"?"customer_certification_events":null;if(!table)return null;let query=this.db.from(table).select("*");query=c.entityType==="lifecycle_event"?query.eq("event_type",c.eventType).eq("event_version",c.eventVersion).or(`execution_id.eq.${c.entityId},signal_id.eq.${c.entityId},id.eq.${c.entityId}`):query.eq("id",c.entityId);const {data,error}=await query.maybeSingle();if(error)throw error;if(!data)return null;if(c.entityType==="lifecycle_event"&&data.signal_id&&["free","vip","vip_crypto","vip_forex_gold"].includes(c.destination)){
@@ -22,6 +23,10 @@ export class SupabasePublicationStore implements PublicationStore{
    const {data:latest,error:setupError}=await this.db.from("conditional_signal_setups").select("state").eq("id",data.payload?.setup_id).maybeSingle();
    const state=data.payload?.state,current=latest?.state;
    if(setupError||!current||!state||(["WAITING","ARMED"].includes(state.status)&&(current.status!==state.status||Date.parse(state.expiresAt)<=Date.now())))data.payload={...(data.payload??{}),_publication_hold:"CONDITIONAL_STATE_SUPERSEDED_OR_UNAVAILABLE"};
+  }
+  if(c.eventType==='EDITORIAL'&&String(data.payload?.editorial?.content_id??'').startsWith('phase-o:')){
+   const e=data.payload.editorial;const approval=await this.db.from('phase_o_approvals').select('approved_at,expires_at').eq('draft_id',e.source_ids?.[0]).is('revoked_at',null).order('approved_at',{ascending:false}).limit(1).maybeSingle();
+   if(approval.error||!approval.data||Date.parse(approval.data.approved_at)!==Date.parse(e.generated_at)||approval.data.expires_at&&Date.parse(approval.data.expires_at)<=Date.now())data.payload={...data.payload,editorial:{...e,approval_state:'REJECTED'}};
   }
   return{entityType:c.entityType,entityId:c.entityId,eventType:String(data.event_type??c.eventType),eventVersion:Number(data.event_version??c.eventVersion),occurredAt:data.occurred_at??data.created_at,customerId:data.customer_id??null,payload:Object.freeze(c.entityType==="lifecycle_event"?{...(data.payload??{}),event_key:data.event_key}: {...data})}}
  async reservePart(i:{claim:PublicationClaim;part:number;identity:string}){const {data,error}=await this.db.rpc("reserve_canonical_delivery_part",{p_work_id:i.claim.id,p_lease_token:i.claim.leaseToken,p_part:i.part,p_identity:i.identity});if(error)throw error;return{state:data.state==="DELIVERED"?"DELIVERED":data.state==="UNCERTAIN"?"UNCERTAIN":"SEND",deliveryId:data.id,messageId:data.telegram_message_id??undefined,operation:data.operation,previousMessageId:data.edited_from_message_id??undefined} as const}
@@ -41,7 +46,9 @@ export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
  if(t.eventType==="CONDITIONAL_SETUP"){
   const gap=p.state?.status==='DATA_GAP';
   if((gap?audience!=='admin':audience!==(p.market_type==="crypto"?"vip_crypto":"vip_forex_gold")&&!(audience==='free'&&p.free_sample===true))||!["crypto","forex"].includes(p.market_type)||p.policy!=="conditional-signals/v1"||typeof p.message!=="string"||!p.message.trim())throw Error("CONDITIONAL_PUBLICATION_SCOPE_INVALID");
-  const text=p.message+(audience==='free'?'\n\nToday’s Free selection. Get the full Scalp, Intraday & Swing stream with VIP — $29/month or KES 3,500/30 days.\nhttps://hashibot.app/vip':gap?`\nAdmin review: ${p.state.result??'Outcome unknown'}`:'');
+  const conditionalVip=audience==='vip_crypto'||audience==='vip_forex_gold';
+  if(conditionalVip)assertVipStrategy(p.state?.strategy??p.strategy_id);
+  const text=(conditionalVip?vipSetupTag(p.state?.strategy??p.strategy_id)+'\n'+removeRawWinRates(p.message):p.message)+(conditionalVip?'\n\n'+VIP_RISK_FOOTER:'')+(audience==='free'?'\n\nToday’s Free selection. Get the full Scalp, Intraday & Swing stream with VIP — $29/month or KES 3,500/30 days.\nhttps://hashibot.app/vip':gap?`\nAdmin review: ${p.state.result??'Outcome unknown'}`:'');
   if(audience!=='admin'&&!subscriberCopySafe(text))throw Error('SUBSCRIBER_DIAGNOSTIC_BLOCKED');
   const escaped=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   return splitMessageSafely(escaped,4000).map(text=>({text,parseMode:"HTML" as const}));
@@ -52,8 +59,12 @@ export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
   const copy=renderEditorialPublication(p.editorial);if(audience!=='admin'&&!subscriberCopySafe(copy))throw Error('SUBSCRIBER_DIAGNOSTIC_BLOCKED');
   return splitMessageSafely(copy,4000).map(text=>({text,parseMode:"Markdown" as const}));
  }
- const text=t.entityType==="signal"&&audience!=="free"?renderCanonicalVipSignal({signal_id:t.entityId,market:p.market_type,symbol:p.symbol,direction:p.direction,occurred_at:t.occurredAt,entry_low:p.entry_low,entry_high:p.entry_high,stop_loss:p.stop_loss,targets:[p.tp1,p.tp2].filter((v):v is number=>typeof v==="number"&&Number.isFinite(v)),risk_reward:p.risk_reward,strategy:p.strategy_name,grade:p.grade,confidence:p.confidence_score}):renderTelegramTemplate({eventType:t.eventType,market:p.market_type,symbol:p.symbol,direction:p.direction,grade:p.grade,confidence:p.confidence_score,entryLow:p.entry_low,entryHigh:p.entry_high,stopLoss:p.stop_loss,tp1:p.tp1,tp2:p.tp2,strategyName:p.strategy_name,reason:p.reason,details:p.details,timestamp:t.occurredAt,publicationMode:"preview"},audience);
+ const vip=audience==='vip'||audience==='vip_crypto'||audience==='vip_forex_gold';
+ if(vip&&t.entityType==='signal')assertVipStrategy(p.strategy_id??p.strategy_name);
+ let text=t.entityType==="signal"&&vip?renderCanonicalVipSignal({signal_id:t.entityId,market:p.market_type,symbol:p.symbol,direction:p.direction,occurred_at:t.occurredAt,entry_low:p.entry_low,entry_high:p.entry_high,stop_loss:p.stop_loss,targets:[p.tp1,p.tp2].filter((v):v is number=>typeof v==="number"&&Number.isFinite(v)),risk_reward:p.risk_reward,strategy:p.strategy_id??p.strategy_name,grade:p.grade,confidence:p.confidence_score}):renderTelegramTemplate({eventType:t.eventType,market:p.market_type,symbol:p.symbol,direction:p.direction,grade:p.grade,confidence:p.confidence_score,entryLow:p.entry_low,entryHigh:p.entry_high,stopLoss:p.stop_loss,tp1:p.tp1,tp2:p.tp2,strategyName:p.strategy_name,reason:p.reason,details:p.details,timestamp:t.occurredAt,publicationMode:"preview"},audience);
+ if(vip)text=removeRawWinRates(text);
+ if(vip&&!text.includes(VIP_RISK_FOOTER))text+='\n\n'+VIP_RISK_FOOTER;
  if(audience!=='admin'&&!subscriberCopySafe(text))throw Error('SUBSCRIBER_DIAGNOSTIC_BLOCKED');
- return splitMessageSafely(text,4000).map(text=>({text,parseMode:"Markdown" as const}));
+ return splitMessageSafely(text,4000).map(text=>vip?{text:text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"),parseMode:"HTML" as const}:{text,parseMode:"Markdown" as const});
 }
 export const runCanonicalPublicationWorker=(db:any,input:{workerId:string;limit?:number;transport?:PublicationTransport})=>processCanonicalPublicationBatch({store:new SupabasePublicationStore(db),transport:input.transport??new TelegramCanonicalTransport(db),render:renderCanonicalTruth,workerId:input.workerId,limit:input.limit});

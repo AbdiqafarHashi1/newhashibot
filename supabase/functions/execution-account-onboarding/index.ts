@@ -1,3 +1,4 @@
+import {requireTradingAdmin} from '../_shared/execution-tier-presets.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { providerEnvironment, safeAccountSummary, verifyProvider, type OnboardingProvider, type RawCredential } from "../_shared/execution-account-onboarding.ts";
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
   const { data: { user } } = await service.auth.getUser(token);
   if (!user) return reply({ error: "unauthorized" }, 401);
   const { data: admin } = await service.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (admin?.role !== "admin") return reply({ error: "forbidden" }, 403);
+  try { requireTradingAdmin(admin?.role); } catch { return reply({ error: "forbidden" }, 403); }
 
   let credential: RawCredential | null = null;
   let diagnostic = { provider: "unknown", environment: "unknown", owner_classification: "unknown", canonical_account_id: null as string | null };
