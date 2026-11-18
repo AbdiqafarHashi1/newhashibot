@@ -1,7 +1,7 @@
+import {COST_POSITIVE_CONFIG_IDS} from './cost-positive-configs.ts';
 import {GOLD_RSI_TRAILING} from './atr-trailing-policy.ts';
 import {EXECUTION_CANONICAL_REVIEWS} from './execution-canonical-reviews.ts';
 import {FRONTIER_CANONICAL_REVIEWS} from './frontier-canonical-reviews.ts';
-import {LAUNCH_CANONICAL_REVIEWS} from './launch-canonical-reviews.ts';
 import {executionStrategyChoices} from './execution-strategy-selection.ts';
 import {PROP_STRATEGY_BUNDLES} from './prop-strategy-bundles.ts';
 
@@ -9,15 +9,15 @@ import {PROP_STRATEGY_BUNDLES} from './prop-strategy-bundles.ts';
 export function executionStrategyPresets(provider:string,environment:string){
  if(!['MT5','MT5_PERSONAL','MT5_PROP','BINANCE','BYBIT'].includes(provider.toUpperCase())||!['demo','testnet','live'].includes(environment))return [];
  const available=new Set(executionStrategyChoices(provider,environment).map(c=>c.id));
- const reviewed=LAUNCH_CANONICAL_REVIEWS.map(r=>r.strategyId).filter(id=>available.has(id));
+ const reviewed=COST_POSITIVE_CONFIG_IDS.filter(id=>available.has(id));
  const definitions=[
   {id:'reviewed',label:provider.toUpperCase()==='MT5_PROP'?'Prop · reviewed Forex & Gold':'All reviewed configurations',ids:reviewed},
   {id:'gold-trailing',label:'Gold · focused RSI trailing',ids:available.has(GOLD_RSI_TRAILING)&&EXECUTION_CANONICAL_REVIEWS.some(r=>r.strategyId===GOLD_RSI_TRAILING)?[GOLD_RSI_TRAILING]:[]},
   {id:'crypto-focused',label:'Crypto · focused trend pullback',ids:available.has('crypto.launch-trend-pullback-48-1.5-5')?['crypto.launch-trend-pullback-48-1.5-5']:[]},
   {id:'gold-momentum-focused',label:'Gold · focused momentum · 15m',ids:available.has('gold.native-momentum-15-48-2-5')?['gold.native-momentum-15-48-2-5']:[]},
   {id:'gold-compression',label:'Gold · compression · full 5R',ids:FRONTIER_CANONICAL_REVIEWS.map(r=>r.strategyId).filter(id=>available.has(id))},
-  {id:'gold',label:'Gold · momentum & reversal',ids:reviewed.filter(id=>id.startsWith('gold.'))},
-  {id:'forex',label:'Forex · Yen & Sterling',ids:reviewed.filter(id=>id.startsWith('forex.'))},
+  {id:'gold',label:'Gold · momentum & reversal',ids:reviewed.filter(id=>id.startsWith('gold.')||id==='forex.complementary-ema-pullback')},
+  {id:'forex',label:'Forex · Yen & Sterling',ids:reviewed.filter(id=>id.startsWith('forex.')&&id!=='forex.complementary-ema-pullback')},
   {id:'crypto-swing',label:'Crypto · swing & pullback',ids:reviewed.filter(id=>id.startsWith('crypto.')&&!id.includes('native-'))},
   {id:'crypto-intraday',label:'Crypto · DOGE & LTC intraday',ids:reviewed.filter(id=>id.startsWith('crypto.native-'))},
   {id:'prop-intraday',label:'Prop · intraday comparison',ids:provider.toUpperCase()==='MT5_PROP'?PROP_STRATEGY_BUNDLES.INTRADAY.ids.filter(id=>reviewed.includes(id)):[]},

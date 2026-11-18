@@ -1,0 +1,560 @@
+{
+  "reviewed": [
+    {
+      "id": "crypto.launch-rsi2-48-3-3-h72",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.launch-rsi2-48-3-3-h72",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 2.4,
+            "maxBarsInTrade": 72,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "BTCUSDT",
+              "ETHUSDT",
+              "SOLUSDT",
+              "BNBUSDT",
+              "XRPUSDT",
+              "ADAUSDT",
+              "DOGEUSDT",
+              "LINKUSDT",
+              "AVAXUSDT",
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "4h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "crypto.launch-trend-pullback-48-1.5-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.launch-trend-pullback-48-1.5-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 192,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "BTCUSDT",
+              "ETHUSDT",
+              "SOLUSDT",
+              "BNBUSDT",
+              "XRPUSDT",
+              "ADAUSDT",
+              "DOGEUSDT",
+              "LINKUSDT",
+              "AVAXUSDT",
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "4h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "crypto.launch-trend-pullback-48-2-3-h72",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.launch-trend-pullback-48-2-3-h72",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 2.4,
+            "maxBarsInTrade": 72,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "BTCUSDT",
+              "ETHUSDT",
+              "SOLUSDT",
+              "BNBUSDT",
+              "XRPUSDT",
+              "ADAUSDT",
+              "DOGEUSDT",
+              "LINKUSDT",
+              "AVAXUSDT",
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "4h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 0.9,
+            "maxBarsInTrade": 24,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "LTCUSDT"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "minimum_atr_fraction": 0.006,
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 0.9,
+            "maxBarsInTrade": 12,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "DOGEUSDT"
+            ],
+            "timeframes": [
+              "5m"
+            ],
+            "parameters": {
+              "minimum_atr_fraction": 0.006,
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "forex.native-band-reentry-60-12-2-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "forex.native-band-reentry-60-12-2-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 48,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "USDJPY"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 24,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "GBPUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "minimum_atr_fraction": 0.0008,
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 2.4,
+            "maxBarsInTrade": 12,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "USDJPY"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 72,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "USDJPY"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gold.frontier-compression-15-24-1.5-5-h96",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.frontier-compression-15-24-1.5-5-h96",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 96,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gold.native-band-reentry-15-48-3-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.native-band-reentry-15-48-3-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 192,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gold.native-momentum-15-48-2-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.native-momentum-15-48-2-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 192,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gold.native-momentum-60-24-2-5",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.native-momentum-60-24-2-5",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 96,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gold.rsi-trailing-15-48-1.5-5-h96",
+      "configuration": {
+        "version": "canonical-demo/v1",
+        "minSignalGrade": "A",
+        "strategies": [
+          {
+            "id": "gold.rsi-trailing-15-48-1.5-5-h96",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 4.4,
+            "maxBarsInTrade": 96,
+            "minStopDistancePct": 0,
+            "minTp1DistancePct": 0,
+            "minTp2DistancePct": 0,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "15m"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "complementary": [
+    {
+      "id": "crypto.complementary-ema-pullback",
+      "strategyName": "crypto.complementary-ema-pullback",
+      "configuration": {
+        "version": "cost-positive-forward/v1",
+        "minSignalGrade": "A",
+        "outcomeAssumptions": {
+          "entryTiming": "NEXT_OPEN",
+          "feeBps": 20,
+          "spreadBps": 2,
+          "slippageBps": 3,
+          "fundingBps": 0,
+          "partialExitPct": 0.5,
+          "moveStopToBreakevenAfterTp1": true,
+          "trailingStopR": null,
+          "sameCandlePolicy": "STOP_FIRST",
+          "tp1StopPolicy": "CONSERVATIVE_SAME_BAR",
+          "closeAtHorizon": true
+        },
+        "strategies": [
+          {
+            "id": "crypto.complementary-ema-pullback",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 1,
+            "maxBarsInTrade": 96,
+            "symbols": [
+              "ETHUSDT"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "schema": "cost-positive-signal-review/v1",
+        "referenceFile": "summary-final-spot-entry-ETHUSDT.json",
+        "referenceSha256": "44c28a611a0b673d79f7ed3749dabf931ad16906b2c406e082ea121a9e8922b3",
+        "periods": [
+          {
+            "period": "development",
+            "closed": 48,
+            "profitFactor": 1.5086904595829078
+          },
+          {
+            "period": "validation",
+            "closed": 52,
+            "profitFactor": 1.1773255472296875
+          }
+        ],
+        "scope": "SIGNALS_AND_DEMO",
+        "accountPortfolioQualification": false
+      }
+    },
+    {
+      "id": "forex.complementary-ema-pullback",
+      "strategyName": "forex.complementary-ema-pullback",
+      "configuration": {
+        "version": "cost-positive-forward/v1",
+        "minSignalGrade": "A",
+        "outcomeAssumptions": {
+          "entryTiming": "NEXT_OPEN",
+          "feeBps": 0.7,
+          "spreadBps": 1.8,
+          "slippageBps": 0.2,
+          "fundingBps": 0.3,
+          "partialExitPct": 0.5,
+          "moveStopToBreakevenAfterTp1": true,
+          "trailingStopR": null,
+          "sameCandlePolicy": "STOP_FIRST",
+          "tp1StopPolicy": "CONSERVATIVE_SAME_BAR",
+          "closeAtHorizon": true
+        },
+        "strategies": [
+          {
+            "id": "forex.complementary-ema-pullback",
+            "version": "1.0.0",
+            "enabled": true,
+            "minScore": 75,
+            "minRiskReward": 1,
+            "maxBarsInTrade": 96,
+            "symbols": [
+              "XAUUSD"
+            ],
+            "timeframes": [
+              "1h"
+            ],
+            "parameters": {
+              "entry_engine_version": 1
+            }
+          }
+        ]
+      },
+      "evidence": {
+        "schema": "cost-positive-signal-review/v1",
+        "referenceFile": "summary-gold-profile.json",
+        "referenceSha256": "25a781af72f5afd8472b82d27006ad8531e618801ea422e46f555cdd48d228e1",
+        "periods": [
+          {
+            "period": "development",
+            "closed": 41,
+            "profitFactor": 1.155982353311814
+          },
+          {
+            "period": "validation",
+            "closed": 32,
+            "profitFactor": 1.4222735614333637
+          }
+        ],
+        "scope": "SIGNALS_AND_DEMO",
+        "accountPortfolioQualification": false
+      }
+    }
+  ]
+}

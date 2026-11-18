@@ -1,0 +1,21 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {PGlite} from '@electric-sql/pglite';import {readFile} from 'node:fs/promises';import {createHash} from 'node:crypto';import {accountSchema} from './support/accountSchema.mjs';
+test('weekend SQL cancels owned FX orders, closes only restricted Prop exposure, preserves crypto/manual tickets and revalidates dispatch',async()=>{const db=new PGlite();try{ await db.exec(accountSchema);await db.exec(`alter table connected_execution_accounts add column runtime_control text;
+ create table phase_h_entitlements(id uuid primary key,customer_id uuid,execution_account_id uuid,state text,valid_from timestamptz,valid_until timestamptz,revoked_at timestamptz);
+ create table execution_entitlement_bindings(execution_account_id uuid,customer_id uuid,entitlement_id uuid,state text);
+ create table mt5_account_snapshots(account_id uuid,owner_id uuid,bridge_id text,captured_at timestamptz,terminal_authenticated boolean,read_status jsonb,positions jsonb,orders jsonb);
+ create table mt5_commands(id uuid primary key default gen_random_uuid(),account_id uuid,bridge_id text,operation text,payload jsonb,idempotency_key text,status text,intended_policy jsonb,expires_at timestamptz,error_code text,attempts integer not null default 0,unique(account_id,idempotency_key));`);
+ await db.exec(await readFile('supabase/migrations/20261114054116_execution_expiry_management.sql','utf8'));
+
+ await db.exec(await readFile('supabase/migrations/20261118122000_weekend_rotation.sql','utf8'));
+ for(const [at,expected] of [['2026-11-20T19:59:59Z',false],['2026-11-20T20:00:00Z',true],['2026-11-22T20:59:59Z',true],['2026-11-22T21:00:00Z',false]])assert.equal((await db.query('select in_crypto_rotation_window($1) value',[at])).rows[0].value,expected);
+ await db.exec('create or replace function public.in_crypto_rotation_window(at_time timestamptz) returns boolean language sql immutable as $$select true$$');
+ const owner='11111111-1111-4111-8111-111111111111',account=crypto.randomUUID(),terminal=crypto.randomUUID(),child='weekend-owned',comment='hb:'+createHash('sha256').update(child).digest('hex').slice(0,24);
+ await db.query("insert into connected_execution_accounts(id,customer_id,provider,account_mode,environment,credential_ref,provider_account_identity,policy_overrides) values($1,$2,'MT5_PROP','PROP_EVALUATION','demo','vault',$3,'{\"approved_prop_rules\":{\"weekend_holding_allowed\":false}}')",[account,owner,terminal]);await db.query("insert into mt5_accounts values($1,$2,'bridge','vault')",[terminal,owner]);
+ await db.query("insert into mt5_commands(account_id,bridge_id,operation,payload,idempotency_key,status,expires_at) values($1,'bridge','OPEN_POSITION',$2,'entry','accepted',now()+interval '1 minute')",[terminal,JSON.stringify({symbol:'EURUSD',certified:true,native_child_orders:[{client_order_id:child}]})]);
+ const snap=()=>db.query("insert into mt5_account_snapshots values($1,$2,'bridge',clock_timestamp(),true,'{\"positions\":true,\"orders\":true}',$3,$4)",[terminal,owner,JSON.stringify([{ticket:1,symbol:'EURUSD',comment},{ticket:2,symbol:'BTCUSD',comment},{ticket:3,symbol:'EURUSD',comment:'manual'}]),JSON.stringify([{ticket:4,symbol:'XAUUSD',comment}])]);
+ await snap();await snap();const queued=(await db.query("select * from mt5_commands where operation in('CLOSE_POSITION','CANCEL_ORDER')")).rows;assert.equal(queued.length,2);assert.deepEqual(queued.map(c=>c.payload.ticket).sort(),['1','4']);
+ const close=queued.find(c=>c.operation==='CLOSE_POSITION');await db.query("update mt5_commands set status='accepted' where id=$1",[close.id]);
+ const proof=()=>db.query('select authorize_weekend_management($1,$2,$3,$4) value',[close.id,owner,terminal,'bridge']);assert.equal((await proof()).rows[0].value.authority,'WEEKEND_ROTATION');
+ await db.query("update connected_execution_accounts set policy_overrides='{}' where id=$1",[account]);assert.equal((await proof()).rows[0].value,null);
+ await db.exec('create or replace function public.in_crypto_rotation_window(at_time timestamptz) returns boolean language sql immutable as $$select false$$');assert.equal((await proof()).rows[0].value,null);
+ }finally{await db.close()}});

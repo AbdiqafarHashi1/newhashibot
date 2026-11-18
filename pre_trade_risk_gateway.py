@@ -72,6 +72,7 @@ class RiskCheckResult:
 class PreTradeRiskGateway:
     """
     High-Frequency Non-Blocking Pre-Trade Risk Gateway.
+    Uses canonical fresh account_risk_state sizing when mapped; a 4% daily ceiling is enforced in PostgreSQL.
     Integrates single-trip atomic PostgreSQL verification (Module 3) with
     non-blocking row handling (Module 1) to eliminate all lock starvation.
     """
