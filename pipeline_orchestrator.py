@@ -272,8 +272,7 @@ class PipelineOrchestrator:
 
     async def _execute_crypto_order(self, intent: OrderIntent, execution_size: float) -> None:
         """Dispatches orders to isolated crypto APIs with strict timeout interception."""
-        # Simulated fast dispatch with timeout protection
-        await asyncio.sleep(0.02)
+        raise UnconfirmedExecutionException(intent.account_id, intent.order_id)
 
     async def _execute_forex_order(self, intent: OrderIntent, execution_size: float) -> None:
         """Dispatches orders to MT5 ZeroMQ line with sub-millisecond serialization."""
@@ -291,7 +290,7 @@ class PipelineOrchestrator:
         if push_socket:
             await push_socket.send_json(order_payload)
         else:
-            await asyncio.sleep(0.01)
+            raise UnconfirmedExecutionException(intent.account_id, intent.order_id)
 
     # =========================================================================
     # Friday 20:00 UTC Weekend Lockout Handler

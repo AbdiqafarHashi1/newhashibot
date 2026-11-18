@@ -1,0 +1,102 @@
+{
+  "profile": {
+    "researchOnly": true,
+    "version": "forex.complementary-gold-trend-v1",
+    "minSignalGrade": "A",
+    "outcomeAssumptions": {
+      "entryTiming": "NEXT_OPEN",
+      "feeBps": 0.7,
+      "spreadBps": 1.8,
+      "slippageBps": 0.2,
+      "fundingBps": 0.3,
+      "partialExitPct": 0.5,
+      "moveStopToBreakevenAfterTp1": true,
+      "trailingStopR": null,
+      "sameCandlePolicy": "STOP_FIRST",
+      "tp1StopPolicy": "CONSERVATIVE_SAME_BAR",
+      "closeAtHorizon": true
+    },
+    "strategies": [
+      {
+        "id": "forex.complementary-ema-pullback",
+        "version": "1.0.0",
+        "enabled": true,
+        "minScore": 75,
+        "minRiskReward": 1,
+        "maxBarsInTrade": 96,
+        "symbols": [
+          "XAUUSD"
+        ],
+        "timeframes": [
+          "1h"
+        ],
+        "parameters": {
+          "entry_engine_version": 1
+        }
+      }
+    ]
+  },
+  "sourceEvidenceSha256": "b3b51caf14d89eb71d4a72ad2042cbad0f62cb6b4c9da2949f14d8938c5b76e8",
+  "sourceDatasetSha256": "7e4690aa51f2fe45d0685f0aa3883e08d7334756c61d6c079f241e0d52fc401d",
+  "classification": "COST_ONLY_REPLAY_OF_IDENTICAL_CONFIRMED_SELECTIONS_NOT_NEW_MARKET_OBSERVATIONS",
+  "summary": [
+    {
+      "stage": "development",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 41,
+        "resolvedCount": 41,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.09184395707165657,
+        "profitFactor": 1.155982353311814,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.065669627953051
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 41,
+        "resolvedCount": 41,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.07384137876169833,
+        "profitFactor": 1.1231456173644672,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 9.342431883918383
+      }
+    },
+    {
+      "stage": "validation",
+      "base": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 32,
+        "resolvedCount": 32,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.20899211234907342,
+        "profitFactor": 1.4222735614333637,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.466460555558198
+      },
+      "stress": {
+        "analysisMode": "INDEPENDENT_SIGNAL_OUTCOMES",
+        "overlapPolicy": "NOT_PORTFOLIO_NETTED",
+        "tradeCount": 32,
+        "resolvedCount": 32,
+        "openCount": 0,
+        "ambiguousCount": 0,
+        "excludedCount": 0,
+        "expectancyR": 0.1970202191132954,
+        "profitFactor": 1.393146872137416,
+        "profitFactorUndefinedReason": null,
+        "realizedMaxDrawdownR": 5.667437468432891
+      }
+    }
+  ]
+}

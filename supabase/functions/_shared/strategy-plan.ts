@@ -231,6 +231,7 @@ function managementIntent(definition: StrategyDefinition, maxBars: number): Stra
     cancel_conditions:['Cancel unfilled invalid/expired entry plans; never infer a provider fill.'],
     time_exit:`Virtual close after ${maxBars} strategy-timeframe bars; missing future candles remain unresolved.`,
   };
+  if(definition.id.includes('.complementary-'))return {break_even:'Move the remaining protective stop to entry after TP1; apply the shared conservative collision policy.',trailing:'Fixed TP2 bracket in v1; no independent ATR runner mutation.',partial_exits:['50% at TP1 and remaining 50% at TP2; account quantities remain downstream-owned.'],cancel_conditions:['Cancel invalid, expired or unqualified entries; never infer a provider fill.'],time_exit:`Existing time-stop policy after ${maxBars} native primary-timeframe bars.`};
   const scalp = definition.id.includes("scalp");
   return {
     break_even: "Use the currently certified downstream protection policy; strategy does not authorize an independent level mutation.",
@@ -289,3 +290,4 @@ export function approveStrategyPlan(strategyPlan: DeepReadonly<StrategyPlan>, ap
   if (!strategyPlan.decision.qualified || strategyPlan.decision.action === "NO_TRADE") throw new Error("strategy_plan_not_qualifiable");
   return deepFreeze({ schema_version: "approved-strategy-plan/v1", strategy_plan: strategyPlan, correlation_id: strategyPlan.provenance.evaluation_id, ...clone(approval) });
 }
+

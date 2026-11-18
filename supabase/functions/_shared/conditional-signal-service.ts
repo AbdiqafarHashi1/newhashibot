@@ -154,15 +154,23 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle,hi
   return s;
  }
  const risk=Math.abs(s.fill!-s.stop);s.bars=(s.bars??0)+1;
- const stopped=d*((d===1?b.low:b.high)-s.stop)<=0;
+ const fraction=s.management?.partialFraction??.5;
+ if(!Number.isFinite(fraction)||fraction<0||fraction>1)throw Error('INVALID_PARTIAL_FRACTION');
+ // Keep the immutable original stop/risk; derive active BE protection from TP1 state.
+ const activeStop=s.partial&&s.management?.breakEvenAfterTp1?s.fill!:s.stop;
+ const stopped=d*((d===1?b.low:b.high)-activeStop)<=0;
  const first=d*((d===1?b.high:b.low)-s.tp1)>=0,final=d*((d===1?b.high:b.low)-s.tp2)>=0;
- const remaining=s.partial?.5:1;
- if(stopped){s.status='CLOSED';s.exit=d===1?Math.min(b.open,s.stop):Math.max(b.open,s.stop);
+ const remaining=s.partial?1-fraction:1;
+ if(stopped){s.status='CLOSED';s.exit=d===1?Math.min(b.open,activeStop):Math.max(b.open,activeStop);
   s.netR=(s.netR??0)+remaining*d*(s.exit-s.fill!)/risk;s.result=first?'STOP_FIRST_AMBIGUOUS_BAR':'STOP';}
+ else if(first&&!s.partial&&s.management?.breakEvenAfterTp1&&d*((d===1?b.low:b.high)-s.fill!)<=0){
+  // Unknown intrabar ordering: TP1 then BE wins over an optimistic same-bar TP2.
+  s.partial=true;s.netR=(s.netR??0)+fraction*d*(s.tp1-s.fill!)/risk;s.status='CLOSED';s.exit=s.fill!;s.result='TP1_THEN_BREAKEVEN_CONSERVATIVE';
+ }
  else if(final){s.status='CLOSED';s.exit=d===1?Math.max(b.open,s.tp2):Math.min(b.open,s.tp2);
-  s.netR=(s.netR??0)+(s.partial?.5*d*(s.exit-s.fill!)/risk:.5*d*(s.tp1-s.fill!)/risk+.5*d*(s.exit-s.fill!)/risk);s.partial=true;s.result='TP2';}
- else{if(first&&!s.partial){s.partial=true;s.netR=.5*d*(s.tp1-s.fill!)/risk;s.result='TP1; half paper position remains, original stop unchanged.';}
-  if(s.bars>=s.holdBars||t+w-Date.parse(s.fillAt??s.armedAt!)>=s.holdBars*w){s.status='CLOSED';s.exit=b.close;s.netR=(s.netR??0)+(s.partial?.5:1)*d*(b.close-s.fill!)/risk;s.result='TIME_STOP';}}
+  s.netR=(s.netR??0)+(s.partial?(1-fraction)*d*(s.exit-s.fill!)/risk:fraction*d*(s.tp1-s.fill!)/risk+(1-fraction)*d*(s.exit-s.fill!)/risk);s.partial=true;s.result='TP2';}
+ else{if(first&&!s.partial){s.partial=true;s.netR=(s.netR??0)+fraction*d*(s.tp1-s.fill!)/risk;s.result=s.management?.breakEvenAfterTp1?'TP1; remaining position protected at entry.':'TP1; partial position remains, original stop unchanged.';}
+  if(s.bars>=s.holdBars||t+w-Date.parse(s.fillAt??s.armedAt!)>=s.holdBars*w){s.status='CLOSED';s.exit=b.close;s.netR=(s.netR??0)+(s.partial?1-fraction:1)*d*(b.close-s.fill!)/risk;s.result='TIME_STOP';}}
  if(s.status==='CLOSED')s.netR=(s.netR??0)-(s.cost?.price??conditionalCost(s.symbol,s.fill!).price)/risk;
  return s;
 }
@@ -173,7 +181,7 @@ export function conditionalMessage(s:ConditionalSetup):string {
  const rows=[`HASHIBOT · ${s.track} · ${s.symbol} · ${s.side==='buy'?'LONG':'SHORT'}`,headline];
  if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price((s.management?.maximumChaseR??.25)*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,s.tp1===s.tp2?`Target: ${price(s.tp2)} · full tracked position`:`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.holdBars} ${s.timeframe} bars`,'Risk guide: 0.25%–0.5% of account at the stop.');
  else if(s.status==='ARMED')rows.push(`Confirmed ${time(s.armedAt!)}. Next open must respect the original stop and chase limit.`);
- else if(s.status==='ACTIVE')rows.push(`Signal entry reference: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop stays ${price(s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
+ else if(s.status==='ACTIVE')rows.push(`Signal entry reference: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop ${s.management?.breakEvenAfterTp1?'at entry':'stays'} ${price(s.management?.breakEvenAfterTp1?s.fill!:s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
  else if(s.status==='CLOSED')rows.push(`Signal entry reference ${price(s.fill!)} → exit ${price(s.exit!)}.`,`${s.result==='TP2'?'TP2 reached':s.result==='TIME_STOP'?'Holding period completed':'Stop reached'} · net ${(s.netR??0).toFixed(3)}R.`,`Reference result includes ${s.cost?.label??conditionalCost(s.symbol,s.fill!).label}; not actual fills.${s.result==='STOP_FIRST_AMBIGUOUS_BAR'?' Stop used where candle order is ambiguous.':''}`);
  else rows.push(s.status==='DATA_GAP'?'Outcome unknown.':s.status==='EXPIRED'?'The confirmation window closed without an entry.':'Original entry conditions no longer valid; no paper entry.');
  if(s.intelligence&&s.status==='WAITING')rows.push(`Context: ${s.intelligence.session} · higher timeframe ${s.intelligence.higherDirection>0?'up':s.intelligence.higherDirection<0?'down':'balanced'} · volume ${s.intelligence.volumeRatio.toFixed(2)}× recent average.`,s.intelligence.news==='SOURCE_AVAILABLE'?'News sources recorded alongside the setup.':s.intelligence.news==='HIGH_IMPACT_WINDOW'?'High-impact event window is being monitored.':'Price and market-structure evidence recorded.');

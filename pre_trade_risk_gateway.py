@@ -148,35 +148,13 @@ class PreTradeRiskGateway:
                 logger.error(f"PostgreSQL Stored Procedure Error for {intent.order_id}: {e}")
                 # Fail-safe local memory fallback evaluation
 
-        # In-memory ultra-low latency fallback evaluation
-        async with self._local_lock:
-            latency_ms = (time.perf_counter() - start_time) * 1000.0
-            notional = intent.notional_value
-            sl_dist = abs(intent.estimated_price - intent.stop_loss_price)
-            base_risk = sl_dist * intent.size
-            calc_var = base_risk * (1.0 + (intent.garman_klass_vol * 10.0))
-
-            # Default to 10% margin reservation (10x max leverage)
-            margin_req = notional * 0.10
-
-            if calc_var > (self.max_portfolio_var * 0.05):  # 5% max single risk
-                return RiskCheckResult(
-                    approved=False,
-                    reason=f"FALLBACK_RISK_LIMIT_EXCEEDED: VaR ${calc_var:.2f}",
-                    reserved_margin=0.0,
-                    calculated_risk_var=calc_var,
-                    account_floating_equity=10000.0,
-                    execution_time_ms=latency_ms,
-                )
-
-            return RiskCheckResult(
-                approved=True,
-                reason="LOCAL_FALLBACK_APPROVED",
-                reserved_margin=margin_req,
-                calculated_risk_var=calc_var,
-                account_floating_equity=10000.0,
-                execution_time_ms=latency_ms,
-            )
+        # Missing durable account truth must never approve an order.
+        return RiskCheckResult(
+            approved=False, reason="ACCOUNT_RISK_AUTHORITY_UNAVAILABLE",
+            reserved_margin=0.0, calculated_risk_var=0.0,
+            account_floating_equity=0.0,
+            execution_time_ms=(time.perf_counter() - start_time) * 1000.0,
+        )
 
     async def release_reservation(self, order_id: str, account_id: str) -> bool:
         """Atomically releases a reserved margin slot upon order fill or cancellation."""

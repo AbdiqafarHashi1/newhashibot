@@ -131,7 +131,8 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const performance=accountPerformanceGate({policy:input.configuration.lossResponse,evidence:input.performanceEvidence,customerId:input.account.customerId,accountId:input.account.id,provider:input.account.provider,evaluatedAt:input.evaluatedAt,dailyDrawdownPct:input.context.daily_drawdown.current_drawdown_pct});
   if(input.historicalResearch&&(input.account.customerId!=='isolated-research-customer'||!input.account.immutableIdentity.startsWith('historical:')||input.context.environment!=='DEMO'))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
   const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration,input.historicalResearch===true);
-  const policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
+  let policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
+  if(input.product.endsWith('PROP'))policy=composeAccountPolicy(policy,{max_daily_drawdown_pct:Math.min(policy.max_daily_drawdown_pct,4)});
   const brain = getExecutionBrain(input.account.provider);
   const preReasons: string[] = performance.blocked?[...performance.reasonCodes]:[];
   if(input.context.environment==='LIVE'){

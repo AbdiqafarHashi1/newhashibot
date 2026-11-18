@@ -1,3 +1,4 @@
+import {complementaryDefinitions} from './complementary-strategies.ts';
 import {relativeWeaknessDefinitions} from './crypto-relative-weakness.ts';
 import {dailyTrendDefinitions} from './daily-trend.ts';
 import {signalEnsembleDefinitions} from './crypto-signal-ensemble.ts';
@@ -29,7 +30,7 @@ export function calculateActiveIndicators(candles:readonly StrategyCandle[]):Str
 /** Builds only definitions backed by the production evaluator registry; unknown or unapproved configuration fails closed. */
 export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,symbol:string,timeframe:string):ProfessionalStrategyRegistry {
  if(!config.version||!config.strategies.length)throw new Error("APPROVED_SCANNER_CONFIGURATION_REQUIRED");
- const definitions:StrategyDefinition[]=[],researchDefinitions=[...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions(),...coordinatedCryptoDefinitions(),...signalEnsembleDefinitions(),...dailyTrendDefinitions(),...relativeWeaknessDefinitions()];
+ const definitions:StrategyDefinition[]=[],researchDefinitions=[...complementaryDefinitions(),...regimeResearchDefinitions(),...intradayResearchDefinitions(),...costAwareResearchDefinitions(),...altResearchDefinitions(),...coordinatedCryptoDefinitions(),...signalEnsembleDefinitions(),...dailyTrendDefinitions(),...relativeWeaknessDefinitions()];
  for(const item of config.strategies.filter(s=>s.enabled)){
   const regime=researchDefinitions.find(s=>s.id===item.id);
   if(regime){
@@ -50,3 +51,4 @@ export function createApprovedReplayRegistry(config:ApprovedReplayConfiguration,
  if(!definitions.length)throw new Error("NO_APPROVED_STRATEGY_FOR_SYMBOL_TIMEFRAME");
  return new ProfessionalStrategyRegistry(definitions);
 }
+

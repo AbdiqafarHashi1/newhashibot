@@ -25,7 +25,7 @@ import {
 
 export class Mt5PropBrain implements AccountExecutionBrain {
   readonly provider = "MT5_PROP" as const;
-  readonly brain_version = "1.1.2";
+  readonly brain_version = "1.1.3";
 
   /**
    * Evaluates a prop account's operational state against hard drawdown rules, trailing drawdown caps,

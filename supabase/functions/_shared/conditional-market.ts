@@ -9,13 +9,16 @@ export function conditionalMarket(symbol:string):ConditionalMarket|null {
 }
 export const CONDITIONAL_ASSETS=[...CORE_CRYPTO_SYMBOLS,...FOREX_RUNTIME_SYMBOLS];
 const newYorkSessionFormatter=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',minute:'numeric',hourCycle:'h23'});
+const sessionCache=new Map<string,boolean>();
 /** Published weekly FX convention, including New York DST; broker holidays are never inferred. */
 export function scheduledMarketClosed(symbol:string,at:number,source?:string):boolean {
  if(conditionalMarket(symbol)!=='forex')return false;
+ const key=`${symbol}:${source??''}:${Math.floor(at/60000)}`,known=sessionCache.get(key);if(known!==undefined)return known;
+ const remember=(closed:boolean)=>{if(sessionCache.size>=16384)sessionCache.clear();sessionCache.set(key,closed);return closed};
  const p=newYorkSessionFormatter.formatToParts(new Date(at));
  const day=p.find(x=>x.type==='weekday')!.value,hour=Number(p.find(x=>x.type==='hour')!.value),minute=Number(p.find(x=>x.type==='minute')!.value);
- if(source==='EXNESS_BROKER_BID_ASK'){const clock=hour*60+minute;return day==='Sat'||day==='Fri'&&clock>=(symbol==='XAUUSD'?1018:1019)||day==='Sun'&&clock<(symbol==='XAUUSD'?1085:1025)||symbol==='XAUUSD'&&day!=='Sun'&&clock>=1018&&clock<1082;}
- return day==='Sat'||day==='Fri'&&hour>=17||day==='Sun'&&hour<17||symbol==='XAUUSD'&&day!=='Sun'&&hour===17;
+ if(source==='EXNESS_BROKER_BID_ASK'){const clock=hour*60+minute;return remember(day==='Sat'||day==='Fri'&&clock>=(symbol==='XAUUSD'?1018:1019)||day==='Sun'&&clock<(symbol==='XAUUSD'?1085:1025)||symbol==='XAUUSD'&&day!=='Sun'&&clock>=1018&&clock<1082);}
+ return remember(day==='Sat'||day==='Fri'&&hour>=17||day==='Sun'&&hour<(symbol==='XAUUSD'?18:17)||symbol==='XAUUSD'&&day!=='Sun'&&hour===17);
 }
 /** A session-opening bucket can contain real quotes even if its first minute is closed.
  * Published daily open spans exceed one hour; endpoints plus hourly samples distinguish whole closed buckets. */

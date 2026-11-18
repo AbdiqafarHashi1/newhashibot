@@ -124,7 +124,7 @@ class GhostPositionReconciliationWorker:
                                 """,
                                 order_id,
                             )
-                        else:
+                        elif status.raw_status == 'ORDER_NOT_FOUND':
                             logger.warning(
                                 f"ORDER CONFIRMED DROPPED: Order {order_id} does not exist on {provider}. "
                                 f"Safely releasing reserved margin allocations."
@@ -204,8 +204,9 @@ class GhostPositionReconciliationWorker:
                             raw_status=raw_status,
                         )
                     elif resp.status == 400:
-                        # Order not found in exchange ledger
-                        return ExchangeLedgerStatus(False, False, Decimal("0"), None, "ORDER_NOT_FOUND")
+                        # Authentication, clock and signature failures also use HTTP 400.
+                        # An unavailable query never proves an order was dropped.
+                        return ExchangeLedgerStatus(False, False, Decimal("0"), None, "QUERY_ERROR")
 
             elif provider in ("BYBIT_V5", "BYBIT"):
                 url = "https://api.bybit.com/v5/order/realtime"
@@ -214,6 +215,8 @@ class GhostPositionReconciliationWorker:
                 async with session.get(url, params=params, headers=headers) as resp:
                     if resp.status == 200:
                         res = await resp.json()
+                        if res.get("retCode") != 0:
+                            return ExchangeLedgerStatus(False, False, Decimal("0"), None, "QUERY_ERROR")
                         list_orders = res.get("result", {}).get("list", [])
                         if list_orders:
                             order = list_orders[0]
@@ -225,7 +228,7 @@ class GhostPositionReconciliationWorker:
                                 exchange_order_id=str(order.get("orderId")),
                                 raw_status=status_str,
                             )
-                        return ExchangeLedgerStatus(False, False, Decimal("0"), None, "ORDER_NOT_FOUND")
+                        return ExchangeLedgerStatus(False, False, Decimal("0"), None, "NOT_SEEN_IN_REALTIME")
         except Exception as e:
             logger.error(f"Ledger check exception for order {client_order_id} on {provider}: {e}")
 
@@ -256,7 +259,7 @@ class GhostPositionReconciliationWorker:
                            a.provider, a.account_profile, a.broker_account_number
                     FROM public.order_reservations r
                     JOIN public.trading_accounts a ON r.account_id = a.account_id
-                    WHERE r.status = 'COMMITTED'
+                    WHERE r.status = 'COMMITTED' AND a.provider IN ('MT5_PERSONAL','MT5_PROP')
                     FOR UPDATE SKIP LOCKED
                     """
                 )
@@ -302,8 +305,8 @@ class GhostPositionReconciliationWorker:
                     f"[Attempt {attempt}] Closing {pos_record['symbol']} {close_side} {pos_record['size']} "
                     f"for Account {pos_record['broker_account_number']}..."
                 )
-                await asyncio.sleep(0.05)  # Fast wire dispatch
-                return True
+                logger.error("Native broker close adapter is unavailable; reservation remains committed.")
+                return False
             except Exception as e:
                 logger.error(f"Error during close attempt {attempt} for {pos_record['symbol']}: {e}")
                 await asyncio.sleep(0.2 * attempt)

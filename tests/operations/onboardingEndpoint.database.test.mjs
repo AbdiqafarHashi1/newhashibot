@@ -5,7 +5,7 @@ import {build} from 'esbuild';
 import {readFile,mkdir} from 'node:fs/promises';
 import {accountSchema} from './support/accountSchema.mjs';
 
-test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticated ownership, duplicate setup and admin policy control',async()=>{
+test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: customer view-only, Admin ownership, duplicate setup and policy control',async()=>{
  const db=new PGlite(),customer='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
  const previous={Deno:globalThis.Deno,client:globalThis.__operationsTestClient};
  try{
@@ -32,10 +32,12 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticate
   await import('../../.tmp/operations-http/onboarding.mjs');assert.equal(typeof handler,'function');
   const call=async(token,body)=>{const response=await handler(new Request('https://local.test/onboarding',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)}));return {status:response.status,body:await response.json()}};
   assert.equal((await call('unknown',{action:'create_account_draft'})).status,401);
-  const request={action:'create_account_draft',provider:'MT5',mode:'PERSONAL',environment:'demo',display_label:'Customer terminal',idempotency_key:'endpoint-attempt',customer_id:other};
-  const first=await call('customer',request);assert.equal(first.status,201,JSON.stringify(first));const account=first.body.data.execution_account_id;
-  assert.equal((await call('customer',request)).body.data.execution_account_id,account);assert.equal((await db.query('select customer_id from connected_execution_accounts where id=$1',[account])).rows[0].customer_id,customer);
-  const own=await call('customer',{action:'assign_brain',execution_account_id:account,risk:.25,strategies:['FOREX_TREND'],idempotency_key:'brain-current'});assert.equal(own.body.state,'ASSIGNED',JSON.stringify(own));
+  const request={action:'create_account_draft',provider:'MT5',mode:'PERSONAL',environment:'demo',display_label:'Customer terminal',idempotency_key:'endpoint-attempt',customer_id:customer};
+  assert.equal((await call('customer',request)).status,403);
+  const first=await call('admin',request);assert.equal(first.status,201,JSON.stringify(first));const account=first.body.data.execution_account_id;
+  assert.equal((await call('admin',request)).body.data.execution_account_id,account);assert.equal((await db.query('select customer_id from connected_execution_accounts where id=$1',[account])).rows[0].customer_id,customer);
+  assert.equal((await call('customer',{action:'assign_brain',execution_account_id:account})).status,403);
+  const own=await call('admin',{action:'admin_assign_brain',customer_id:customer,execution_account_id:account,risk:.25,strategies:['FOREX_TREND'],idempotency_key:'brain-current'});assert.equal(own.body.state,'ASSIGNED',JSON.stringify(own));
   const denied=await call('customer',{action:'admin_assign_brain',customer_id:customer,execution_account_id:account,risk:.5,strategies:['FOREX_TREND'],idempotency_key:'forged-admin'});assert.equal(denied.status,403);
   assert.equal((await call('admin',{action:'assign_brain',execution_account_id:account,risk:.5,strategies:['FOREX_TREND'],idempotency_key:'wrong-owner'})).status,403);
   const limit=await call('admin',{action:'admin_account_controls',customer_id:customer,execution_account_id:account,limits:{allowedSymbols:['EURUSD'],maxLeverage:2,maxConcurrentPositions:1}});assert.equal(limit.body.state,'SAVED',JSON.stringify(limit));
@@ -44,13 +46,13 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: authenticate
   const stored=(await db.query('select execution_enabled,policy_overrides from connected_execution_accounts where id=$1',[account])).rows[0];assert.equal(stored.execution_enabled,false);assert.equal(stored.policy_overrides.policy_configuration.riskPerTradePct,.5);assert.deepEqual(stored.policy_overrides.policy_configuration.allowedSymbols,['EURUSD']);assert.equal(stored.policy_overrides.policy_configuration.maxLeverage,2);
   assert.equal((await db.query('select assigned_by from account_brain_assignments where superseded_at is null')).rows[0].assigned_by,other);
   assert.deepEqual(stored.policy_overrides.policy_configuration.allowedStrategies,['forex.native-squeeze-15-48-2-3-usdjpy-h12']);
-  const fundedRequest={action:'create_account_draft',provider:'MT5',mode:'PROP',prop_phase:'FUNDED',environment:'demo',display_label:'Customer funded terminal',idempotency_key:'funded-attempt'};
-  const funded=await call('customer',fundedRequest);assert.equal(funded.status,201,JSON.stringify(funded));const fundedId=funded.body.data.execution_account_id;
+  const fundedRequest={customer_id:customer,action:'create_account_draft',provider:'MT5',mode:'PROP',prop_phase:'FUNDED',environment:'demo',display_label:'Customer funded terminal',idempotency_key:'funded-attempt'};
+  const funded=await call('admin',fundedRequest);assert.equal(funded.status,201,JSON.stringify(funded));const fundedId=funded.body.data.execution_account_id;
   const f=(await db.query('select account_mode,policy_overrides,execution_enabled from connected_execution_accounts where id=$1',[fundedId])).rows[0];assert.equal(f.account_mode,'PROP_FUNDED');assert.equal(f.policy_overrides.prop_setup.phase,'FUNDED');assert.equal(f.execution_enabled,false);
-  const assigned=await call('customer',{action:'assign_brain',execution_account_id:fundedId,risk:.25,strategies:['FOREX_TREND'],idempotency_key:'funded-brain'});assert.equal(assigned.body.state,'ASSIGNED',JSON.stringify(assigned));
+  const assigned=await call('admin',{action:'admin_assign_brain',customer_id:customer,execution_account_id:fundedId,risk:.25,strategies:['FOREX_TREND'],idempotency_key:'funded-brain'});assert.equal(assigned.body.state,'ASSIGNED',JSON.stringify(assigned));
   assert.equal((await db.query('select policy_profile_id from connected_execution_accounts where id=$1',[fundedId])).rows[0].policy_profile_id,'pol_mt5_prop_funded_v1');
-  assert.equal((await call('customer',fundedRequest)).body.data.execution_account_id,fundedId);
-  const changed=await call('customer',{...fundedRequest,prop_phase:'VERIFICATION'});assert.notEqual(changed.body.state,'DRAFT');
+  assert.equal((await call('admin',fundedRequest)).body.data.execution_account_id,fundedId);
+  const changed=await call('admin',{...fundedRequest,prop_phase:'VERIFICATION'});assert.notEqual(changed.body.state,'DRAFT');
   assert.equal((await db.query('select account_mode from connected_execution_accounts where id=$1',[fundedId])).rows[0].account_mode,'PROP_FUNDED');
 
  }finally{globalThis.Deno=previous.Deno;globalThis.__operationsTestClient=previous.client;await db.close()}
