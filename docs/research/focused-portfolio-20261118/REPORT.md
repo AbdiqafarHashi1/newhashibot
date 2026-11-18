@@ -110,3 +110,7 @@ Crypto Prop columns are hypothetical risk-policy replays; existing crypto onboar
 Run `node --import tsx scripts/research/focused-portfolio/run.ts` from the repository root. It reconstructs normalized ledgers only from committed reports, then saves the training lock and validation outputs. No activation, migrations or data acquisition are invoked. Run targeted checks with `node --import tsx --test scripts/research/focused-portfolio/replay.test.ts`.
 
 Admin now has an optional **Crypto · ETH pullback + DOGE intraday · demo comparison** selection shortcut for Personal sandbox accounts. It changes no default, risk rule or customer account automatically; normal confirmation, authorization and activation still apply. The Gold activity gate remains research-only and is not installed as a new qualified strategy.
+
+## Personal growth extension
+
+See [GROWTH.md](GROWTH.md) for fixed 2% / 5% risk, explicit expanded Personal exposure budgets, margin sensitivity, admission attribution and the separate VIP-subscriber sizing replay. Prop policies remain unchanged. Compressed growth-results.json.gz retains every training trial and later result, including failures.

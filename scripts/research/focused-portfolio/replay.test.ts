@@ -38,3 +38,20 @@ test('drop-best sensitivity uses an admitted winner, not a higher-R source trade
  const admitted:any[]=[];replay(source,[],[strategy],'PERSONAL',{start:'2025-04-01',days:30},0,false,admitted);assert.deepEqual(admitted.map(t=>t.id),['a']);
  const stressed=replay(source,[],[strategy],'PERSONAL',{start:'2025-04-01',days:30},0,true);assert.ok(Math.abs(stressed.returnPct-9)<1e-9);
 });
+
+test('Personal risk experiment exposes incompatible caps and margin sensitivity without changing Prop',()=>{
+ const strategy='crypto.test',fixture={trades:[{id:'a',strategy,symbol:'BTCUSDT',timeframe:'1h',entry:Date.parse('2025-04-01T01:00Z'),exit:Date.parse('2025-04-01T02:00Z'),netR:2,notionalPerRisk:100}],coverage:[{strategy,start:'2025-04-01',end:'2025-05-01'}]},window={start:'2025-04-01',days:30};
+ const p={riskPct:5,dailyHaltPct:15,peakHaltPct:60,portfolioLimitPct:15,correlatedLimitPct:3,leverage:15,marginBudgetPct:50};
+ const run=(policy:typeof p)=>replay(fixture,[],[strategy],'PERSONAL',window,0,false,undefined,policy);
+ assert.equal(run(p).entries,0);assert.equal(run({...p,correlatedLimitPct:10,leverage:3}).blocked.MARGIN_CAPACITY,1);
+ const admitted=run({...p,correlatedLimitPct:10});assert.equal(admitted.entries,1);assert.ok(Math.abs(admitted.returnPct-10)<1e-9);
+ assert.equal(run({...p,correlatedLimitPct:10,leverage:100}).returnPct,admitted.returnPct);
+ assert.throws(()=>replay(fixture,[],[strategy],'PROP_CHALLENGE_PASS',window,0,false,undefined,p),/Personal-only/);
+});
+
+test('experimental daily loss lock resets next UTC day while peak loss remains a hard entry lock',()=>{
+ const strategy='crypto.test',at=Date.parse('2025-04-01T01:00Z'),trade=(id:string,entry:number,netR:number)=>({id,strategy,symbol:'BTCUSDT',timeframe:'1h',entry,exit:entry+1000,netR});
+ const fixture={trades:[trade('a',at,-2),trade('b',at+2000,1),trade('c',at+86400000,1)],coverage:[{strategy,start:'2025-04-01',end:'2025-05-01'}]},p={riskPct:5,dailyHaltPct:8,peakHaltPct:60,portfolioLimitPct:15,correlatedLimitPct:10};
+ const r=replay(fixture,[],[strategy],'PERSONAL',{start:'2025-04-01',days:30},0,false,undefined,p);assert.equal(r.entries,2);assert.equal(r.blocked.EXPERIMENT_DAILY_HALT,1);
+ const peak=replay(fixture,[],[strategy],'PERSONAL',{start:'2025-04-01',days:30},0,false,undefined,{...p,peakHaltPct:9});assert.equal(peak.entries,1);assert.equal(peak.blocked.EXPERIMENT_PEAK_HALT,2);
+});
