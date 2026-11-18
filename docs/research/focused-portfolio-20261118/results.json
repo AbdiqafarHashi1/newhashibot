@@ -1,0 +1,3457 @@
+{
+  "protocol": {
+    "version": "focused-portfolio/v2",
+    "entryQualityStage": "Exploratory extension after initial basket results were inspected. Later periods are reused research data, not new holdouts. No production filters added.",
+    "entryEvidence": "Snapshot observed time must be no later than trade entry; missing feature values reject the gated entry. Relative ATR .75–1.75, aligned observed HTF, volume ratio >=1, observed spread <=0.10 stop distance; no label-derived inputs.",
+    "qualityRules": [
+      "all",
+      "normal-volatility",
+      "higher-timeframe-aligned",
+      "normal-and-aligned",
+      "active-volume",
+      "low-observed-spread"
+    ],
+    "inputSha256": "006b92643dadfb88f6442da61757681bf9bba87808428b8978a8a0c43d511adb",
+    "fridaySha256": "9bbfc966514f2c226fbe595318ecb2a09b09993acd4fb7b9eac227f16e6703b8",
+    "candidateSizes": [
+      1,
+      2,
+      3
+    ],
+    "minimumTrainingEntries": 8,
+    "trainingCostDragR": 0.1,
+    "selection": "Maximize worst training-half stressed return minus drawdown penalty plus 0.1 times full training return minus 0.02 per config; penalty 0.8 Funded, 0.4 others. Ties prefer fewer configs then lexical IDs.",
+    "risk": "Unchanged live House-Money and exposure functions; unchanged Part 1 bookkeeping and phase progression.",
+    "coverage": "Require contiguous full coverage for both train and validation; this uses dates, not validation outcomes.",
+    "validation": "Later source periods previously examined in research; not untouched holdouts. No validation tuning or winner replacement.",
+    "limitations": [
+      "Realized-close drawdown excludes intratrade/floating equity and can understate prop breaches.",
+      "Source ledgers contain account-admitted trades, not every eligible scanner opportunity. Replay cannot synthesize previously rejected replacement entries.",
+      "End-open and unpriced Friday exposure are reported, not marked using future exit prices.",
+      "Training interval returns are not monthly returns; cohort accounts and overlapping histories must not be summed.",
+      "No historical selection guarantees future returns; multiple-comparison trial counts are disclosed."
+    ]
+  },
+  "results": [
+    {
+      "stage": "BASKET",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 92,
+      "eligibleTrials": 91,
+      "ids": [
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 51,
+        "returnPct": 35.76186685277855,
+        "realizedMaxDrawdownPct": 7.202677891106651,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 20.641711646980433,
+        "funded21": 18.089363429898555,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": 2.035270203759554,
+        "realizedMaxDrawdownPct": 5.401571294115615,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 110,
+        "returnPct": 10.947104895333638,
+        "realizedMaxDrawdownPct": 7.6130806946298115,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 16.457553284027004,
+        "funded21": 11.198010057532382,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": 2.035270203759554,
+        "realizedMaxDrawdownPct": 5.401571294115615,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": -6.949430221607511,
+        "realizedMaxDrawdownPct": 8.832668074884369,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -4.744057265489898,
+        "funded21": -4.659000669778579,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 63,
+        "returnPct": -1.6033838508821119,
+        "realizedMaxDrawdownPct": 8.137249853895867,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 92,
+      "eligibleTrials": 51,
+      "ids": [
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 29,
+        "returnPct": 17.56145751547642,
+        "realizedMaxDrawdownPct": 2.51654007940524,
+        "phaseOneDays": 13.177083321759259,
+        "passDays": 44.25347221064815,
+        "funded14": 7.4940157048919875,
+        "funded21": 6.527485007308487,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -0.49092882821781814,
+        "realizedMaxDrawdownPct": 8.598263618014519,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.7061589623568,
+        "funded21": 6.385472974862405,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 95,
+        "returnPct": 4.660145888800815,
+        "realizedMaxDrawdownPct": 8.77925632354226,
+        "phaseOneDays": 5.760416655092593,
+        "passDays": null,
+        "funded14": 12.827105236718662,
+        "funded21": 10.90140339619181,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -0.49092882821781814,
+        "realizedMaxDrawdownPct": 8.598263618014519,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.7061589623568,
+        "funded21": 6.385472974862405,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -4.533104496675399,
+        "realizedMaxDrawdownPct": 10.638251250603181,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 4.2491791472961005,
+        "funded21": 4.8148807910917135,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 56,
+        "returnPct": -2.6641225847181205,
+        "realizedMaxDrawdownPct": 8.598263618014508,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 3.397626062033998,
+        "funded21": 4.0621044323886135,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "status": "UNPRICED_FRIDAY",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 92,
+      "eligibleTrials": 61,
+      "ids": [
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 42,
+        "returnPct": 12.671186875722839,
+        "realizedMaxDrawdownPct": 2.2532068659164097,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.629551473289052,
+        "funded21": 5.629551473289052,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 65,
+        "returnPct": 3.0517293231380638,
+        "realizedMaxDrawdownPct": 2.6573770178829696,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7366577683872721,
+        "funded21": 0.549742914458129,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 86,
+        "returnPct": 7.937151867583703,
+        "realizedMaxDrawdownPct": 3.028691351157419,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.4935348337417942,
+        "funded21": 2.5883536592861356,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 65,
+        "returnPct": 3.0517293231380638,
+        "realizedMaxDrawdownPct": 2.6573770178829696,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7366577683872721,
+        "funded21": 0.549742914458129,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 65,
+        "returnPct": 0.9014676900744201,
+        "realizedMaxDrawdownPct": 3.546530802452885,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.1289715159435998,
+        "funded21": -0.07114172393103413,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": 1.4664401663340154,
+        "realizedMaxDrawdownPct": 2.657377017882955,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7366577683872721,
+        "funded21": 0.549742914458129,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "status": "UNPRICED_FRIDAY",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2025",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 25,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 22,
+        "returnPct": 10.043454002625896,
+        "realizedMaxDrawdownPct": 2.106293790772197,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.08599105264156526,
+        "funded21": 2.44250363042271,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 28,
+        "returnPct": 6.980813723158885,
+        "realizedMaxDrawdownPct": 4.966612764839018,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 1.338522534064568,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 22,
+        "returnPct": 12.202606967340458,
+        "realizedMaxDrawdownPct": 5.312042729307024,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.9312959820058762,
+        "funded21": 6.028056842085561,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 28,
+        "returnPct": 6.980813723158885,
+        "realizedMaxDrawdownPct": 4.966612764839018,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 1.338522534064568,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 28,
+        "returnPct": 3.4165960136060436,
+        "realizedMaxDrawdownPct": 5.680192012159868,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.7532801148192325,
+        "funded21": 0.859600428214935,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 31,
+        "returnPct": 2.153999981749166,
+        "realizedMaxDrawdownPct": 5.935275069853893,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 1.338522534064568,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2025",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 25,
+      "ids": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 21,
+        "returnPct": 8.997682064329071,
+        "realizedMaxDrawdownPct": 5.188794286372016,
+        "phaseOneDays": 53.75694443287037,
+        "passDays": null,
+        "funded14": 6.009840130953337,
+        "funded21": 4.275510620217093,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.413379746643284,
+        "realizedMaxDrawdownPct": 2.613493993604752,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7166166550146458,
+        "funded21": 2.4904568800006466,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 13,
+        "returnPct": 9.710616567570352,
+        "realizedMaxDrawdownPct": 2.2229621409781353,
+        "phaseOneDays": 39.215277766203705,
+        "passDays": null,
+        "funded14": 1.5565172035739039,
+        "funded21": 2.535312936742784,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.413379746643284,
+        "realizedMaxDrawdownPct": 2.613493993604752,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7166166550146458,
+        "funded21": 2.4904568800006466,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 0.436222519907159,
+        "realizedMaxDrawdownPct": 2.85891430280466,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.0045085612417792,
+        "funded21": 2.02229460159582,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.3784128209696656,
+        "realizedMaxDrawdownPct": 2.613493993604752,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7166166550146458,
+        "funded21": 2.4551185824611244,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2025",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 25,
+      "ids": [
+        "crypto.complementary-ema-pullback"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 9,
+        "returnPct": 2.4853834175185607,
+        "realizedMaxDrawdownPct": 0.3778969696002072,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0,
+        "funded21": 0.5249122164147968,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 2.4331429914851377,
+        "realizedMaxDrawdownPct": 1.0034175440479944,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 24,
+        "returnPct": 8.375953263927794,
+        "realizedMaxDrawdownPct": 1.48991507128271,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 2.5727362023683975,
+        "funded21": 5.33699416969422,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 2.4331429914851377,
+        "realizedMaxDrawdownPct": 1.0034175440479944,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 1.8709059376449844,
+        "realizedMaxDrawdownPct": 1.0929446204666806,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.34315619868281466,
+        "funded21": 1.1689006426481408,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 12,
+        "returnPct": 1.7921050842484298,
+        "realizedMaxDrawdownPct": 1.2584965056265036,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2026",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 24,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 11,
+        "returnPct": 2.1446549076771237,
+        "realizedMaxDrawdownPct": 3.602837431879238,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.102264490093675,
+        "funded21": 1.1509055380675148,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 2.2007541004858355,
+        "realizedMaxDrawdownPct": 2.9294877927137453,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.0599191201488667,
+        "funded21": 1.0599191201488667,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 26,
+        "returnPct": 1.943100886866267,
+        "realizedMaxDrawdownPct": 7.66403239174797,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.239537106280157,
+        "funded21": 6.995600039871364,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 2.2007541004858355,
+        "realizedMaxDrawdownPct": 2.9294877927137453,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.0599191201488667,
+        "funded21": 1.0599191201488667,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 1.5648514069530828,
+        "realizedMaxDrawdownPct": 2.7149136043666764,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.7068123258308967,
+        "funded21": 0.7068123258308967,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 12,
+        "returnPct": 0.8235742764231224,
+        "realizedMaxDrawdownPct": 2.4200699920355984,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.3018876772533985,
+        "funded21": -0.3018876772533985,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": true
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2026",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 20,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": 0.8335081293650903,
+        "realizedMaxDrawdownPct": 3.453843712683466,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.8178074240578148,
+        "funded21": 2.099658528174597,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.117102775106484,
+        "realizedMaxDrawdownPct": 3.428208729163848,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 16,
+        "returnPct": 1.558723546703522,
+        "realizedMaxDrawdownPct": 4.182798842285031,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 3.6302751283566526,
+        "funded21": 4.2265008599056575,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.117102775106484,
+        "realizedMaxDrawdownPct": 3.428208729163848,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.8422166932917556,
+        "realizedMaxDrawdownPct": 4.069715292429228,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.131921644905377,
+        "funded21": -1.5670960538680667,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 12,
+        "returnPct": -3.635109960090377,
+        "realizedMaxDrawdownPct": 3.9445525130304184,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "CRYPTO_2026",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 25,
+      "eligibleTrials": 24,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 11,
+        "returnPct": 0.8766245103017045,
+        "realizedMaxDrawdownPct": 0.9979099333235877,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.9487603641907261,
+        "funded21": 0.15627947009402288,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 1.4767442781063345,
+        "realizedMaxDrawdownPct": 0.8683203659688908,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9597543642748452,
+        "funded21": 0.9597543642748452,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 30,
+        "returnPct": 2.8424732524384932,
+        "realizedMaxDrawdownPct": 3.2780683301453886,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 4.6803933333703585,
+        "funded21": 5.115252436661821,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 1.4767442781063345,
+        "realizedMaxDrawdownPct": 0.8683203659688908,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9597543642748452,
+        "funded21": 0.9597543642748452,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 13,
+        "returnPct": 0.9687913336437814,
+        "realizedMaxDrawdownPct": 0.9826124594813381,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.5785980247621891,
+        "funded21": 0.5785980247621891,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 12,
+        "returnPct": 0.6174206203457322,
+        "realizedMaxDrawdownPct": 0.8683203659688905,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.10480867180016062,
+        "funded21": 0.10480867180016062,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "GOLD_2026",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "gold.frontier-compression-15-24-1.5-5-h96",
+        "gold.rsi-trailing-15-48-1.5-5-h96",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 7,
+      "eligibleTrials": 6,
+      "ids": [
+        "gold.frontier-compression-15-24-1.5-5-h96",
+        "gold.rsi-trailing-15-48-1.5-5-h96"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2026-05-05",
+        "days": 57,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 42,
+        "returnPct": 3.728546850119452,
+        "realizedMaxDrawdownPct": 11.243819112199212,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 11.404545597264292,
+        "funded21": 5.658392385031696,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 120,
+        "returnPct": -4.685014317598702,
+        "realizedMaxDrawdownPct": 12.686404144420893,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.6896626794630887,
+        "funded21": -1.604437582029472,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 116,
+        "returnPct": -10.468523479062098,
+        "realizedMaxDrawdownPct": 13.71808156139134,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.441508548688421,
+        "funded21": -5.846841319121598,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 120,
+        "returnPct": -4.685014317598702,
+        "realizedMaxDrawdownPct": 12.686404144420893,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.6896626794630887,
+        "funded21": -1.604437582029472,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 121,
+        "returnPct": -11.504562020675934,
+        "realizedMaxDrawdownPct": 14.466435602467747,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.2667823731936543,
+        "funded21": -4.430551219645073,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 120,
+        "returnPct": -7.960743283365678,
+        "realizedMaxDrawdownPct": 12.271060210904116,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.6896626794630887,
+        "funded21": -1.604437582029472,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "GOLD_2026",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 1,
+      "eligibleTrials": 0,
+      "status": "NO_TRAINING_CANDIDATE"
+    },
+    {
+      "stage": "BASKET",
+      "cohort": "GOLD_2026",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 1,
+      "eligibleTrials": 0,
+      "status": "NO_TRAINING_CANDIDATE"
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 552,
+      "eligibleTrials": 534,
+      "ids": [
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 51,
+        "returnPct": 35.76186685277855,
+        "realizedMaxDrawdownPct": 7.202677891106651,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 20.641711646980433,
+        "funded21": 18.089363429898555,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": 2.035270203759554,
+        "realizedMaxDrawdownPct": 5.401571294115615,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 110,
+        "returnPct": 10.947104895333638,
+        "realizedMaxDrawdownPct": 7.6130806946298115,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 16.457553284027004,
+        "funded21": 11.198010057532382,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": 2.035270203759554,
+        "realizedMaxDrawdownPct": 5.401571294115615,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 64,
+        "returnPct": -6.949430221607511,
+        "realizedMaxDrawdownPct": 8.832668074884369,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -4.744057265489898,
+        "funded21": -4.659000669778579,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 63,
+        "returnPct": -1.6033838508821119,
+        "realizedMaxDrawdownPct": 8.137249853895867,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.369686972499808,
+        "funded21": -2.9560657784943767,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 552,
+      "eligibleTrials": 421,
+      "ids": [
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 29,
+        "returnPct": 17.56145751547642,
+        "realizedMaxDrawdownPct": 2.51654007940524,
+        "phaseOneDays": 13.177083321759259,
+        "passDays": 44.25347221064815,
+        "funded14": 7.4940157048919875,
+        "funded21": 6.527485007308487,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -0.49092882821781814,
+        "realizedMaxDrawdownPct": 8.598263618014519,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.7061589623568,
+        "funded21": 6.385472974862405,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 95,
+        "returnPct": 4.660145888800815,
+        "realizedMaxDrawdownPct": 8.77925632354226,
+        "phaseOneDays": 5.760416655092593,
+        "passDays": null,
+        "funded14": 12.827105236718662,
+        "funded21": 10.90140339619181,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -0.49092882821781814,
+        "realizedMaxDrawdownPct": 8.598263618014519,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.7061589623568,
+        "funded21": 6.385472974862405,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 57,
+        "returnPct": -4.533104496675399,
+        "realizedMaxDrawdownPct": 10.638251250603181,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 4.2491791472961005,
+        "funded21": 4.8148807910917135,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 56,
+        "returnPct": -2.6641225847181205,
+        "realizedMaxDrawdownPct": 8.598263618014508,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 3.397626062033998,
+        "funded21": 4.0621044323886135,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "status": "UNPRICED_FRIDAY",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "FX_GOLD_2025",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2025-04-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-06-01",
+        "days": 92
+      },
+      "universe": [
+        "gold.native-momentum-15-48-2-5",
+        "gold.native-momentum-60-24-2-5",
+        "gold.native-band-reentry-15-48-3-5",
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 552,
+      "eligibleTrials": 439,
+      "ids": [
+        "forex.native-band-reentry-60-12-2-5",
+        "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "gold.native-momentum-60-24-2-5"
+      ],
+      "qualityRule": "higher-timeframe-aligned",
+      "training": {
+        "start": "2025-04-01",
+        "days": 61,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 32,
+        "returnPct": 12.24942004885241,
+        "realizedMaxDrawdownPct": 1.7564066898628563,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.550627766313099,
+        "funded21": 5.550627766313099,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 50,
+        "returnPct": 3.612527735788773,
+        "realizedMaxDrawdownPct": 2.5212175486249886,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.9804559560148474,
+        "funded21": 0.49803553710081605,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 8,
+        "coverageStrategyIds": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 8,
+        "entries": 86,
+        "returnPct": 7.937151867583703,
+        "realizedMaxDrawdownPct": 3.028691351157419,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.4935348337417942,
+        "funded21": 2.5883536592861356,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 65,
+        "returnPct": 3.0517293231380638,
+        "realizedMaxDrawdownPct": 2.6573770178829696,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7366577683872721,
+        "funded21": 0.549742914458129,
+        "rotationUnpriced": 1,
+        "openAtEnd": 0,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "stress": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 50,
+        "returnPct": 1.968037824935065,
+        "realizedMaxDrawdownPct": 3.2044118679237377,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.2132473635507957,
+        "funded21": 0.12713904076846472,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-06-01",
+        "days": 92,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+          "gold.native-momentum-60-24-2-5"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 49,
+        "returnPct": 2.018611575356899,
+        "realizedMaxDrawdownPct": 2.5212175486249646,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.9804559560148474,
+        "funded21": 0.49803553710081605,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2025",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 116,
+      "ids": [
+        "crypto.complementary-ema-pullback"
+      ],
+      "qualityRule": "normal-volatility",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 8,
+        "returnPct": 5.367035653389229,
+        "realizedMaxDrawdownPct": 1.8512266361521086,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0,
+        "funded21": 1.1682611676630206,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 12,
+        "returnPct": 2.5699632638616743,
+        "realizedMaxDrawdownPct": 2.4123110185388286,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 2.8753142261798814,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 22,
+        "returnPct": 12.202606967340458,
+        "realizedMaxDrawdownPct": 5.312042729307024,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 1.9312959820058762,
+        "funded21": 6.028056842085561,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 2.5852269327392152,
+        "realizedMaxDrawdownPct": 3.5362171359607517,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 2.8753142261798814,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 12,
+        "returnPct": 2.7928386608154776,
+        "realizedMaxDrawdownPct": 2.4206267158851955,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.7532801148192325,
+        "funded21": 2.595767754630929,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 11,
+        "returnPct": 0.6312427100026552,
+        "realizedMaxDrawdownPct": 3.2924676894032676,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.9286901512808532,
+        "funded21": 2.8753142261798814,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2025",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 114,
+      "ids": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+      ],
+      "qualityRule": "normal-volatility",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 21,
+        "returnPct": 9.012009954308663,
+        "realizedMaxDrawdownPct": 5.1763312275383795,
+        "phaseOneDays": 53.75694443287037,
+        "passDays": null,
+        "funded14": 6.009840130953337,
+        "funded21": 4.275510620217093,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.947871619467123,
+        "realizedMaxDrawdownPct": 2.7278109049708608,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.783718556561631,
+        "funded21": 3.524381899330842,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 13,
+        "returnPct": 9.710616567570352,
+        "realizedMaxDrawdownPct": 2.2229621409781353,
+        "phaseOneDays": 39.215277766203705,
+        "passDays": null,
+        "funded14": 1.5565172035739039,
+        "funded21": 2.535312936742784,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.413379746643284,
+        "realizedMaxDrawdownPct": 2.613493993604752,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.7166166550146458,
+        "funded21": 2.4904568800006466,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 23,
+        "returnPct": 1.2273476234033076,
+        "realizedMaxDrawdownPct": 2.702348757136665,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.9521233238380398,
+        "funded21": 3.1882518865378406,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 2,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 2,
+        "entries": 22,
+        "returnPct": 0.22149528557924292,
+        "realizedMaxDrawdownPct": 3.190443210724397,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.783718556561631,
+        "funded21": 3.524381899330842,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2025",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2025-05-01",
+        "days": 61
+      },
+      "validation": {
+        "start": "2025-07-01",
+        "days": 62
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 114,
+      "ids": [
+        "crypto.complementary-ema-pullback"
+      ],
+      "qualityRule": "normal-volatility",
+      "training": {
+        "start": "2025-05-01",
+        "days": 61,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 8,
+        "returnPct": 2.8741416814349385,
+        "realizedMaxDrawdownPct": 0.370245327230422,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0,
+        "funded21": 0.5249122164147968,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 12,
+        "returnPct": 1.8025612873202812,
+        "realizedMaxDrawdownPct": 1.0034175440479822,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 24,
+        "returnPct": 8.375953263927794,
+        "realizedMaxDrawdownPct": 1.48991507128271,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 2.5727362023683975,
+        "funded21": 5.33699416969422,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 2.4331429914851377,
+        "realizedMaxDrawdownPct": 1.0034175440479944,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 12,
+        "returnPct": 1.2777562046601743,
+        "realizedMaxDrawdownPct": 1.0929446204666788,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.34315619868281466,
+        "funded21": 1.1689006426481408,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2025-07-01",
+        "days": 62,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 11,
+        "returnPct": 1.1654696299414846,
+        "realizedMaxDrawdownPct": 1.2584965056265178,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.4219892310662887,
+        "funded21": 1.2935723034022795,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2026",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 101,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "normal-volatility",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 9,
+        "returnPct": 2.711116222780907,
+        "realizedMaxDrawdownPct": 1.0218906341104543,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.962126381244488,
+        "funded21": 0.6121606211040298,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 15,
+        "returnPct": -1.487731510960888,
+        "realizedMaxDrawdownPct": 2.8748949071951935,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.32787026182244,
+        "funded21": -1.3331637295166732,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 26,
+        "returnPct": 1.943100886866267,
+        "realizedMaxDrawdownPct": 7.66403239174797,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 5.239537106280157,
+        "funded21": 6.995600039871364,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 19,
+        "returnPct": -0.5590785133733012,
+        "realizedMaxDrawdownPct": 2.3332364220970185,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.0822052434709795,
+        "funded21": 0.11251548250343912,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 15,
+        "returnPct": -2.786285915729969,
+        "realizedMaxDrawdownPct": 3.701026711470822,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.890796663523121,
+        "funded21": -2.022920972842024,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 16,
+        "returnPct": -4.140308543717708,
+        "realizedMaxDrawdownPct": 5.011610379892445,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -4.133910017673259,
+        "funded21": -3.5020031878797098,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2026",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 89,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "all",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": 0.8335081293650903,
+        "realizedMaxDrawdownPct": 3.453843712683466,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.8178074240578148,
+        "funded21": 2.099658528174597,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.117102775106484,
+        "realizedMaxDrawdownPct": 3.428208729163848,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 16,
+        "returnPct": 1.558723546703522,
+        "realizedMaxDrawdownPct": 4.182798842285031,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 3.6302751283566526,
+        "funded21": 4.2265008599056575,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.117102775106484,
+        "realizedMaxDrawdownPct": 3.428208729163848,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 13,
+        "returnPct": -3.8422166932917556,
+        "realizedMaxDrawdownPct": 4.069715292429228,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.131921644905377,
+        "funded21": -1.5670960538680667,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_CHALLENGE_PASS",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 12,
+        "returnPct": -3.635109960090377,
+        "realizedMaxDrawdownPct": 3.9445525130304184,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.8231203394028617,
+        "funded21": -1.148563053423457,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "CRYPTO_2026",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2026-08-01",
+        "days": 46
+      },
+      "validation": {
+        "start": "2026-09-16",
+        "days": 46
+      },
+      "universe": [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "crypto.complementary-ema-pullback"
+      ],
+      "trialCount": 150,
+      "eligibleTrials": 101,
+      "ids": [
+        "crypto.complementary-ema-pullback",
+        "crypto.launch-rsi2-48-3-3-h72",
+        "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+      ],
+      "qualityRule": "normal-volatility",
+      "training": {
+        "start": "2026-08-01",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 9,
+        "returnPct": 1.2208592215929848,
+        "realizedMaxDrawdownPct": 0.4598507853497136,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.4329568715600196,
+        "funded21": 0.277204417379151,
+        "rotationUnpriced": 0,
+        "openAtEnd": 1,
+        "status": "UNPRICED_EXPOSURE"
+      },
+      "selected": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 17,
+        "returnPct": -1.612813613477715,
+        "realizedMaxDrawdownPct": 1.6465340606934842,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.2476237307859073,
+        "funded21": -0.9227296717122635,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 5,
+        "coverageStrategyIds": [
+          "crypto.launch-trend-pullback-48-1.5-5",
+          "crypto.launch-trend-pullback-48-2-3-h72",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+          "crypto.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 5,
+        "entries": 30,
+        "returnPct": 2.8424732524384932,
+        "realizedMaxDrawdownPct": 3.2780683301453886,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 4.6803933333703585,
+        "funded21": 5.115252436661821,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 21,
+        "returnPct": -1.1491134034676387,
+        "realizedMaxDrawdownPct": 1.3519199942855757,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -0.6739149169912917,
+        "funded21": -0.24946541622917762,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 17,
+        "returnPct": -2.1845256821038883,
+        "realizedMaxDrawdownPct": 2.1845256821038856,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -1.5086305939056022,
+        "funded21": -1.227667718839165,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-09-16",
+        "days": 46,
+        "mode": "PROP_FUNDED_INCOME",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "crypto.complementary-ema-pullback",
+          "crypto.launch-rsi2-48-3-3-h72",
+          "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 17,
+        "returnPct": -2.740185227545644,
+        "realizedMaxDrawdownPct": 2.7735192883182025,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -2.3791798806923725,
+        "funded21": -2.0580086269273434,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "DID_NOT_SURVIVE",
+      "strictlyImproved": false
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "GOLD_2026",
+      "mode": "PERSONAL",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "gold.frontier-compression-15-24-1.5-5-h96",
+        "gold.rsi-trailing-15-48-1.5-5-h96",
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 42,
+      "eligibleTrials": 36,
+      "ids": [
+        "gold.rsi-trailing-15-48-1.5-5-h96"
+      ],
+      "qualityRule": "active-volume",
+      "training": {
+        "start": "2026-05-05",
+        "days": 57,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 13,
+        "returnPct": 9.274738288255314,
+        "realizedMaxDrawdownPct": 2.8994094063054847,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 3.0220359948073483,
+        "funded21": 0.9375511200114373,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "selected": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 29,
+        "returnPct": 8.881138889651963,
+        "realizedMaxDrawdownPct": 5.598547985518566,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 6.3444972140260125,
+        "funded21": 2.0402319236493494,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "baseline": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 3,
+        "coverageStrategyIds": [
+          "gold.frontier-compression-15-24-1.5-5-h96",
+          "gold.rsi-trailing-15-48-1.5-5-h96",
+          "forex.complementary-ema-pullback"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 3,
+        "entries": 116,
+        "returnPct": -10.468523479062098,
+        "realizedMaxDrawdownPct": 13.71808156139134,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": -3.441508548688421,
+        "funded21": -5.846841319121598,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "sameIdsUnfiltered": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 99,
+        "returnPct": 10.505849449383199,
+        "realizedMaxDrawdownPct": 9.735069744572277,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 0.5999988266011336,
+        "funded21": -1.2561677955536865,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "stress": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 29,
+        "returnPct": 6.201651049394852,
+        "realizedMaxDrawdownPct": 5.788300195296134,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 6.138347735101868,
+        "funded21": 1.4269780388260545,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "withoutBest": {
+        "start": "2026-07-05",
+        "days": 119,
+        "mode": "PERSONAL",
+        "coverage": 1,
+        "coverageStrategyIds": [
+          "gold.rsi-trailing-15-48-1.5-5-h96"
+        ],
+        "missingCoverageStrategyIds": [],
+        "totalConfigs": 1,
+        "entries": 28,
+        "returnPct": 6.312598040496975,
+        "realizedMaxDrawdownPct": 5.858881665371527,
+        "phaseOneDays": null,
+        "passDays": null,
+        "funded14": 6.3444972140260125,
+        "funded21": 2.0402319236493494,
+        "rotationUnpriced": 0,
+        "openAtEnd": 0,
+        "status": "COMPLETE_LEDGER"
+      },
+      "status": "SURVIVED_SOURCE_VALIDATION",
+      "strictlyImproved": true
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "GOLD_2026",
+      "mode": "PROP_CHALLENGE_PASS",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 6,
+      "eligibleTrials": 0,
+      "status": "NO_TRAINING_CANDIDATE"
+    },
+    {
+      "stage": "ENTRY_QUALITY",
+      "cohort": "GOLD_2026",
+      "mode": "PROP_FUNDED_INCOME",
+      "train": {
+        "start": "2026-05-05",
+        "days": 57
+      },
+      "validation": {
+        "start": "2026-07-05",
+        "days": 119
+      },
+      "universe": [
+        "forex.complementary-ema-pullback"
+      ],
+      "trialCount": 6,
+      "eligibleTrials": 0,
+      "status": "NO_TRAINING_CANDIDATE"
+    }
+  ]
+}
