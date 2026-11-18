@@ -108,3 +108,20 @@ node --import tsx scripts/run_connected_demo_smoke.ts --mode=mock
 Touched TypeScript/TSX/MJS files are linted with `scripts/connected-demo/eslint.config.mjs`; pass the explicit changed-file list to ESLint. The ordinary repository config ignores edge/script files, so using only that config would not check these changes. The live-branch unit coverage uses injected Supabase/provider transports and is not an observed hosted smoke run. The new editorial migration still needs to be applied and exercised on restored Supabase.
 
 Approved Phase-O text posts for FREE/VIP_CRYPTO/VIP_FOREX_GOLD also enter the canonical editorial queue; Phase O records delivery only after a canonical Telegram message receipt is stored. Existing manually approved artifact/document delivery retains its separate reviewed flow. Keep `phase-o-worker` and `canonical-reporting-worker` schedules enabled; a scheduled text post is not marked sent prematurely.
+
+## Personal growth lineup update
+
+Push migration `20261118223000_personal_growth_profiles.sql` before deploying the updated functions. It retains existing account ownership/RLS, installs the 13-engine product union when an Admin exists, narrows exact broad Personal sandbox strategy defaults, and pauses those accounts' new entries. Custom strategy selections and Prop policies remain unchanged. Risk is never raised automatically.
+
+After deployment, use Admin account operations: **Activate product strategy lineup** (13 scanner engines / eight VIP sources), **Apply default account tier preset**, then save **Personal demo risk profile → Growth 2** or **Aggressive 5** where desired. These profiles require demo/testnet and fresh account facts. Review risk/exposure/margin limits and the paused account state before restarting through the existing controls. Preserve the Standard profile on accounts that have not been selected for the experiment. See `docs/research/focused-portfolio-20261118/DEPLOYMENT.md` for exact IDs and limitations.
+
+Repeat the existing `--mode=mock` command after deployment changes. The live runner still requires actual sandbox connections and observes provider receipts; an injected-transport unit test is not a live provider smoke run. No hosted deployment or live receipt is implied by these repository tests.
+
+Offline sizing-path smoke commands (synthetic account and margin capability only):
+
+```bash
+SMOKE_PERSONAL_RISK_PROFILE=GROWTH_2 node --import tsx scripts/run_connected_demo_smoke.ts --mode=mock
+SMOKE_PERSONAL_RISK_PROFILE=AGGRESSIVE_5 node --import tsx scripts/run_connected_demo_smoke.ts --mode=mock
+```
+
+The override is rejected in live smoke mode. Live smoke reads the Admin-assigned profile from the connected account.

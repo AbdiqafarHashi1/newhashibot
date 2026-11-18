@@ -26,10 +26,10 @@ test('entry quality rejects unavailable and future observations without fabricat
  for(const rule of ['normal-volatility','higher-timeframe-aligned','normal-and-aligned','active-volume','low-observed-spread'] as const)assert.equal(qualityAllows(rule,null),false);
  assert.equal(qualityAllows('active-volume',{volumeRatio:1}),true);assert.equal(qualityAllows('active-volume',{volumeRatio:'1'}),false);assert.equal(qualityAllows('low-observed-spread',{spreadToRisk:null}),false);
 });
-test('the optional crypto comparison preset does not overwrite Personal defaults or appear on Prop/live accounts',async()=>{
+test('Personal defaults use audited growth strategies while all earlier engines remain Admin comparisons',async()=>{
  const {executionStrategyPresets}=await import('../../../supabase/functions/_shared/execution-strategy-presets.ts');
- const all=executionStrategyPresets('BINANCE','testnet','PERSONAL'),focus=all.find(p=>p.id==='crypto-eth-doge-demo');assert.equal(focus?.ids.length,2);assert.equal(all.find(p=>p.id==='reviewed')?.ids.length,6);
- assert.ok(!executionStrategyPresets('BINANCE','testnet','PROP_FUNDED').some(p=>p.id==='crypto-eth-doge-demo'));assert.ok(!executionStrategyPresets('BINANCE','live','PERSONAL').some(p=>p.id==='crypto-eth-doge-demo'));
+ const all=executionStrategyPresets('BINANCE','testnet','PERSONAL');assert.equal(all.find(p=>p.id==='reviewed')?.ids.length,1);assert.equal(all.find(p=>p.id==='all-reviewed-comparison')?.ids.length,6);
+ assert.ok(!all.some(p=>p.id==='crypto-eth-doge-demo'));
 });
 
 test('drop-best sensitivity uses an admitted winner, not a higher-R source trade rejected for symbol conflict',()=>{

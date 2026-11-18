@@ -1,6 +1,7 @@
+import {PERSONAL_GROWTH_STRATEGIES} from './strategy-deployment-policy.ts';
 import {COST_POSITIVE_CONFIG_IDS} from './cost-positive-configs.ts';
-export const VIP_EXCLUDED_STRATEGIES=new Set(['gold.frontier-compression-15-24-1.5-5-h96','forex.native-sweep-retest-60-16-2-5-usdjpy-h72']);
-export const VIP_CONFIG_IDS=COST_POSITIVE_CONFIG_IDS.filter(id=>!VIP_EXCLUDED_STRATEGIES.has(id));
+export const VIP_CONFIG_IDS=[...PERSONAL_GROWTH_STRATEGIES];
+export const VIP_EXCLUDED_STRATEGIES=new Set(COST_POSITIVE_CONFIG_IDS.filter(id=>!VIP_CONFIG_IDS.includes(id)));
 // Classification snapshot: the 1,159 recovered closed source trades. No public probability claims.
 const INTRADAY=new Set(['gold.rsi-trailing-15-48-1.5-5-h96','crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006','crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006','crypto.launch-rsi2-48-3-3-h72','forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008','gold.native-momentum-60-24-2-5','crypto.complementary-ema-pullback','forex.complementary-ema-pullback']);
 export const vipSetupTag=(id:string)=>INTRADAY.has(id)?'⚡ INTRADAY SETUP · Same-Day Target':'🎯 TREND RUNNER · 3R–5R Asymmetric Payoff (1–3 Day Hold)';

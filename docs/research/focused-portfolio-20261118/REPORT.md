@@ -1,3 +1,5 @@
+> Historical comparison. Current product wiring and the subsequent expansion audit are documented in [DEPLOYMENT.md](DEPLOYMENT.md) and [EXPANSION.md](EXPANSION.md). The earlier ETH/DOGE shortcut has been retired.
+
 # Focused portfolio comparison — 18 November 2026
 
 Saved-ledger research only. ENTRY_QUALITY is an explicitly exploratory extension performed after the BASKET results were inspected. It adds only information already recorded at entry, with fixed feature thresholds; later source periods are not fresh holdouts. No candle downloads or changes to live strategy selection, risk or execution. Full source coverage is aligned within each cohort before comparing baskets. Single strategies, pairs and triples are selected using training outcomes only; later outcomes are reported without replacing losing winners. The later data was previously researched and is **not an untouched holdout**.
@@ -109,7 +111,7 @@ Crypto Prop columns are hypothetical risk-policy replays; existing crypto onboar
 
 Run `node --import tsx scripts/research/focused-portfolio/run.ts` from the repository root. It reconstructs normalized ledgers only from committed reports, then saves the training lock and validation outputs. No activation, migrations or data acquisition are invoked. Run targeted checks with `node --import tsx --test scripts/research/focused-portfolio/replay.test.ts`.
 
-Admin now has an optional **Crypto · ETH pullback + DOGE intraday · demo comparison** selection shortcut for Personal sandbox accounts. It changes no default, risk rule or customer account automatically; normal confirmation, authorization and activation still apply. The Gold activity gate remains research-only and is not installed as a new qualified strategy.
+The earlier ETH/DOGE shortcut was retired after the expansion audit. See DEPLOYMENT.md for current Personal/VIP selection and demo risk profiles.
 
 ## Personal growth extension
 

@@ -1,3 +1,4 @@
+import {loadProductEntryQuality} from './strategy-deployment-policy.ts';
 import {loadHouseMoneyFacts} from './house-money-authority.ts';
 import {approvedPropAccountProfile} from './prop-account-profile.ts';
 import {isSourceBoundFtmoStaticRules} from './prop-program.ts';
@@ -39,6 +40,7 @@ export async function authorizeCanonicalAccountSignal(db:any,input:{customerId:s
  if(!Number.isFinite(Date.parse(signal.expires_at))||Date.parse(signal.expires_at)<=at)reasons.push('CANONICAL_SIGNAL_EXPIRED');
  if(signal.status!=='active')reasons.push('CANONICAL_SIGNAL_NOT_ADMITTED');
  if(provider.startsWith('MT5')?(x.connection?.state!=='CONNECTED'||x.connection?.capabilities?.trading!==true):(x.connection?.state!=='VERIFIED'||x.connection?.capabilities?.verified!==true||x.connection?.capabilities?.trading!==true||x.connection?.capabilities?.withdrawal!==false))reasons.push('CURRENT_PROVIDER_CAPABILITIES_REQUIRED');
+ if(account.account_mode==='PERSONAL'&&!await loadProductEntryQuality(db,signal))reasons.push('PRODUCT_ENTRY_QUALITY_REQUIRED');
  const sp=x.strategy_plan;if(!sp||sp.identity?.strategy_id!==signal.strategy_id||sp.identity?.strategy_version!==signal.strategy_version||sp.market_context?.symbol!==signal.symbol||sp.decision?.action!==String(signal.direction).toUpperCase()||sp.risk_proposal?.initial_stop!==Number(signal.stop_loss)||sp.risk_proposal?.tp1!==Number(signal.tp1)||sp.risk_proposal?.tp2!==Number(signal.tp2)||Date.parse(sp.entry_plan?.expires_at)<=at||!Number.isFinite(Date.parse(sp.entry_plan?.expires_at)))reasons.push('CANONICAL_STRATEGY_PLAN_REQUIRED');
  const ownership={id:account.id,immutableIdentity:account.immutable_identity,customerId:account.customer_id,provider,accountType:account.account_mode,active:account.enabled===true,executionEnabled:account.execution_enabled===true,runtimeControl:account.runtime_control,policyProfileId:account.policy_profile_id,policyVersion:account.policy_version};
  let performance;const config={preset:account.policy_preset,...account.policy_overrides?.policy_configuration};

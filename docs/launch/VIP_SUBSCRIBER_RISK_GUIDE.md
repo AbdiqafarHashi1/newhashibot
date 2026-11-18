@@ -17,3 +17,15 @@ Do not chase a missed entry, add to a losing trade or revenge-trade after a stop
 **Prefer hands-free discipline?** HashiBot Automated Execution is $100/month per connected execution account. Authorized accounts use automated House-Money risk caps, single-symbol locks, position limits and account-aware checks to reduce FOMO and over-leveraging. Execution requires an active subscription, approved account setup and fresh provider evidence. It does not guarantee returns or a prop challenge pass.
 
 https://hashibot.app/execution
+
+## If you choose more risk
+
+The standard recommendation remains 0.5%–1.0% stop-risk per trade. We know some subscribers choose more. Size from entry-to-stop distance and account equity; exchange leverage is not the percentage at risk. With fixed fractional sizing, consecutive full-stop losses compound as follows, before gaps or extra costs:
+
+| Stop-risk per trade | Five losses | Ten losses |
+|---|---:|---:|
+| 1% | -4.90% | -9.56% |
+| 2% | -9.61% | -18.29% |
+| 5% | -22.62% | -40.13% |
+
+Three simultaneous 5% positions expose roughly 15% of account equity at their original stops. Correlated losses and gaps can make the result worse. Research now includes 1%, 2% and 5% subscriber scenarios rather than assuming every buyer follows the recommendation. Those scenarios retain original strategy exits; they do not establish returns for discretionary early exits, missed signals or manual breakeven changes. The current VIP selection has eight configurations; coverage and actual participation vary by market.

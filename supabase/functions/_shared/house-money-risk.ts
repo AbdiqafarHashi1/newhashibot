@@ -1,12 +1,15 @@
+import {PERSONAL_RISK_PROFILES,personalRiskProfile,type PersonalRiskProfile} from './personal-growth-policy.ts';
 export const HOUSE_MONEY_VERSION='house-money/v1' as const;
 export type EquityMode='PERSONAL'|'PROP_CHALLENGE_PASS'|'PROP_FUNDED_INCOME';
 export interface HouseMoneyFacts {customerId:string;accountId:string;observedAt:string;monthlyPnlPct:number;dailyPnlPct:number;peakDrawdownPct:number;totalDrawdownPct:number;consecutiveLosses:number;phase:1|2;latchedReason?:string|null;}
 export interface HouseMoneyDecision {equity_phase:string;base_risk_pct:number;applied_risk_pct:number;block_reason:string|null;}
 /** Closed-net monthly profit; current floating equity participates in every loss guard. */
-export function houseMoneyRisk(mode:EquityMode,f:HouseMoneyFacts,now:string,topHourly=false,weekendMultiplier=1):HouseMoneyDecision{
+export function houseMoneyRisk(mode:EquityMode,f:HouseMoneyFacts,now:string,topHourly=false,weekendMultiplier=1,personalProfile:PersonalRiskProfile='STANDARD'):HouseMoneyDecision{
  const age=Date.parse(now)-Date.parse(f.observedAt),stop=(reason:string):HouseMoneyDecision=>({equity_phase:'HALTED',base_risk_pct:0,applied_risk_pct:0,block_reason:reason});
  if(!Number.isFinite(age)||age<0||age>60000||![f.monthlyPnlPct,f.dailyPnlPct,f.peakDrawdownPct,f.totalDrawdownPct].every(Number.isFinite)||f.peakDrawdownPct<0||f.totalDrawdownPct<0||!Number.isInteger(f.consecutiveLosses)||f.consecutiveLosses<0||![1,2].includes(f.phase)||![1,.75].includes(weekendMultiplier))return stop('HOUSE_MONEY_EVIDENCE_INVALID_OR_STALE');
  if(f.latchedReason)return stop(f.latchedReason);
+ const selected=personalRiskProfile(personalProfile);
+ if(selected!=='STANDARD'){if(mode!=='PERSONAL')return stop('PERSONAL_RISK_PROFILE_FORBIDDEN_FOR_PROP');const p=PERSONAL_RISK_PROFILES[selected];if(f.peakDrawdownPct>=p.peak)return stop('PERSONAL_GROWTH_PEAK_HALT');if(f.dailyPnlPct<=-p.daily)return stop('PERSONAL_GROWTH_DAILY_HALT');return {equity_phase:'PERSONAL_'+selected,base_risk_pct:p.risk,applied_risk_pct:p.risk*weekendMultiplier,block_reason:null};}
  if(f.dailyPnlPct<=-4)return stop('DAILY_CIRCUIT_4_PERCENT');
  let risk=0,phase='';
  if(mode==='PERSONAL'){

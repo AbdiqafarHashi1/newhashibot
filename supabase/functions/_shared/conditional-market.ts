@@ -59,7 +59,7 @@ export function weekendRotation(at:string|number){
  const t=typeof at==='number'?at:Date.parse(at);if(!Number.isFinite(t))throw Error('INVALID_ROTATION_TIME');
  const d=new Date(t),day=d.getUTCDay(),hour=d.getUTCHours();return day===5&&hour>=20||day===6||day===0&&hour<21;
 }
-export function rotationEntry(symbol:string,at:string|number,enabledMt5Crypto=false){
- const weekend=weekendRotation(at),crypto=['BTCUSDT','ETHUSDT','SOLUSDT'].includes(symbol)||(enabledMt5Crypto&&/^(BTC|ETH|SOL)USD(?:[._-].*)?$/.test(symbol));
+export function rotationEntry(symbol:string,at:string|number,enabledMt5Crypto=false,allPersonalCrypto=false){
+ const weekend=weekendRotation(at),crypto=(allPersonalCrypto&&CORE_CRYPTO_SYMBOLS.includes(symbol))||['BTCUSDT','ETHUSDT','SOLUSDT'].includes(symbol)||(enabledMt5Crypto&&/^(BTC|ETH|SOL)USD(?:[._-].*)?$/.test(symbol));
  return {allowed:!weekend||crypto,weekend,riskMultiplier:weekend?.75:1,reason:weekend&&!crypto?'WEEKEND_FX_METALS_OR_INELIGIBLE_CRYPTO':null};
 }

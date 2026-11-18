@@ -8,14 +8,10 @@ import {customerTradingActionAllowed} from '../../supabase/functions/_shared/cus
 import {VIP_CONFIG_IDS,VIP_RISK_FOOTER,assertVipStrategy,vipSetupTag} from '../../supabase/functions/_shared/vip-signal-policy.ts';
 import {renderCanonicalVipSignal} from '../../supabase/functions/_shared/telegram-product.ts';
 
-test('Prop defaults omit only the two Gold variants, Personal keeps them and Admin overrides retain them',()=>{
- const personal=defaultTierStrategies('MT5_PERSONAL','demo','PERSONAL');
- for(const mode of ['PROP_EVALUATION','PROP_FUNDED']){
-  const prop=defaultTierStrategies('MT5_PROP','demo',mode);
-  assert.deepEqual(prop,personal.filter(id=>!PROP_DEFAULT_EXCLUSIONS.has(id)));
-  for(const id of PROP_DEFAULT_EXCLUSIONS)assert.ok(executionStrategyChoices('MT5_PROP','demo').some(c=>c.id===id));
- }
- assert.equal(personal.length+defaultTierStrategies('BINANCE','testnet','PERSONAL').length,16);
+test('Personal defaults use one Crypto core and four Forex/Gold engines; Prop retains its independent reviewed lineup',()=>{
+ const personal=defaultTierStrategies('MT5_PERSONAL','demo','PERSONAL');assert.equal(personal.length,4);
+ assert.equal(defaultTierStrategies('BINANCE','testnet','PERSONAL').length,1);
+ for(const mode of ['PROP_EVALUATION','PROP_FUNDED']){const prop=defaultTierStrategies('MT5_PROP','demo',mode);assert.equal(prop.length,8);for(const id of PROP_DEFAULT_EXCLUSIONS){assert.ok(!prop.includes(id));assert.ok(executionStrategyChoices('MT5_PROP','demo').some(c=>c.id===id));}}
 });
 test('Admin onboarding and mutation authority remain Admin-only; customer report actions remain readable',()=>{
  requireTradingAdmin('admin');for(const role of ['customer','owner',undefined])assert.throws(()=>requireTradingAdmin(role),/ADMIN_REQUIRED/);
@@ -26,9 +22,9 @@ test('Admin onboarding and mutation authority remain Admin-only; customer report
  const edge=readFileSync('supabase/functions/execution-account-onboarding/index.ts','utf8');assert.match(edge,/requireTradingAdmin\(admin\?\.role\)/);
  const authority=readFileSync('supabase/functions/phase-h-authority/index.ts','utf8');assert.match(authority,/profile\?\.role!=='admin'/);assert.match(authority,/admin_apply_tier_preset/);
 });
-test('VIP filter has 14 configs, no raw historical rates, true target R and exact footer',()=>{
- assert.equal(VIP_CONFIG_IDS.length,14);assert.throws(()=>assertVipStrategy('forex.native-sweep-retest-60-16-2-5-usdjpy-h72'));
- const card=renderCanonicalVipSignal({signal_id:'test',symbol:'XAUUSD',market:'forex',direction:'BUY',entry_low:100,entry_high:100,stop_loss:90,targets:[115,115],strategy:'gold.native-momentum-60-24-2-5',occurred_at:new Date().toISOString()});
+test('VIP filter has eight audited configs, no raw historical rates, true target R and exact footer',()=>{
+ assert.equal(VIP_CONFIG_IDS.length,8);assert.throws(()=>assertVipStrategy('forex.native-sweep-retest-60-16-2-5-usdjpy-h72'));
+ const card=renderCanonicalVipSignal({signal_id:'test',symbol:'XAUUSD',market:'forex',direction:'BUY',entry_low:100,entry_high:100,stop_loss:90,targets:[115,115],strategy:'gold.native-momentum-15-48-2-5',occurred_at:new Date().toISOString()});
  assert.ok(card.includes(VIP_RISK_FOOTER));assert.match(card,/TP2 canonical target \(1.50R\):/);assert.match(card,/below 3.0R/);assert.doesNotMatch(card,/win.?rate|40\.54%/i);
  assert.match(vipSetupTag('crypto.launch-trend-pullback-48-1.5-5'),/TREND RUNNER/);
 });
@@ -45,7 +41,7 @@ test('mode parser and live preflight reject missing secrets and accidental desti
 test('live branch checks ownership, authorizes, dispatches and observes actual receipts using injected transports',async()=>{
  const selections=[{customerId:'c',accountId:'b',signalId:'s1'},{customerId:'c',accountId:'y',signalId:'s2'},{customerId:'c',accountId:'m',signalId:'s3'}];
  const accounts=selections.map((s,i)=>({id:s.accountId,customer_id:s.customerId,provider:['BINANCE','BYBIT','MT5_PERSONAL'][i],environment:i===0?'testnet':'demo',execution_enabled:true,runtime_control:'START'}));
- const db={from(table:string){const filters:any={};const q:any={select:()=>q,in:()=>q,update:()=>q,eq:(k:string,v:any)=>{filters[k]=v;return q;},then:(yes:any)=>Promise.resolve({data:table==='connected_execution_accounts'?accounts:[],error:null}).then(yes),single:async()=>({data:table==='account_risk_state'?{equity_phase:'PERSONAL_BASE',applied_risk_pct:1,observed_at:new Date().toISOString()}:table==='signals'?{id:filters.id,symbol:filters.id==='s3'?'XAUUSD':'ETHUSDT',market_type:filters.id==='s3'?'forex':'crypto',direction:'BUY',entry_low:100,stop_loss:90,tp1:115,tp2:130,created_at:new Date().toISOString(),strategy_id:filters.id==='s3'?'gold.native-momentum-60-24-2-5':'crypto.complementary-ema-pullback'}:{id:'job'},error:null}),maybeSingle:async()=>({data:{execution_plan_id:'plan',provider_order_id:'observed-provider-order',lifecycle_state:'PROTECTED'},error:null})};return q;}};
+ const db={from(table:string){const filters:any={};const q:any={select:()=>q,in:()=>q,update:()=>q,eq:(k:string,v:any)=>{filters[k]=v;return q;},then:(yes:any)=>Promise.resolve({data:table==='connected_execution_accounts'?accounts:[],error:null}).then(yes),single:async()=>({data:table==='account_risk_state'?{equity_phase:'PERSONAL_BASE',applied_risk_pct:1,observed_at:new Date().toISOString()}:table==='signals'?{id:filters.id,symbol:filters.id==='s3'?'XAUUSD':'ETHUSDT',market_type:filters.id==='s3'?'forex':'crypto',direction:'BUY',entry_low:100,stop_loss:90,tp1:115,tp2:130,created_at:new Date().toISOString(),strategy_id:filters.id==='s3'?'gold.native-momentum-15-48-2-5':'crypto.complementary-ema-pullback'}:{id:'job'},error:null}),maybeSingle:async()=>({data:{execution_plan_id:'plan',provider_order_id:'observed-provider-order',lifecycle_state:'PROTECTED'},error:null})};return q;}};
  const env={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test',HASHIBOT_INTERNAL_SECRET:'test',TELEGRAM_BOT_TOKEN:'test',TELEGRAM_VIP_CRYPTO_CHAT_ID:'1',TELEGRAM_VIP_FOREX_GOLD_CHAT_ID:'2',TELEGRAM_FREE_CHAT_ID:'3',SMOKE_ACCOUNTS_FILE:'unused'};
  let authorizations=0;const transport:typeof fetch=async input=>new Response(JSON.stringify(String(input).includes('telegram.org')?{ok:true,result:{message_id:1}}:{success:true,canonical_state:'PROTECTED'}));
  const deps:any={db,selections,authorize:async()=>{authorizations++;return{decision:'ALLOW',id:'decision',execution_plan_id:'plan'};},dispatch:async(_db:any,submit:any)=>{const results=[];for(const s of selections){const receipt=await submit({routing:{environment:'DEMO',account_id:s.accountId},risk_decision:{account:{customer_id:'c'}},execution_plan_id:'plan'},'v1');results.push({id:s.accountId,state:receipt.accepted?'SENT':'FAILED'});}return results;}};
@@ -53,7 +49,7 @@ test('live branch checks ownership, authorizes, dispatches and observes actual r
  accounts[0].environment='live';await assert.rejects(runSmoke('live',env,transport,deps),/SANDBOX_REQUIRED/);
 });
 test('Telegram errors cannot be reported as a delivered message',async()=>{
- await assert.rejects(telegramSmoke(async()=>new Response(JSON.stringify({ok:false}),{status:403}),'test','1',{id:'t',strategy_id:'gold.native-momentum-60-24-2-5',symbol:'XAUUSD',market_type:'forex',direction:'BUY',entry_low:100,stop_loss:90,tp1:115,tp2:130,created_at:new Date().toISOString()},'vip_forex_gold'),/TELEGRAM_DELIVERY_FAILED/);
+ await assert.rejects(telegramSmoke(async()=>new Response(JSON.stringify({ok:false}),{status:403}),'test','1',{id:'t',strategy_id:'gold.native-momentum-15-48-2-5',symbol:'XAUUSD',market_type:'forex',direction:'BUY',entry_low:100,stop_loss:90,tp1:115,tp2:130,created_at:new Date().toISOString()},'vip_forex_gold'),/TELEGRAM_DELIVERY_FAILED/);
 });
 test('editorial SQL enforces durable channel locking, jitter and cooldown under service authority',()=>{
  const sql=readFileSync('supabase/migrations/20261118120000_editorial_channel_spacing.sql','utf8');
@@ -77,7 +73,7 @@ test('canonical worker defers editorial claims but never applies content cooldow
 test('canonical VIP rendering filters conditional broadcasts and preserves risk footer on each alert',async()=>{
  (globalThis as any).Deno={env:{get:()=>undefined}};
  const {renderCanonicalTruth}=await import('../../supabase/functions/_shared/canonical-publication-runtime.ts');
- const truth:any={entityType:'lifecycle_event',entityId:'e',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),payload:{market_type:'forex',policy:'conditional-signals/v1',message:'Watchlist WR: 65% — condition pending',state:{status:'WAITING',strategy:'gold.native-momentum-60-24-2-5'}}};
+ const truth:any={entityType:'lifecycle_event',entityId:'e',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),payload:{market_type:'forex',policy:'conditional-signals/v1',message:'Watchlist WR: 65% — condition pending',state:{status:'WAITING',strategy:'gold.native-momentum-15-48-2-5'}}};
  const parts=await renderCanonicalTruth(truth,'vip_forex_gold');assert.ok(parts[0].text.includes('Standard Account:'));assert.ok(!parts[0].text.includes('65%'));
  truth.payload.state.strategy='gold.frontier-compression-15-24-1.5-5-h96';assert.throws(()=>renderCanonicalTruth(truth,'vip_forex_gold'),/VIP_STRATEGY_NOT_ADMITTED/);
 });
@@ -95,4 +91,10 @@ test('Phase-O retains known queued reasons so content cooldown does not exhaust 
  const finished:any[]=[];const store:any={loadDraft:async()=>draft,loadApproval:async()=>({draftId:'d',version:1,bindingHash:await approvalBinding(draft),approvedAt:new Date().toISOString()}),reserveDelivery:async()=>({state:'SEND',reservationId:'r',token:'t'}),finishDelivery:async(...args:any[])=>finished.push(args)};
  const result=await deliverApproved({draftId:'d',store,transport:{send:async()=>({kind:'retry',reason:'CHANNEL_CONTENT_SCHEDULED',retryAfterMs:120000})}});
  assert.equal(result.state,'RETRY');assert.equal(result.reason,'CHANNEL_CONTENT_SCHEDULED');assert.equal(finished[0][2],'RETRY');
+});
+
+
+test('mock drives Growth and Aggressive through canonical account authorization and dispatch without network',async()=>{
+ await assert.rejects(runSmoke('live',{SMOKE_PERSONAL_RISK_PROFILE:'GROWTH_2'}),/MOCK_ONLY_RISK_PROFILE_OVERRIDE/);
+ for(const [profile,risk] of [['GROWTH_2',2],['AGGRESSIVE_5',5]] as const){const result=await runSmoke('mock',{SMOKE_PERSONAL_RISK_PROFILE:profile},async()=>{throw Error('NETWORK_MUST_NOT_RUN')});assert.equal(result.equity_phase,'PERSONAL_'+profile);assert.equal(result.applied_risk_pct,risk);assert.equal(result.dispatches[0].state,'SENT');}
 });

@@ -1,18 +1,13 @@
+import {withEntryGeometry} from './geometry.ts';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {gunzipSync,gzipSync} from 'node:zlib';
+import {gzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {entryFeatures,qualityAllows} from './entry-quality.ts';
 import {savedLedgerData} from './prepare.ts';
-import {covers,ms,replay,type PersonalExperiment} from './replay.ts';
+import {covers,replay,type PersonalExperiment} from './replay.ts';
 import {COST_POSITIVE_CONFIG_IDS} from '../../../supabase/functions/_shared/cost-positive-configs.ts';
 const raw=savedLedgerData(),data=JSON.parse(raw),closes=JSON.parse(readFileSync('docs/research/part1-backfill/friday-closes.json','utf8')).closes;
-// Stop geometry is taken only from saved pre-entry plans, never a subsequent trailing stop.
-const geometry=new Map<string,{at:number;ratio:number}>();
-for(const source of data.sources){const bytes=gunzipSync(readFileSync(source.path));if(createHash('sha256').update(bytes).digest('hex')!==source.sha256)throw Error('SOURCE_HASH_MISMATCH');const r=JSON.parse(bytes.toString());
- for(const row of r.signalSnapshots??[]){const s=row.setup;if(Number.isFinite(s.trigger)&&Number.isFinite(s.stop)&&s.trigger>0&&Math.abs(s.trigger-s.stop)>0)geometry.set(source.sha256+':'+s.strategy+':'+s.id,{at:ms(row.at),ratio:s.trigger/Math.abs(s.trigger-s.stop)});}
- for(const row of r.ledger??[]){const c=row.candidate;if(c&&Number.isFinite(c.entry)&&Number.isFinite(c.stop)&&c.entry>0&&Math.abs(c.entry-c.stop)>0)geometry.set(source.sha256+':'+c.strategyId+':'+c.id,{at:ms(row.decisionAt??c.evidence?.source_close),ratio:c.entry/Math.abs(c.entry-c.stop)});}
-}
-data.trades=data.trades.map((t:any)=>{const g=geometry.get(t.source+':'+t.strategy+':'+t.id);return {...t,notionalPerRisk:g&&Number.isFinite(g.at)&&g.at<=ms(t.entry)?g.ratio:undefined};});
+withEntryGeometry(data);
 const DAY=86400000,w=(start:string,end:string)=>({start,days:(Date.parse(end)-Date.parse(start))/DAY});
 const cohorts=[{name:'FX_GOLD_2025',crypto:false,train:w('2025-04-01','2025-06-01'),test:w('2025-06-01','2025-09-01')},{name:'CRYPTO_2025',crypto:true,train:w('2025-05-01','2025-07-01'),test:w('2025-07-01','2025-09-01')},{name:'CRYPTO_2026',crypto:true,train:w('2026-08-01','2026-09-16'),test:w('2026-09-16','2026-11-01')},{name:'GOLD_2026',crypto:false,train:w('2026-05-05','2026-07-01'),test:w('2026-07-05','2026-11-01')}];
 function baskets(ids:string[]){const out:string[][]=[];for(let a=0;a<ids.length;a++){out.push([ids[a]]);for(let b=a+1;b<ids.length;b++){out.push([ids[a],ids[b]]);for(let c=b+1;c<ids.length;c++)out.push([ids[a],ids[b],ids[c]]);}}if(ids.length>3)out.push(ids);return out;}

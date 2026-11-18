@@ -1,3 +1,4 @@
+import {STRATEGY_DEPLOYMENT_VERSION,SCANNER_PRODUCT_STRATEGIES} from '../_shared/strategy-deployment-policy.ts';
 import {watchedHistoryBars,watchedCryptoInstrument} from '../_shared/strategy-runtime-parameters.ts';
 import {complementaryDefinitions} from '../_shared/complementary-strategies.ts';
 import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
@@ -911,7 +912,7 @@ async function fetchBinanceCandles(symbol: string, timeframe: string, limit = 11
         return raw.map((k) => decodeNativeKline(symbol, timeframe, k, 'SPOT'));
       }
     }
-  } catch {}
+  } catch { /* Continue to the existing fallback after the spot request fails. */ }
   try {
     const furl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&limit=${limit}`;
     const fres = await fetch(furl, { signal: AbortSignal.timeout(8000) });
@@ -1606,6 +1607,7 @@ async function runScanPipeline(
   };
 
   const conditionalEnabled=true;
+  console.info('Strategy deployment',STRATEGY_DEPLOYMENT_VERSION,{default_scanner_ids:SCANNER_PRODUCT_STRATEGIES});
   const watchedDefinitions=conditionalEnabled?watchedStrategyCatalog(strategyConfigs,measuredReleases):[];
   const sourceRead=conditionalEnabled?await supabase.from('intelligence_events').select('event_id,market,created_at,metadata,data_sources').gte('created_at',new Date(Date.now()-1800000).toISOString()).order('created_at',{ascending:false}).limit(100):{data:[],error:null};
   const watchedSources=(sourceRead.error?[]:sourceRead.data??[]).map((r:any)=>({...r,id:r.event_id}));
@@ -1679,8 +1681,10 @@ async function runScanPipeline(
 
   let symbolsScanned = 0, candlesFetched = 0, candidatesFound = 0;
   let signalsCreated = 0, rejectedCount = 0, evaluationsCount = 0;
-  let indicatorsCalc = 0, paperIntentsCreated = 0, riskBlockedCount = 0;
-  let telegramSent = 0, telegramSkipped = 0, telegramFailed = 0;
+  let indicatorsCalc = 0, riskBlockedCount = 0;
+  const paperIntentsCreated = 0;
+  const telegramSent = 0, telegramFailed = 0;
+  let telegramSkipped = 0;
   let duplicateSymbolBlocked = 0;
   const telegramSkipReasons: Record<string, number> = {};
   const telegramDeliveryIds: string[] = [];
@@ -1847,7 +1851,7 @@ async function runScanPipeline(
   if(conditionalEnabled&&config.signal_enable_forex&&forexToScan.length!==6)throw new Error("CONDITIONAL_SIX_FOREX_SYMBOL_BUDGET_REQUIRED");
   if(conditionalEnabled&&config.signal_enable_crypto&&cryptoToScan.length!==10)throw new Error("CONDITIONAL_TEN_SYMBOL_BUDGET_REQUIRED");
 
-  let symbols = [
+  const symbols = [
     ...cryptoToScan,
     ...forexToScan,
   ];

@@ -13,10 +13,10 @@ assert.equal(assertPublishableSignal(...Object.values(qualifiedFixture(now)) as 
 for(const mutate of [(x:any)=>x.release=null,(x:any)=>x.release.state='RETIRED',(x:any)=>x.plan.provenance.evaluated_parameters.stopAtr=9,(x:any)=>x.signal.expires_at=new Date(now).toISOString(),(x:any)=>x.signal.entry_high=102,(x:any)=>x.plan.provenance.candle_boundary.closed_only=false,(x:any)=>x.signal.data_source='MOCK']) {
  const f=qualifiedFixture(now);mutate(f);assert.throws(()=>assertPublishableSignal(f.signal,f.plan,f.release,now));
 }
-assert.equal(COST_POSITIVE_CONFIG_IDS.length,16);assert.equal(VIP_CONFIG_IDS.length,14);
-assert.deepEqual([...VIP_EXCLUDED_STRATEGIES].sort(),['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','gold.frontier-compression-15-24-1.5-5-h96']);
+assert.equal(COST_POSITIVE_CONFIG_IDS.length,16);assert.equal(VIP_CONFIG_IDS.length,8);
+assert.deepEqual([...VIP_EXCLUDED_STRATEGIES].sort(),COST_POSITIVE_CONFIG_IDS.filter(id=>!VIP_CONFIG_IDS.includes(id)).sort());
 for(const strategy of [...VIP_EXCLUDED_STRATEGIES,'A_*[B]'])assert.throws(()=>renderCanonicalVipSignal({signal_id:'blocked',market:'forex',symbol:'XAUUSD',direction:'buy',occurred_at:new Date(now).toISOString(),entry_low:100,stop_loss:90,targets:[115,130],strategy}),/VIP_STRATEGY_NOT_ADMITTED/);
-for(const [market,symbol,entry,strategy] of [['crypto','BTCUSDT',67000,'crypto.launch-trend-pullback-48-1.5-5'],['forex','GBPUSD',1.285,'forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008'],['metals','XAUUSD',2700,'gold.native-momentum-60-24-2-5']] as const){
+for(const [market,symbol,entry,strategy] of [['crypto','BTCUSDT',67000,'crypto.launch-trend-pullback-48-1.5-5'],['forex','USDJPY',150,'forex.native-squeeze-15-48-2-3-usdjpy-h12'],['metals','XAUUSD',2700,'gold.native-momentum-15-48-2-5']] as const){
  const p={signal_id:'sig_1',market,symbol,direction:'buy',occurred_at:'2026-10-21T06:00:00Z',entry_low:entry,entry_high:entry*1.0001,stop_loss:entry*.99,targets:[entry*1.01,entry*1.02],strategy};
  const rendered=renderCanonicalVipSignal(p);assert.match(rendered,/9:00 AM EAT/);assert.ok(rendered.includes(VIP_RISK_FOOTER));assert.doesNotMatch(rendered,/win[ -]?rate|\bWR\s*[:=]?\s*\d/i);assert.equal(rendered,readFileSync(`tests/release1/snapshots/${symbol}.txt`,'utf8').trimEnd());
  const preview=renderFreeChannelSignalTemplate({eventType:'NEW_SIGNAL',market,symbol,entryLow:entry,entryHigh:entry*1.0001,stopLoss:entry*.99,tp1:entry*1.01,publicationMode:'full',timestamp:p.occurred_at});assert.match(preview,/PREVIEW/);assert.doesNotMatch(preview,/67000|1\.285|2700\.00/);

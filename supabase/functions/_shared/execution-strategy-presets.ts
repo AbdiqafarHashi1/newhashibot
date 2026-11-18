@@ -12,8 +12,8 @@ export function executionStrategyPresets(provider:string,environment:string,mode
  const available=new Set(executionStrategyChoices(provider,environment).map(c=>c.id));
  const reviewed=COST_POSITIVE_CONFIG_IDS.filter(id=>available.has(id));
  const definitions=[
-  {id:'reviewed',label:provider.toUpperCase()==='MT5_PROP'?'Prop · reviewed Forex & Gold':'All reviewed configurations',ids:defaultTierStrategies(provider,environment,mode)},
-  {id:'crypto-eth-doge-demo',label:'Crypto · ETH pullback + DOGE intraday · demo comparison',ids:mode==='PERSONAL'&&['demo','testnet'].includes(environment)?['crypto.complementary-ema-pullback','crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006'].filter(id=>available.has(id)):[]},
+  {id:'reviewed',label:provider.toUpperCase()==='MT5_PROP'?'Prop · reviewed Forex & Gold':'Personal · audited growth lineup',ids:defaultTierStrategies(provider,environment,mode)},
+  {id:'all-reviewed-comparison',label:'Admin comparison · all earlier reviewed configurations',ids:reviewed},
   {id:'gold-trailing',label:'Gold · focused RSI trailing',ids:available.has(GOLD_RSI_TRAILING)&&EXECUTION_CANONICAL_REVIEWS.some(r=>r.strategyId===GOLD_RSI_TRAILING)?[GOLD_RSI_TRAILING]:[]},
   {id:'crypto-focused',label:'Crypto · focused trend pullback',ids:available.has('crypto.launch-trend-pullback-48-1.5-5')?['crypto.launch-trend-pullback-48-1.5-5']:[]},
   {id:'gold-momentum-focused',label:'Gold · focused momentum · 15m',ids:available.has('gold.native-momentum-15-48-2-5')?['gold.native-momentum-15-48-2-5']:[]},
