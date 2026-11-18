@@ -1,0 +1,336 @@
+{
+  "schema": "continuous-income/v1",
+  "sourceSha256": "960d53dfd925f74e4cb279ae05321f97ff5980f59a35d1c325d39c96af5fe2d3",
+  "models": [
+    "RSI",
+    "COMPRESSION",
+    "ARBITRATED"
+  ],
+  "cases": 77,
+  "profitCutoff": false,
+  "capitalReset": false,
+  "withdrawals": false,
+  "assetMasks": {
+    "1": "XAUUSD",
+    "2": "USDJPY",
+    "3": "XAUUSD + USDJPY"
+  },
+  "arbitration": "One shared cash account and at most ONE open position total across permitted assets. Same-symbol RSI/compression conflicts abstain; RSI priority on agreement. Native quotes merged chronologically; Gold wins exact timestamp tie. No separate-account return summing.",
+  "guards": {
+    "PROP_FUNDED": "4% daily,8% of original capital from observed peak; stop-risk admission capped by remaining room; permanent stop and market close on failure",
+    "PERSONAL_STRESS": "10% daily,50% of original capital from peak. Deliberately broad research stress guards, not customer defaults. Requested risk can be reduced by margin, remaining loss room, minimum lot and lot-step."
+  },
+  "leverage": "Notional ceiling and entry margin; not a complete MT5 stop-out or crypto liquidation model.",
+  "selection": "Retrospective reused May-November source; comparisons not independent validation. No claim of actual firm compliance.",
+  "costs": "Gold commission5.25/lot/side, slip0.075/oz/side; JPY commission3.5/lot/side, slip0.001/side; observed bid/ask;3s entry,1s management;1.5bps notional/calendar-day adverse financing. No reset/forced close at month ends.",
+  "manifests": [
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/05/Exness_XAUUSD_Raw_Spread_2026_05.zip",
+      "month": "2026-05",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "05335fc2d4168a384683aa4f9eb4aed9853a45c38420375dc3971e337689212c",
+      "rowsSha256": "e08e0b3d05124bd6b18012a368fdbef195ec954d4dacefaeb9bb260192491100",
+      "archiveBytes": 58706337,
+      "rows": 28773,
+      "ticks": 6023529,
+      "firstTick": 1777593600098,
+      "lastTick": 1780271999795,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/06/Exness_XAUUSD_Raw_Spread_2026_06.zip",
+      "month": "2026-06",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "662a07e305e994e97be59e5d9b5da1e3a12fa33be098cb795727bd570618dd7e",
+      "rowsSha256": "da7a4836583cb26c16ae156fcda3d2a1cf5ef50994ae7554fc60ba711ef92e31",
+      "archiveBytes": 76776618,
+      "rows": 30073,
+      "ticks": 8034658,
+      "firstTick": 1780272000161,
+      "lastTick": 1782863999741,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/07/Exness_XAUUSD_Raw_Spread_2026_07.zip",
+      "month": "2026-07",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "1943fed282dfc5dc70b38a9f4b362b2f5691adf9f59786f0f70608b859c45a57",
+      "rowsSha256": "ba657257af3dba3cc44d35720e480f30c7d72af08b9ee24cb3d9d22a4a238c95",
+      "archiveBytes": 64816394,
+      "rows": 31332,
+      "ticks": 6734639,
+      "firstTick": 1782864000353,
+      "lastTick": 1785531479774,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/08/Exness_XAUUSD_Raw_Spread_2026_08.zip",
+      "month": "2026-08",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "ecaab8aaca305f66626ed7a24dfc2dba7c31ff3fe2600eb7642f3d43fb87a728",
+      "rowsSha256": "b502319fe47781e93755d1b1a0a8055e0ad9d4ccd6846104cbe555cd3cd8bae3",
+      "archiveBytes": 62707397,
+      "rows": 29049,
+      "ticks": 6485982,
+      "firstTick": 1785708090734,
+      "lastTick": 1788220799883,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/09/Exness_XAUUSD_Raw_Spread_2026_09.zip",
+      "month": "2026-09",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "3d874f6fa28dadcd8954bd385452200258f638a66b8cc30976baadeb85e98491",
+      "rowsSha256": "2b968fb3b06a7e112f163c306c9a7b14b09313c81c1c4a53d1e8d53f8ec73e90",
+      "archiveBytes": 64053195,
+      "rows": 30157,
+      "ticks": 6591051,
+      "firstTick": 1788220800137,
+      "lastTick": 1790812798675,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/10/Exness_XAUUSD_Raw_Spread_2026_10.zip",
+      "month": "2026-10",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "a131b2c531a58c5e4470f9b65afea4d7894816d7c7bfd580dba70dbe877dc981",
+      "rowsSha256": "bce9796004d4bf884395d1c440964bfd98b103a98e9368774d2a7ffe79585e03",
+      "archiveBytes": 57057758,
+      "rows": 30174,
+      "ticks": 5910062,
+      "firstTick": 1790812800036,
+      "lastTick": 1793393879352,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/11/Exness_XAUUSD_Raw_Spread_2026_11.zip",
+      "month": "2026-11",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "archiveSha256": "7e22d6844233dadfc95351f99cfd1869744c2c6c46d69ae9dcf941a458913cbb",
+      "rowsSha256": "7dc673a24e617f8f1471f448de3b3701bf873af6dc7d7ea42586ff5eaa2acb28",
+      "archiveBytes": 28419097,
+      "rows": 12460,
+      "ticks": 2947913,
+      "firstTick": 1793574090232,
+      "lastTick": 1794527996941,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/05/Exness_USDJPY_Raw_Spread_2026_05.zip",
+      "month": "2026-05",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "71ba822f93ed6678979b4fa9464ce39ab3c39a7cdcb314b9a1e4e3f368469365",
+      "rowsSha256": "fc245ec17ef01f165a13ababdf5dfd2b2fb846d2544227d59ff8a61b03412ef9",
+      "archiveBytes": 7170041,
+      "rows": 29930,
+      "ticks": 1087485,
+      "firstTick": 1777593600135,
+      "lastTick": 1780271997290,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/06/Exness_USDJPY_Raw_Spread_2026_06.zip",
+      "month": "2026-06",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "07679f2ac030e4e8e0387742683ee72a5c05e2208732415ef7d9e45648b6b299",
+      "rowsSha256": "082885bdd01d160d14dc888777e6eaed11e1ed03085c79e77791e8ecd094b5f7",
+      "archiveBytes": 5244829,
+      "rows": 31354,
+      "ticks": 790428,
+      "firstTick": 1780272000896,
+      "lastTick": 1782863983937,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/07/Exness_USDJPY_Raw_Spread_2026_07.zip",
+      "month": "2026-07",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "2c1c1fde2f9e885e987079f68b6f078faef5925679af84dad48ef2b91a0c9284",
+      "rowsSha256": "b774ca18f9d359ea068281c60bbbe334d2272ad982c19708d55a1e2de68f92bc",
+      "archiveBytes": 8508063,
+      "rows": 32621,
+      "ticks": 1280655,
+      "firstTick": 1782864000137,
+      "lastTick": 1785531539924,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/08/Exness_USDJPY_Raw_Spread_2026_08.zip",
+      "month": "2026-08",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "a4b84cff879f946e78b1d9bb86e487bf23f846cdbcff5f38a35beb093d9839f1",
+      "rowsSha256": "4a6d1761e14a81d38eb3b655ab70f264439ef671084a4a764d53afadcaeb2fd6",
+      "archiveBytes": 7939050,
+      "rows": 30195,
+      "ticks": 1190711,
+      "firstTick": 1785704705752,
+      "lastTick": 1788220797454,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/09/Exness_USDJPY_Raw_Spread_2026_09.zip",
+      "month": "2026-09",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "2e95e957186083ea567463823ab490a33373c7cff6cccef861b832c1eae86618",
+      "rowsSha256": "bf60b732090bfbff998aa421168e8e6bf1ae8d8c42bda73ba73a5d26d4e3871f",
+      "archiveBytes": 13851849,
+      "rows": 31429,
+      "ticks": 2108040,
+      "firstTick": 1788220800117,
+      "lastTick": 1790812798152,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/10/Exness_USDJPY_Raw_Spread_2026_10.zip",
+      "month": "2026-10",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "594544a97e77429276901a44f10dafd9e952df48b013cbe750c47abdd8f60ee2",
+      "rowsSha256": "084df95087b063af6d232f56ee730ae2f24be495ad7df9491f47f1b662db0d3b",
+      "archiveBytes": 10474050,
+      "rows": 31283,
+      "ticks": 1587751,
+      "firstTick": 1790812800119,
+      "lastTick": 1793393938754,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    },
+    {
+      "schema": "gold-micro-native/v1",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/11/Exness_USDJPY_Raw_Spread_2026_11.zip",
+      "month": "2026-11",
+      "symbol": "USDJPY",
+      "timeframe": "1m",
+      "archiveSha256": "b7cbef69beb0cc910c90504917b3ed6d2a8a8b6d26630e741c576b359f121637",
+      "rowsSha256": "351ea0e321df6107d49517e7d99a2fbca7ecb036ffc93c468d27a064711c2ce7",
+      "archiveBytes": 4221970,
+      "rows": 12988,
+      "ticks": 636158,
+      "firstTick": 1793570713371,
+      "lastTick": 1794527997208,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote count, not traded volume",
+      "limitations": [
+        "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+        "No invented quotes, spreads or weekend bars",
+        "Commission, latency, fill reserve and lot/margin rules are scenarios"
+      ]
+    }
+  ]
+}

@@ -13,7 +13,7 @@ export default function AISignals() {
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3.5 py-1 text-xs text-emerald-400 font-bold uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Live Product • Crypto Signal Room
+            Crypto & Forex Signal Rooms
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
@@ -151,7 +151,7 @@ export default function AISignals() {
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs text-emerald-300">
               <span className="font-bold flex items-center gap-1.5">
                 <CheckCircle2 size={16} className="text-emerald-400" />
-                Verified Status: TP1 Hit (+1.75% R)
+                Example update: TP1 reached
               </span>
               <span className="text-[11px] font-mono text-zinc-400">Tracked in Signal History</span>
             </div>

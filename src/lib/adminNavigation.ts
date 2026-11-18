@@ -1,9 +1,10 @@
 export const adminPrimaryPages=[
- {to:'/admin/launch',label:'Setup & launch',icon:'ListChecks',purpose:'Activation steps, source readiness and links to the owning control page.'},
+ {to:'/admin/launch',label:'Setup & controls',icon:'ListChecks',purpose:'Activation steps, source readiness and links to the owning control page.'},
  {to:'/admin/scanner',label:'Scanner',icon:'Radio',purpose:'Scanner activity and data health; settings open from this page.'},
  {to:'/admin/providers',label:'Providers & accounts',icon:'Zap',purpose:'Account connections, balances, positions, orders, results and expiry.'},
+ {to:'/admin/research',label:'Strategy research',icon:'FlaskConical',purpose:'Measured strategy returns, signal frequency, loss diagnosis and next experiments.'},
  {to:'/admin/strategies',label:'Strategies',icon:'SlidersHorizontal',purpose:'Enable and configure the actual scanner strategies.'},
- {to:'/admin/telegram',label:'Telegram Hub',icon:'Send',purpose:'Channels, subscriber content, paper setups, membership, delivery and worker schedules.'},
+ {to:'/admin/telegram',label:'Telegram Hub',icon:'Send',purpose:'Channels, subscriber content, setup lifecycle, membership, delivery and worker schedules.'},
  {to:'/admin/customers',label:'Customers & access',icon:'Users',purpose:'Find any customer, inspect access and resolve onboarding or grant 30-day access.'},
  {to:'/admin/commerce',label:'Payments',icon:'ClipboardList',purpose:'M-Pesa/Whop settings, payment evidence and subscription recovery.'},
  {to:'/admin/growth-goal',label:'Growth Funnel',icon:'Activity',purpose:'Free/VIP goals, prospects, follow-ups and acquisition campaigns.'},

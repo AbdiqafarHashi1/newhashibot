@@ -18,7 +18,7 @@ export default function About() {
             About HashiBot Platform
           </h1>
           <p className="text-sm sm:text-base text-zinc-300 leading-relaxed max-w-2xl mx-auto">
-            HashiBot was engineered to eliminate emotional trading, single-point-of-failure signal groups, and opaque black-box execution systems.
+            HashiBot brings structured market analysis, setup tracking and account controls into one platform.
           </p>
         </div>
       </section>
@@ -46,10 +46,10 @@ export default function About() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
             {[
-              { title: '1. One Shared Signal Truth', desc: 'Every user receives identical, unedited signals backed by verifiable database records and evidence parameters.' },
-              { title: '2. Quality-Based Arbitration', desc: 'Multiple strategy candidates compete. The arbitrator selects the single highest-graded setup or issues a NO-TRADE.' },
-              { title: '3. Account-Level Risk Controls', desc: 'Automatic lot/position sizing based on account balance and maximum loss limits prevents tilt and blowouts.' },
-              { title: '4. Active Trade Protection', desc: 'Continuous position monitoring, instant SL/TP placement, break-even trailing, and protection drift detection.' },
+              { title: '1. One Shared Signal Truth', desc: 'Each setup keeps a shared identity and recorded history across its applicable customer channels.' },
+              { title: '2. Quality-Based Arbitration', desc: 'Multiple strategy candidates compete. Arbitration resolves competing candidates using the applicable market and trading-track rules.' },
+              { title: '3. Account-Level Risk Controls', desc: 'Automatic lot/position sizing based on account balance and configured risk limits informs each account decision.' },
+              { title: '4. Active Trade Protection', desc: 'Position monitoring, stop and target management, break-even updates and protection drift detection.' },
               { title: '5. Full Operations & Telemetry', desc: 'Deep admin and customer dashboards rendering real-time provider health, heartbeats, and command queue depth.' },
               { title: '6. Non-Custodial Architecture', desc: 'Your funds remain strictly on your personal exchange or MetaTrader 5 broker. HashiBot never accepts deposits.' },
             ].map((item) => (

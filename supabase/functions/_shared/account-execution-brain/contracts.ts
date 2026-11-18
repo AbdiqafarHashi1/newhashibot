@@ -295,7 +295,7 @@ export const DEFAULT_MT5_PROP_EVALUATION_POLICY: AccountPolicy = Object.freeze({
   account_type: "PROP_EVALUATION",
   max_risk_per_trade_pct: 0.5,
   max_portfolio_risk_pct: 1.5,
-  max_daily_drawdown_pct: 4.5,
+  max_daily_drawdown_pct: 4.0,
   max_total_drawdown_pct: 9.0,
   max_open_positions_total: 3,
   max_open_positions_per_symbol: 1,

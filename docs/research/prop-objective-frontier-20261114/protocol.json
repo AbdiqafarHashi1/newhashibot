@@ -1,0 +1,877 @@
+{
+  "schema": "native-prop-objectives/v1",
+  "engineSha256": "a4e847f09f8a21d01420bd96a8a9b19615bde77ca34e366c6781da5c0c874027",
+  "strategy": {
+    "family": "rsi_exhaustion",
+    "minutes": 15,
+    "n": 12,
+    "stop": 1.5,
+    "rr": 5,
+    "hold": 1440,
+    "style": 2
+  },
+  "scenarios": [
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-05-01",
+      "start": 1777593600000,
+      "end": 1785369600000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-06-01",
+      "start": 1780272000000,
+      "end": 1788048000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-07-01",
+      "start": 1782864000000,
+      "end": 1790640000000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-08-01",
+      "start": 1785542400000,
+      "end": 1793318400000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-09-01",
+      "start": 1788220800000,
+      "end": 1795996800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-10-01",
+      "start": 1790812800000,
+      "end": 1798588800000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "PEAK_8_DAILY_2",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 8,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "CHALLENGE",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.5
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 2,
+      "risk": 0.25
+    },
+    {
+      "date": "2026-11-01",
+      "start": 1793491200000,
+      "end": 1801267200000,
+      "guard": "STATIC_9_DAILY_4_5",
+      "initial": "FUNDED",
+      "challengeTarget": 10,
+      "fundedTarget": 5,
+      "risk": 0.25
+    }
+  ],
+  "capital": 25000,
+  "evaluationRisk": 0.5,
+  "fundedRisk": 0.25,
+  "leverageCeiling": 5,
+  "minimumEntryDaysPerEvaluationPhase": 4,
+  "phaseDelayHours": 24,
+  "payoutWaitDaysFromFirstFundedTrade": 14,
+  "costs": {
+    "commissionPerLotSide": 5.25,
+    "adverseFillUSDPerOzSide": 0.075,
+    "entryDelayMs": 3000,
+    "managementDelayMs": 1000,
+    "carryBpsNotionalPerCalendarDay": 1.5
+  },
+  "selection": "Strategy was selected on prior May\u2013October research. All goals/guard scenarios are now prespecified retrospective comparisons; no untouched holdout claim.",
+  "limitations": [
+    "Numerical reference programs, not firm-specific certification. No news/calendar or personal-use agreement verification.",
+    "Profit target banking requests closure; net target must survive costs before passing. Minimum days use genuine later signals at 0.05% preservation risk.",
+    "A first modeled request opportunity is not an approved payout or money withdrawn.",
+    "Funding and target-horizon denominators retain partial-history censoring.",
+    "Only evaluation/funded account research, not production execution authorization."
+  ]
+}

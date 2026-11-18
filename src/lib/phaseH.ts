@@ -21,7 +21,7 @@ export const APPROVED_BRAINS: readonly BrainProfile[] = [
   { family:'PERSONAL_MT5_GROWTH', version:'1.0.0', provider:'MT5', mode:'PERSONAL', minRisk:.1, maxRisk:1, strategies:['FOREX_TREND','GOLD_BREAKOUT'], certificationRequired:true },
   { family:'PERSONAL_BINANCE_CRYPTO', version:'1.0.0', provider:'BINANCE', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
   { family:'PERSONAL_BYBIT_CRYPTO', version:'1.0.0', provider:'BYBIT', mode:'PERSONAL', minRisk:.1, maxRisk:.75, strategies:['CRYPTO_TREND'], certificationRequired:true },
-  { family:'PROP_MT5_STRICT', version:'1.0.0', provider:'MT5', mode:'PROP', minRisk:.1, maxRisk:.5, strategies:['FOREX_TREND'], certificationRequired:true },
+  { family:'PROP_MT5_STRICT', version:'1.0.0', provider:'MT5', mode:'PROP', minRisk:.1, maxRisk:.5, strategies:['FOREX_TREND','GOLD_BREAKOUT'], certificationRequired:true },
 ] as const;
 
 export function recommendBrain(provider: Provider, mode: AccountMode) {

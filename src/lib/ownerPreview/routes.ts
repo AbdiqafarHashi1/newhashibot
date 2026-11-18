@@ -83,8 +83,8 @@ export const ownerPreviewRoutes = [
   "/admin/trading-brain",
   "/admin/modes",
   "/admin/backtest",
-  "/admin/backtest-lab",
   "/admin/research",
+  "/admin/backtest-lab",
   "/admin/handoff",
   "/admin/prop"
 ] as const;

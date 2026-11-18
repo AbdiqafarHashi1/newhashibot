@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-13",
+  "goals": [
+    "Two-phase funding within 14 calendar days",
+    "Two-phase funding within 30 calendar days",
+    "Funded net 5% within 30 days",
+    "Funded net 2% within 14 days"
+  ],
+  "capitalUSD": 25000,
+  "costScale": 1.5,
+  "evaluationDays": {
+    "8/5": 5,
+    "10/5": 4
+  },
+  "phaseHandoffHours": 24,
+  "riskPct": [
+    0.5,
+    1,
+    1.5,
+    2
+  ],
+  "effectiveLeverageCeiling": [
+    5,
+    10,
+    30
+  ],
+  "openRiskCapPct": 3,
+  "drawdownVariants": [
+    "Observed-high-water 4.5% daily / 9% total",
+    "Static initial-capital basis 4.5% daily / 9% total"
+  ],
+  "exits": [
+    "Original",
+    "Full position at 2R",
+    "Full position at 3R",
+    "Full position at 3R and holding capped at 24 native strategy bars"
+  ],
+  "bundles": [
+    "Reviewed all seven",
+    "Reviewed prior income selection mask25",
+    "Reviewed prior speed selection mask116",
+    "Revised Gold range only",
+    "Revised Gold range and squeeze"
+  ],
+  "earlierStarts": "12 weekly starts 2025-03-01 through 2025-05-17",
+  "laterStarts": [
+    "2025-06-01",
+    "2025-06-15",
+    "2025-07-01",
+    "2025-07-15",
+    "2025-08-01"
+  ],
+  "laterSelection": "Freeze candidates from earlier ranking before later scenario evaluation. Underlying historical data has prior research; not an untouched market holdout.",
+  "classification": "Research-only account variants. No real accounts, policy expansion or automatic strategy promotion. Entries use saved confirmed scanner stream; faster exits cannot restore scanner opportunities previously suppressed by a longer reference lifecycle.",
+  "serviceOffer": "No promise of an outcome. Live infrastructure status must be checked separately."
+}

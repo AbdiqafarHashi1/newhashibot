@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type { AccountMode, AssetClass, Provider } from './phaseH';
 
 export type OnboardingDraft = {
-  environment?:'testnet'|'demo'|'live'; stage: number; packageCode: string; access: 'SIGNALS'|'AUTO'; asset: AssetClass;
+  propPhase?:'CHALLENGE'|'VERIFICATION'|'FUNDED'; environment?:'testnet'|'demo'|'live'; stage: number; packageCode: string; access: 'SIGNALS'|'AUTO'; asset: AssetClass;
   mode: AccountMode; provider: Provider; risk: number; strategies: string[]; ack: boolean;
 };
 export type AuthorityResult<T=Record<string,unknown>> = { state:string; data?:T; reason?:string; version?:number };

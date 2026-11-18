@@ -4,10 +4,10 @@ import { ArrowRight, Trophy, TrendingDown, BarChart2, CheckCircle, Bell, Shield,
 
 const differentiators = [
   'Conservative prop-safe configuration aligned with strict funded-account rule sets',
-  'Automated daily drawdown and total maximum drawdown loss locks (e.g. 3.5% daily cap)',
-  'Lower risk per trade (0.25% – 0.75%) and compliance-first position sizing guidance',
+  'Automated daily drawdown and total maximum drawdown loss locks (4% internal daily cap)',
+  'Lower risk per trade (0.25% – 0.50%) and compliance-first position sizing guidance',
   'Prop challenge-aware alerts and rule safeguards displayed in real-time telemetry',
-  'High-speed MetaTrader 5 Windows Bridge for instant sub-second order placement',
+  'MetaTrader 5 Windows Bridge for account connection and order management',
   'Continuous SL/TP drift audit to ensure trades never execute without strict downside gates',
 ];
 
@@ -20,14 +20,14 @@ export default function PropEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 rounded-full px-3.5 py-1.5 text-xs text-amber-400 mb-6 font-medium">
               <ShieldCheck size={13} className="text-amber-400" />
-              Forex MT5 Prop Bot — Product Preview — Demo Certification Required
+              HashiBot Prop · MT5 Forex & Gold
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              Prop-firm compliant EA<br />
+              Prop account automation<br />
               <span className="text-amber-400">engineered for challenge rules</span>
             </h1>
             <p className="text-lg text-zinc-300 leading-relaxed mb-4 max-w-2xl">
-              Forex MT5 Prop Bot is built specifically for strict prop firm challenges (FTMO, FundedNext, MFF) with conservative risk management, automated daily drawdown limits, and multi-symbol execution.
+              Configure Forex and Gold automation for your evaluation or funded account, with account-specific risk, daily loss controls and multi-symbol strategy selection. HashiBot Prop supports original capital up to $25,000 USD. Use automation only where your firm and account agreement permit it.
             </p>
             <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm text-amber-200 mb-6">
               Subscription: <span className="font-semibold text-white">$100/month per connected execution account</span>
@@ -39,9 +39,9 @@ export default function PropEA() {
               <Link to="/pricing?package=forex_mt5_prop_bot" className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-colors shadow-lg shadow-amber-600/20 text-sm">
                 Activate Forex MT5 Prop Bot <ArrowRight size={16} />
               </Link>
-              <Link to="/results#interactive-backtester" className="inline-flex items-center justify-center gap-2 bg-zinc-900 border border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:text-white px-7 py-3.5 rounded-lg font-semibold transition-colors text-sm">
+              <Link to="/results#performance-summary" className="inline-flex items-center justify-center gap-2 bg-zinc-900 border border-amber-500/30 hover:border-amber-500/60 text-amber-300 hover:text-white px-7 py-3.5 rounded-lg font-semibold transition-colors text-sm">
                 <ShieldCheck size={16} className="text-amber-400" />
-                Run $50k Prop Backtest
+                Explore strategy studies
               </Link>
               <Link to="/contact" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white px-6 py-3.5 rounded-lg font-medium transition-colors text-sm">
                 Contact Support
@@ -63,7 +63,7 @@ export default function PropEA() {
           <div className="grid sm:grid-cols-3 gap-5 max-w-4xl mx-auto mb-12">
             {[
               { icon: TrendingDown, title: 'Drawdown Loss Fences', desc: 'Hard daily loss locks and maximum trailing drawdown limits automatically halt trading if triggered.' },
-              { icon: BarChart2, title: 'Conservative Risk Sizing', desc: 'Customizable 0.25% – 0.75% risk per setup prioritizing account survival and consistency over gamble.' },
+              { icon: BarChart2, title: 'Conservative Risk Sizing', desc: 'Customizable 0.25% – 0.50% risk per setup prioritizing account survival and consistency over gamble.' },
               { icon: Trophy, title: 'Prop Rule Compliance', desc: 'Configurable trading windows, news event filters, and weekend hold prevention logic.' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 hover:border-zinc-700 transition-colors">

@@ -20,7 +20,7 @@ export default function PersonalEA() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3.5 py-1.5 text-xs text-emerald-400 mb-6 font-medium">
               <Zap size={13} className="text-emerald-400" />
-              Crypto Personal Bot — Product Preview — Demo Certification Required
+              HashiBot Personal · Crypto automation
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Automated crypto execution<br />
@@ -30,7 +30,7 @@ export default function PersonalEA() {
               Crypto Personal Bot connects directly to your Binance or Bybit exchange account to automatically execute high-probability setups identified by HashiBot&apos;s arbitrator.
             </p>
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-3 text-sm text-blue-200 mb-6">
-              Subscription: <span className="font-semibold text-white">$100/month per connected accountnth ($100/month)</span>
+              Subscription: <span className="font-semibold text-white">$100/month per connected account</span>
             </div>
             <p className="text-sm text-zinc-400 max-w-xl leading-relaxed mb-10">
               Non-custodial execution model. Funds remain safely in your exchange account while trades are sized and placed with sub-second latency.

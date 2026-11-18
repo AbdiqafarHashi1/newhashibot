@@ -57,6 +57,10 @@ export interface AccountRiskProfile {
 }
 
 export interface PropRulesState {
+  readonly source_reference?: string;
+  readonly reset_timezone?: string;
+  readonly drawdown_model?: "CONSERVATIVE_OBSERVED_HIGH_WATER" | "FTMO_2STEP_STATIC_INITIAL";
+  readonly program_id?: "FTMO_TWO_STEP_SWING";
   readonly daily_loss_cap_pct: number;
   readonly total_trailing_drawdown_cap_pct: number;
   readonly news_trading_allowed: boolean;
@@ -130,6 +134,8 @@ export interface WeekendPolicyRestriction {
  * Composable Account Policy representing account restrictions across Personal, Prop, Binance, Bybit & MT5.
  */
 export interface AccountPolicy {
+  /** Isolated historical study only. Never loaded from customer account policy. */
+  readonly historical_static_loss_basis?: true;
   readonly policy_id: string;
   readonly policy_version: string;
   readonly provider: BrainProvider;

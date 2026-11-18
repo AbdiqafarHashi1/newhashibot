@@ -1,0 +1,61 @@
+{
+  "period": [
+    "2026-08-01",
+    "2026-09-01"
+  ],
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "cases": [
+    [
+      "all-production",
+      [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72"
+      ],
+      "PRODUCTION_PARITY",
+      "COMBINED"
+    ],
+    [
+      "focused-production",
+      [
+        "crypto.launch-trend-pullback-48-1.5-5"
+      ],
+      "PRODUCTION_PARITY",
+      "COMBINED"
+    ],
+    [
+      "all-capacity",
+      [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72"
+      ],
+      "RISK_CAPACITY_ONLY",
+      "COMBINED"
+    ],
+    [
+      "immediate-capacity",
+      [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72"
+      ],
+      "RISK_CAPACITY_ONLY",
+      "IMMEDIATE_ONLY"
+    ],
+    [
+      "conditional-capacity",
+      [
+        "crypto.launch-trend-pullback-48-1.5-5",
+        "crypto.launch-trend-pullback-48-2-3-h72",
+        "crypto.launch-rsi2-48-3-3-h72"
+      ],
+      "RISK_CAPACITY_ONLY",
+      "CONDITIONAL_ONLY"
+    ]
+  ],
+  "interpretation": "One retrospective month; conditional-only still requires canonical confirmation. Capacity-only is a research counterfactual, not removal of provider protection or a production change."
+}

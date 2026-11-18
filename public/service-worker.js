@@ -7,7 +7,7 @@
  *  - Auto-purge of stale cache versions on upgrade
  */
 
-const CACHE_VERSION = 'hashibot-pwa-v1.0.0';
+const CACHE_VERSION = 'hashibot-pwa-v1.0.1';
 const STATIC_CACHE_NAME = `hashibot-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `hashibot-dynamic-${CACHE_VERSION}`;
 
@@ -26,6 +26,7 @@ const PRECACHE_ASSETS = [
 const EXCLUDED_PATTERNS = [
   /supabase\.co/,
   /\/api\//,
+  /\/research\//, // Published evidence must not be replaced by an older cached study.
   /\/rest\/v1\//,
   /\/realtime\/v1\//,
   /\/auth\/v1\//,

@@ -21,7 +21,8 @@ export default function Login() {
   const loc = useLocation();
   const [search] = useSearchParams();
   const requestedReturn = search.get('returnTo');
-  const from = requestedReturn?.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : (loc.state as { from?: Location })?.from?.pathname || '/dashboard';
+  const stateFrom = (loc.state as { from?: Location })?.from;
+  const from = requestedReturn?.startsWith('/') && !requestedReturn.startsWith('//') ? requestedReturn : stateFrom?.pathname ? stateFrom.pathname + (stateFrom.search || '') + (stateFrom.hash || '') : '/dashboard';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

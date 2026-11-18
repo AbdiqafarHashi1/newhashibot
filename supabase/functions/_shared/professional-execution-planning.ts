@@ -192,7 +192,7 @@ function translateMt5(context: ExecutionPlanningContext, side: "BUY" | "SELL", t
   const magic = Number.parseInt(shortHash({ correlation: context.correlation_id, account: context.account_id }, 7), 16);
   const pendingType = side === "BUY" ? entry < Number(context.capabilities.current_ask) ? "BUY_LIMIT" : "BUY_STOP" : entry > Number(context.capabilities.current_bid) ? "SELL_LIMIT" : "SELL_STOP";
   const child = (role: "ENTRY_TP1" | "ENTRY_TP2", quantity: number, tp: number, sequence: number) => baseOrder(context, sequence, role, side, quantity, action === "pending" ? entry : null, null, false, action === "market" ? "DEAL" : pendingType, context.routing_policy.time_in_force, { action, order_type: action === "market" ? "DEAL" : pendingType, symbol, side: side.toLowerCase(), volume: quantity, lots: quantity, price: action === "pending" ? entry : undefined, sl: stop, tp, type_time: context.routing_policy.time_in_force, type_filling: fill, magic, comment: clientId(context, role), clientRequestId: clientId(context, role) }, stop, tp);
-  return [child("ENTRY_TP1", tp1Qty, tp1, 1), child("ENTRY_TP2", tp2Qty, tp2, 2)];
+  return [child("ENTRY_TP1", tp1Qty, tp1, 1), child("ENTRY_TP2", tp2Qty, tp2, 2)].filter(order=>order.quantity>0);
 }
 
 function providerConfiguration(context: ExecutionPlanningContext, leverage: number): PlannedProviderConfiguration[] {
@@ -254,7 +254,7 @@ export function planExecution(context: ExecutionPlanningContext): DeepReadonly<E
   const side: "BUY" | "SELL" = strategy.decision.action === "SELL" ? "SELL" : "BUY";
   const stopValid = positive(entry) && positive(stop) && (side === "BUY" ? stop < entry : stop > entry) && Math.abs(entry - stop) >= capability.minimum_stop_distance_price;
   if (!stopValid) add("routing.stop", 7, "REJECT", { side, entry, stop, distance: Math.abs(entry - stop) }, { minimum_distance: capability.minimum_stop_distance_price }, "stop_instruction_invalid", "Stop must be directionally valid and satisfy provider minimum distance without mutation."); else add("routing.stop", 7, "PASS", stop, side === "BUY" ? `< ${entry}` : `> ${entry}`, "stop_instruction_valid", "Stop instruction is directionally and operationally valid.");
-  const targetsValid = positive(tp1) && positive(tp2) && Math.abs(tp1 - entry) >= capability.minimum_stop_distance_price && Math.abs(tp2 - entry) >= capability.minimum_stop_distance_price && (side === "BUY" ? tp1 > entry && tp2 > tp1 : tp1 < entry && tp2 < tp1);
+  const targetsValid = positive(tp1) && positive(tp2) && Math.abs(tp1 - entry) >= capability.minimum_stop_distance_price && Math.abs(tp2 - entry) >= capability.minimum_stop_distance_price && (side === "BUY" ? tp1 > entry && tp2 >= tp1 : tp1 < entry && tp2 <= tp1);
   if (!targetsValid) add("routing.targets", 8, "REJECT", { side, entry, tp1, tp2 }, side === "BUY" ? "entry < TP1 < TP2" : "entry > TP1 > TP2", "target_instructions_invalid", "Targets must preserve certified directional ordering."); else add("routing.targets", 8, "PASS", { tp1, tp2 }, "directionally ordered", "target_instructions_valid", "Target instructions preserve certified ordering.");
 
   // 9. Leverage compatibility
@@ -264,10 +264,12 @@ export function planExecution(context: ExecutionPlanningContext): DeepReadonly<E
 
   // 10. Routing completeness and translation
   const fractionsValid = policy.tp1_quantity_fraction > 0 && policy.tp2_quantity_fraction > 0 && Math.abs(policy.tp1_quantity_fraction + policy.tp2_quantity_fraction - 1) <= 1e-9;
-  const tp1Qty = sized ? splitQuantity(sized.quantity, policy.tp1_quantity_fraction, context.contract_specification) : 0;
-  const tp2Qty = sized ? floorToIncrement(sized.quantity - tp1Qty, context.contract_specification.kind === "CRYPTO" ? context.contract_specification.quantity_step : context.contract_specification.lot_step, context.contract_specification.kind === "CRYPTO" ? context.contract_specification.quantity_precision : undefined) : 0;
+  const singleTarget=positive(tp1)&&tp1===tp2;
+  let tp1Qty = sized ? splitQuantity(sized.quantity, policy.tp1_quantity_fraction, context.contract_specification) : 0;
+  let tp2Qty = sized ? floorToIncrement(sized.quantity - tp1Qty, context.contract_specification.kind === "CRYPTO" ? context.contract_specification.quantity_step : context.contract_specification.lot_step, context.contract_specification.kind === "CRYPTO" ? context.contract_specification.quantity_precision : undefined) : 0;
   const minimum = context.contract_specification.kind === "CRYPTO" ? context.contract_specification.minimum_quantity : context.contract_specification.minimum_lot;
-  const splitValid = fractionsValid && positive(tp1Qty) && positive(tp2Qty) && tp1Qty >= minimum && tp2Qty >= minimum && sized !== null && Math.abs(tp1Qty + tp2Qty - sized.quantity) <= 1e-9;
+  if(singleTarget&&sized&&context.contract_specification.kind==='MT5'&&(tp1Qty<minimum||tp2Qty<minimum)){tp1Qty=0;tp2Qty=sized.quantity;}
+  const splitValid = singleTarget&&context.contract_specification.kind==='MT5'&&sized&&tp1Qty===0?tp2Qty>=minimum&&tp2Qty===sized.quantity:fractionsValid && positive(tp1Qty) && positive(tp2Qty) && tp1Qty >= minimum && tp2Qty >= minimum && sized !== null && Math.abs(tp1Qty + tp2Qty - sized.quantity) <= 1e-9;
   if (!splitValid) add("routing.completeness", 10, "REJECT", { fractions: [policy.tp1_quantity_fraction, policy.tp2_quantity_fraction], total: sized?.quantity, tp1_quantity: tp1Qty, tp2_quantity: tp2Qty }, { fractions_sum: 1, minimum, quantity_conserved: true }, "routing_quantity_split_invalid", "Protection/child quantities must be positive, provider-valid and exactly conserve allocation."); else add("routing.completeness", 10, "PASS", { tp1_quantity: tp1Qty, tp2_quantity: tp2Qty }, sized!.quantity, "routing_complete", "Order quantities conserve the certified allocation.");
 
   let orders: PlannedOrder[] = [];
@@ -278,7 +280,7 @@ export function planExecution(context: ExecutionPlanningContext): DeepReadonly<E
     else if (context.provider === "BYBIT") orders = translateBybit(context, side, sized.quantity, tp1Qty, tp2Qty, entry, stop, tp1, tp2);
     else orders = translateMt5(context, side, tp1Qty, tp2Qty, entry, stop, tp1, tp2);
   }
-  const expectedOrders = context.provider.startsWith("MT5") ? 2 : 4;
+  const expectedOrders = context.provider.startsWith("MT5") ? (singleTarget&&tp1Qty===0?1:2) : 4;
   if (!rejected.length && orders.length !== expectedOrders) add("routing.translation", 10, "REJECT", orders.length, expectedOrders, "provider_translation_incomplete", "Provider translator did not produce the complete sequence."); else if (!rejected.length) add("routing.translation", 10, "PASS", orders.length, expectedOrders, "provider_translation_complete", "Provider-native order sequence is complete."); else add("routing.translation", 10, "NOT_APPLICABLE", 0, expectedOrders, "translation_skipped_after_rejection", "Translation was not attempted after routing rejection.");
 
   const status: ExecutionPlanStatus = rejected.length ? "REJECTED" : "PLANNED";

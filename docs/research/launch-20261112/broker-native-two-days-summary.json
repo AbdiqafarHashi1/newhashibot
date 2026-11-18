@@ -1,0 +1,457 @@
+{
+  "schema": "mission2-frequency-audit/v1",
+  "engineSourceSha256": "331b7c945ed6249ad609b627c5bc0a2ac7de0bdf7105937d5e62f9bf61ecaaf5",
+  "experiment": {
+    "entryPolicy": "COMBINED",
+    "admissionProfile": "PRODUCTION_PARITY",
+    "microTp2": 1.8,
+    "partition": "DEVELOPMENT",
+    "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+    "strategyScope": "FULL_CATALOG"
+  },
+  "status": "COMPLETED",
+  "venue": "BROKER_BID_ASK",
+  "executionAssumptions": [
+    {
+      "symbol": "EURUSD",
+      "contractSize": 100000,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 1e-05,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    },
+    {
+      "symbol": "GBPUSD",
+      "contractSize": 100000,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 1e-05,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    },
+    {
+      "symbol": "USDJPY",
+      "contractSize": 100000,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 0.001,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    },
+    {
+      "symbol": "AUDUSD",
+      "contractSize": 100000,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 1e-05,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    },
+    {
+      "symbol": "USDCAD",
+      "contractSize": 100000,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 1e-05,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.0001,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    },
+    {
+      "symbol": "XAUUSD",
+      "contractSize": 100,
+      "quantityStep": 0.01,
+      "minimumQuantity": 0.01,
+      "minimumNotional": 0,
+      "tickSize": 0.01,
+      "leverage": 30,
+      "commissionPerQuantityPerSide": 3.5,
+      "feeBpsPerSide": 0,
+      "spreadBps": 0,
+      "slippageBps": 0.5,
+      "minimumStopDistance": 0.1,
+      "allowShort": true,
+      "provenance": {
+        "kind": "DOCUMENTED_ASSUMPTION",
+        "source": "Observed Exness Raw Spread bid/ask; scenario commission per lot, contract and slippage",
+        "limitations": [
+          "Not a JustMarkets account contract",
+          "Swap modeled as a separate conservative carry reserve; not historic broker swap rates"
+        ]
+      }
+    }
+  ],
+  "profitability": "PROVISIONAL_OHLC_SCENARIO_NOT_VENUE_QUALIFICATION",
+  "qualification": "NOT_GRANTED",
+  "period": {
+    "start": "2025-01-20",
+    "end": "2025-01-22"
+  },
+  "reportSha256": "9282e4c143b13ea88d9aa21946566b15df22a7d919ae9c301d3f2955bf4e1dc1",
+  "accounts": [
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 500,
+      "riskPct": 0.25,
+      "metrics": {
+        "closedTrades": 3,
+        "openPositions": 0,
+        "authorizedEntries": 3,
+        "rejectedAttempts": 12,
+        "rejectionReasons": {
+          "APPROVED_FULL_RISK": 12,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 12
+        },
+        "winRate": 0.3333333333333333,
+        "profitFactor": 0.5210487793943878,
+        "expectancyR": -0.27747190015208895,
+        "realizedNet": -1.0683657498551344,
+        "endingBalance": 498.9316342501448,
+        "endingEquity": 498.9316342501448,
+        "netReturnPct": -0.2136731499710436,
+        "maximumDrawdownPct": 0.3654485332161584,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 1,
+        "costs": 0.21000000000000002,
+        "financing": 0.10002634656659255,
+        "tradesPerDay": 1.5,
+        "tradesPerWeek": 10.5,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 500,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 12,
+        "openPositions": 0,
+        "authorizedEntries": 12,
+        "rejectedAttempts": 3,
+        "rejectionReasons": {
+          "APPROVED_FULL_RISK": 3,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 3
+        },
+        "winRate": 0.3333333333333333,
+        "profitFactor": 0.5892305888693591,
+        "expectancyR": -0.2456680513101744,
+        "realizedNet": -4.975892783385926,
+        "endingBalance": 495.02410721661386,
+        "endingEquity": 495.02410721661386,
+        "netReturnPct": -0.9951785566772287,
+        "maximumDrawdownPct": 2.370119818787877,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 1.0500000000000003,
+        "financing": 0.2000526931331851,
+        "tradesPerDay": 6,
+        "tradesPerWeek": 42,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 500,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 12,
+        "openPositions": 0,
+        "authorizedEntries": 12,
+        "rejectedAttempts": 3,
+        "rejectionReasons": {
+          "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 1,
+          "CORRELATED_RISK_CAPACITY_EXCEEDED": 1,
+          "ACCOUNT_RULE_REJECTED": 1,
+          "REDUCED_PORTFOLIO_EXPOSURE_CAP": 1,
+          "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 1,
+          "REDUCED_DRAWDOWN_SAFETY_BUFFER": 2,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 2,
+          "BRAIN_RULE:rule_mt5_drawdown_safety_buffer": 2
+        },
+        "winRate": 0.3333333333333333,
+        "profitFactor": 0.37833300415827886,
+        "expectancyR": -0.2456680513101744,
+        "realizedNet": -17.10625179706731,
+        "endingBalance": 482.8937482029327,
+        "endingEquity": 482.8937482029327,
+        "netReturnPct": -3.4212503594134547,
+        "maximumDrawdownPct": 5.087622785768559,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 2.1,
+        "financing": 0.4001053862663702,
+        "tradesPerDay": 6,
+        "tradesPerWeek": 42,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 10000,
+      "riskPct": 0.25,
+      "metrics": {
+        "closedTrades": 14,
+        "openPositions": 0,
+        "authorizedEntries": 14,
+        "rejectedAttempts": 1,
+        "rejectionReasons": {
+          "ACCOUNT_RULE_REJECTED": 1,
+          "SKIPPED_MAX_POSITIONS_REACHED": 1,
+          "BRAIN_RULE:rule_mt5_max_open_positions_total": 1
+        },
+        "winRate": 0.42857142857142855,
+        "profitFactor": 0.8013090603908478,
+        "expectancyR": -0.08066091331914285,
+        "realizedNet": -30.833444544317306,
+        "endingBalance": 9969.166555455678,
+        "endingEquity": 9969.166555455678,
+        "netReturnPct": -0.30833444544321537,
+        "maximumDrawdownPct": 1.590683149986332,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 13.440000000000001,
+        "financing": 2.000526931331851,
+        "tradesPerDay": 7,
+        "tradesPerWeek": 49,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 10000,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 14,
+        "openPositions": 0,
+        "authorizedEntries": 14,
+        "rejectedAttempts": 1,
+        "rejectionReasons": {
+          "ACCOUNT_RULE_REJECTED": 1,
+          "SKIPPED_MAX_POSITIONS_REACHED": 1,
+          "BRAIN_RULE:rule_mt5_max_open_positions_total": 1
+        },
+        "winRate": 0.42857142857142855,
+        "profitFactor": 0.8013147999957674,
+        "expectancyR": -0.08253713384773995,
+        "realizedNet": -62.27271596211856,
+        "endingBalance": 9937.727284037885,
+        "endingEquity": 9937.727284037885,
+        "netReturnPct": -0.622727159621154,
+        "maximumDrawdownPct": 3.2091598731572057,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 27.230000000000004,
+        "financing": 4.101080209230295,
+        "tradesPerDay": 7,
+        "tradesPerWeek": 49,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "provider": "MT5_PERSONAL",
+      "capital": 10000,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 11,
+        "openPositions": 0,
+        "authorizedEntries": 11,
+        "rejectedAttempts": 4,
+        "rejectionReasons": {
+          "PORTFOLIO_RISK_CAPACITY_EXCEEDED": 1,
+          "CORRELATED_RISK_CAPACITY_EXCEEDED": 1,
+          "ACCOUNT_RULE_REJECTED": 4,
+          "REDUCED_PORTFOLIO_EXPOSURE_CAP": 1,
+          "BRAIN_RULE:rule_mt5_scaled_portfolio_risk": 1,
+          "SKIPPED_LOW_CONFIDENCE": 1,
+          "BRAIN_RULE:rule_mt5_insufficient_margin": 1,
+          "SKIPPED_MAX_POSITIONS_REACHED": 2,
+          "BRAIN_RULE:rule_mt5_portfolio_risk_cap": 2
+        },
+        "winRate": 0.36363636363636365,
+        "profitFactor": 0.6905314289248611,
+        "expectancyR": -0.12955571027102317,
+        "realizedNet": -160.74477626335414,
+        "endingBalance": 9839.255223736647,
+        "endingEquity": 9839.255223736647,
+        "netReturnPct": -1.6074477626335282,
+        "maximumDrawdownPct": 5.4583345702133474,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 42.980000000000004,
+        "financing": 8.20216041846059,
+        "tradesPerDay": 5.5,
+        "tradesPerWeek": 38.5,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    }
+  ],
+  "signals": 15,
+  "data": [
+    {
+      "symbol": "EURUSD",
+      "month": "2025-01",
+      "rows": 6318,
+      "ticks": 1478757,
+      "rowsSha256": "804350ba4a1be2d93d79bf2efd3a39e603417e0df50754127837188d0109ef72",
+      "archiveSha256": "306d23e3e9f675c141d5ce3569867f03ae0b55b27aeceea63f5e132f1a1a8b38"
+    },
+    {
+      "symbol": "GBPUSD",
+      "month": "2025-01",
+      "rows": 6318,
+      "ticks": 1911036,
+      "rowsSha256": "44d502a13e24cf516bf2109d1d226b7ce75962da740f90cff855a262e226b878",
+      "archiveSha256": "4a83bcb9d81d7a154898b1782fca4d4896833baf81a1eb68d34a54bc619ce532"
+    },
+    {
+      "symbol": "USDJPY",
+      "month": "2025-01",
+      "rows": 6319,
+      "ticks": 1985359,
+      "rowsSha256": "d1b5e091ae619f5b19ac561406a01f81073cad403821a5d784023b59cf2ba67c",
+      "archiveSha256": "d2f0f693cd8f0a721b70883a04ecd7eef85da64cab4f5d7995ae659673e53712"
+    },
+    {
+      "symbol": "AUDUSD",
+      "month": "2025-01",
+      "rows": 6319,
+      "ticks": 919152,
+      "rowsSha256": "636f5cde367b70c5c13b93b3cc5adf18363732d8d934ccd7ff5917c057b9e1a4",
+      "archiveSha256": "f32dfd1290008236067d88b57ee1792dd5baf0c33a56b2bf6c9107100dd5bffe"
+    },
+    {
+      "symbol": "USDCAD",
+      "month": "2025-01",
+      "rows": 6319,
+      "ticks": 867641,
+      "rowsSha256": "91db2edb15d705acda7ed02b226795559310e6e3f83c1c7acebc68f108143e31",
+      "archiveSha256": "b611870d189c751150e15f2050e471404ee0636d658bcc1011286ac5e1cc8799"
+    },
+    {
+      "symbol": "XAUUSD",
+      "month": "2025-01",
+      "rows": 6019,
+      "ticks": 4586547,
+      "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+      "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876"
+    }
+  ]
+}

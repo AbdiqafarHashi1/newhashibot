@@ -1,5 +1,15 @@
 import { PROP_PROFILES } from "../../../src/lib/prop/professionalPropEngine.ts";
 
+/** Native fixed-bracket time stops are completed exits, not missing outcomes. */
+export function resolvedNativeReplayOutcome(o:any,run:any):boolean {
+ if(o.net_r===null||o.net_r===undefined||String(o.net_r).trim()===''||!Number.isFinite(Number(o.net_r)))return false;
+ if(['TARGET','STOP'].includes(o.status))return true;
+ if(o.status!=='TIMEOUT'||!/^(crypto|forex)\.complementary-/.test(String(o.strategy_id))||run.outcome_assumptions?.closeAtHorizon!==true)return false;
+ if(!(Number(o.entry_price)>0&&Number(o.exit_price)>0&&Number.isFinite(Date.parse(o.entry_time))&&Number.isFinite(Date.parse(o.exit_time))&&Date.parse(o.exit_time)>=Date.parse(o.entry_time)))return false;
+ const events=o.cash_flow_events;
+ return Array.isArray(events)&&events.length>0&&events.some((e:any)=>e.kind==='EXIT'&&e.time===o.exit_time)&&events.every((e:any)=>Number.isFinite(e.realizedR))&&Math.abs(events.reduce((sum:number,e:any)=>sum+e.realizedR,0)-Number(o.net_r))<1e-8;
+}
+
 async function loadEvidencePages(db:any,table:string,runId:string,order:string,maxRows=Infinity){const rows:any[]=[];for(let from=0;;from+=1000){let query=db.from(table).select("*").eq("run_id",runId).order(order);if(typeof query.range!=="function"){const {data,error}=await query;if(error)throw error;return data??[]}const {data,error}=await query.range(from,Math.min(from+999,maxRows));if(error)throw error;rows.push(...(data??[]));if(rows.length>maxRows)throw new Error("SOURCE_EVIDENCE_LIMIT_EXCEEDED");if((data??[]).length<1000)return rows}}
 
 export async function loadReplayAuthority(db:any,runId:string,actorId:string,maxRows=Infinity){
@@ -20,7 +30,7 @@ export async function deriveAccountSimulationAuthority(db:any,input:{sourceRunId
  const overrides=account.policy_overrides??{},basePolicy=overrides.base_policy,contextTemplate=overrides.simulation_context,contracts=overrides.contracts;if(!basePolicy||!contextTemplate||!Array.isArray(contracts))throw new Error("ACCOUNT_SIMULATION_AUTHORITY_CONFIGURATION_MISSING");
  if(source.cycles.some((c:any)=>c.arbitration?.winner?.strategyId==='crypto.daily-ema-trend'))throw new Error("SOURCE_TARGET_FREE_ACCOUNT_POLICY_UNSUPPORTED");
  if(source.zeroTrade)throw new Error("SOURCE_RUN_NO_ELIGIBLE_TRADES");const cycleByKey=new Map(source.cycles.map((x:any)=>[x.cycle_key,x]));
- const eligible=source.outcomes.filter((o:any)=>["TARGET","STOP"].includes(o.status)&&Number.isFinite(Number(o.net_r)));
+ const eligible=source.outcomes.filter((o:any)=>resolvedNativeReplayOutcome(o,source.run));
  if(!eligible.length)throw new Error("SOURCE_RUN_NO_RESOLVED_ELIGIBLE_TRADES");
  const points=eligible.map((o:any)=>{const cycle:any=cycleByKey.get(o.cycle_key),winner=cycle?.arbitration?.winner;if(!winner)throw new Error(`SCANNER_WINNER_MISSING:${o.cycle_key}`);if(winner.id!==o.candidate_id||winner.strategyId!==o.strategy_id||winner.symbol!==o.symbol||winner.timeframe!==o.timeframe)throw new Error(`SCANNER_OUTCOME_WINNER_MISMATCH:${o.cycle_key}`);
   const spec=contracts.find((x:any)=>x.symbol===o.symbol);if(!spec)throw new Error(`ACCOUNT_SIMULATION_BLOCKED:CONTRACT_SPEC_MISSING:${o.symbol}`);let conversionRate:number|undefined;if(spec.quoteCurrency===input.currency)conversionRate=1;else{const conversion=overrides.conversion_rates?.[o.symbol];if(!conversion||typeof conversion!=="object"||!conversion.provenance||!Number.isFinite(Number(conversion.rate))||Number(conversion.rate)<=0)throw new Error(`ACCOUNT_SIMULATION_BLOCKED:CONVERSION_MISSING:${spec.quoteCurrency}/${input.currency}`);conversionRate=Number(conversion.rate)}
@@ -29,3 +39,4 @@ export async function deriveAccountSimulationAuthority(db:any,input:{sourceRunId
 }
 
 export async function derivePropCampaignAuthority(db:any,input:{accountRunId:string;propConfigId:string;actorId:string;maxEvidenceRows?:number}){const {data:run,error}=await db.from("validation_simulation_runs").select("*").eq("id",input.accountRunId).maybeSingle();if(error)throw error;if(!run)throw new Error("ACCOUNT_SOURCE_RUN_NOT_FOUND");if(run.created_by!==input.actorId)throw new Error("ACCOUNT_SOURCE_RUN_UNAUTHORIZED");if(run.kind!=="ACCOUNT"||run.status!=="COMPLETED"||run.cancellation_requested_at)throw new Error("ACCOUNT_SOURCE_RUN_NOT_COMPLETE");const [{data:evidence,error:ee},{data:stored,error:pe}]=await Promise.all([loadEvidencePages(db,"validation_simulation_evidence",run.id,"sequence",input.maxEvidenceRows).then(data=>({data,error:null})),db.from("prop_account_configs").select("*").eq("id",input.propConfigId).maybeSingle()]);if(ee)throw ee;if(pe)throw pe;if(!stored||stored.user_id!==input.actorId)throw new Error("PROP_CONFIGURATION_UNAUTHORIZED_OR_MISSING");const profile=(PROP_PROFILES as any)[stored.profile_id];if(!profile||profile.profileVersion!==stored.profile_version)throw new Error("FROZEN_PROP_PROFILE_MISMATCH");const config=stored.configuration;if(config.profileId!==stored.profile_id||config.profileVersion!==stored.profile_version)throw new Error("PROP_CONFIGURATION_LINEAGE_MISMATCH");let previous=Number(run.immutable_input?.initialCapital),trades=(evidence??[]).map((row:any)=>{const current=Number(row.evidence.balance),trade={id:`account:${run.id}:${row.sequence}`,closedAt:row.evidence.point.at,netPnl:current-previous,intradayEquityLow:Number(row.evidence.equity),provenance:"HISTORICAL_SIMULATION" as const};previous=current;return trade});if(!trades.length)throw new Error("ACCOUNT_EVIDENCE_MISSING");return{run,profile,config,trades}}
+

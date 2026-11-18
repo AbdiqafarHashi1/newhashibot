@@ -1,3 +1,4 @@
+import {GOLD_RSI_TRAILING,GOLD_TRAILING_POLICY,type AtrTrailingPolicy} from './atr-trailing-policy.ts';
 import {DAILY_TREND_ID,dailyEvidence} from './daily-trend-contract.ts';
 import type {
   LegacyStrategyResult,
@@ -87,6 +88,7 @@ export interface StrategyPlan {
   management_intent: {
     break_even: string;
     trailing: string;
+    trailing_policy?: AtrTrailingPolicy;
     partial_exits: readonly string[];
     cancel_conditions: readonly string[];
     time_exit: string;
@@ -220,14 +222,16 @@ function qualificationLedger(definition: StrategyDefinition, context: StrategyEv
 }
 
 function managementIntent(definition: StrategyDefinition, maxBars: number): StrategyPlan["management_intent"] {
+  if(definition.id===GOLD_RSI_TRAILING)return {break_even:'No separate break-even or partial exits.',trailing:'After 2R favorable movement, trail the best executable price by one latest closed M15 ATR14; lock at least 0.5R and never loosen protection.',trailing_policy:{...GOLD_TRAILING_POLICY},partial_exits:['One full-position 5R target; no partial exits.'],cancel_conditions:['Original entry deadline and account risk remain authoritative.'],time_exit:'Close after 24 hours from the observed provider fill.'};
   if(definition.id===DAILY_TREND_ID)return {break_even:'No break-even or partial-exit mutation.',trailing:'Raise protection to the greater of the existing stop and closed daily close minus 3 Wilder ATR14; apply from the following candle.',partial_exits:['No fixed take-profit levels. One full virtual exit; no account sizing or execution authority.'],cancel_conditions:['Cancel if next-open entry gaps below the initial 2ATR protection.','Missing/non-native SPOT daily history blocks evaluation.'],time_exit:'Exit next open after EMA20 <= EMA50 or close < EMA200. No arbitrary bar-age liquidation; unfinished positions remain OPEN.'};
-  if(definition.id.startsWith('crypto.team-'))return {
+  if(definition.id.startsWith('crypto.team-')||definition.id.startsWith('crypto.launch-')||/^(gold|forex|crypto)\.native-/.test(definition.id))return {
     break_even:'No break-even mutation in the tested signal contract.',
     trailing:'Static protective stop; no trailing in the tested signal contract.',
     partial_exits:['One full-position signal target; no partial exits. Account quantities remain Phase-D owned.'],
     cancel_conditions:['Cancel unfilled invalid/expired entry plans; never infer a provider fill.'],
-    time_exit:`Virtual close after ${maxBars} native 15m bars; missing future candles remain unresolved.`,
+    time_exit:`Virtual close after ${maxBars} strategy-timeframe bars; missing future candles remain unresolved.`,
   };
+  if(definition.id.includes('.complementary-'))return {break_even:'Move the remaining protective stop to entry after TP1; apply the shared conservative collision policy.',trailing:'Fixed TP2 bracket in v1; no independent ATR runner mutation.',partial_exits:['50% at TP1 and remaining 50% at TP2; account quantities remain downstream-owned.'],cancel_conditions:['Cancel invalid, expired or unqualified entries; never infer a provider fill.'],time_exit:`Existing time-stop policy after ${maxBars} native primary-timeframe bars.`};
   const scalp = definition.id.includes("scalp");
   return {
     break_even: "Use the currently certified downstream protection policy; strategy does not authorize an independent level mutation.",
@@ -246,7 +250,8 @@ export function createStrategyPlan(definition: StrategyDefinition, context: Stra
   const last = context.candles[context.candles.length - 1] ?? null, first = context.candles[0] ?? null;
   const configHash = stableFingerprint(definition.config);
   const expiresAt = action === "NO_TRADE" ? null : expiryFromBars(context.evaluated_at, context.timeframe, definition.config.max_bars_in_trade);
-  const evidence = clone(legacy.score_breakdown);
+  const evidence:Record<string,unknown> = clone(legacy.score_breakdown);
+  if(definition.id===GOLD_RSI_TRAILING&&action!=='NO_TRADE')evidence.atr_seed_rows=context.candles.slice(-15).map(b=>({open_time:b.open_time,high:b.high,low:b.low,close:b.close}));
   const sessionEvidence = evidence.session ?? evidence.session_context;
   const session = typeof sessionEvidence === "string" || typeof sessionEvidence === "number" ? String(sessionEvidence) : "UNKNOWN";
   const warnings = ["liquidity_context_unknown", "news_context_unknown"];
@@ -285,3 +290,4 @@ export function approveStrategyPlan(strategyPlan: DeepReadonly<StrategyPlan>, ap
   if (!strategyPlan.decision.qualified || strategyPlan.decision.action === "NO_TRADE") throw new Error("strategy_plan_not_qualifiable");
   return deepFreeze({ schema_version: "approved-strategy-plan/v1", strategy_plan: strategyPlan, correlation_id: strategyPlan.provenance.evaluation_id, ...clone(approval) });
 }
+

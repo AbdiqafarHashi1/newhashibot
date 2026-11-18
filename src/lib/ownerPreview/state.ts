@@ -4,13 +4,12 @@ const session = typeof window === 'undefined' ? null : window.sessionStorage;
 const read = session?.getItem.bind(session);
 const write = session?.setItem.bind(session);
 const remove = session?.removeItem.bind(session);
+if(read?.(PREVIEW_FLAG)==='active')write?.(PREVIEW_FLAG,'admin-shell');
 export const isOwnerPreview = () => read?.(PREVIEW_FLAG) === 'active';
 /** Opens existing admin pages only; never establishes backend authorization. */
 export const isAdminPass = () => read?.(PREVIEW_FLAG) === 'admin-shell';
-export function enterOwnerPreview(destination='/admin/operator') {
-  write?.(PREVIEW_FLAG, 'active');
-  window.location.assign(destination==='/admin/investor'?destination:'/admin/operator');
-}
+export function enterAdminWorkspace(destination='/admin/launch'){write?.(PREVIEW_FLAG,'admin-shell');window.location.assign(destination.startsWith('/admin/')?destination:'/admin/launch');}
+export function enterOwnerPreview(destination='/admin/launch'){enterAdminWorkspace(destination);}
 export function exitOwnerPreview() {
   remove?.(PREVIEW_FLAG);
   window.location.replace('/'); // Drop every in-memory fixture and restore normal transports.

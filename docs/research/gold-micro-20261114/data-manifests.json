@@ -1,0 +1,68 @@
+[
+  {
+    "schema": "gold-micro-native/v1",
+    "source": "EXNESS_BROKER_BID_ASK",
+    "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/08/Exness_XAUUSD_Raw_Spread_2026_08.zip",
+    "month": "2026-08",
+    "symbol": "XAUUSD",
+    "timeframe": "1m",
+    "archiveSha256": "ecaab8aaca305f66626ed7a24dfc2dba7c31ff3fe2600eb7642f3d43fb87a728",
+    "rowsSha256": "b502319fe47781e93755d1b1a0a8055e0ad9d4ccd6846104cbe555cd3cd8bae3",
+    "archiveBytes": 62707397,
+    "rows": 29049,
+    "ticks": 6485982,
+    "firstTick": 1785708090734,
+    "lastTick": 1788220799883,
+    "vendorChecksum": false,
+    "volumeMeaning": "Observed quote count, not traded volume",
+    "limitations": [
+      "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+      "No invented quotes, spreads or weekend bars",
+      "Commission, latency, fill reserve and lot/margin rules are scenarios"
+    ]
+  },
+  {
+    "schema": "gold-micro-native/v1",
+    "source": "EXNESS_BROKER_BID_ASK",
+    "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/09/Exness_XAUUSD_Raw_Spread_2026_09.zip",
+    "month": "2026-09",
+    "symbol": "XAUUSD",
+    "timeframe": "1m",
+    "archiveSha256": "3d874f6fa28dadcd8954bd385452200258f638a66b8cc30976baadeb85e98491",
+    "rowsSha256": "2b968fb3b06a7e112f163c306c9a7b14b09313c81c1c4a53d1e8d53f8ec73e90",
+    "archiveBytes": 64053195,
+    "rows": 30157,
+    "ticks": 6591051,
+    "firstTick": 1788220800137,
+    "lastTick": 1790812798675,
+    "vendorChecksum": false,
+    "volumeMeaning": "Observed quote count, not traded volume",
+    "limitations": [
+      "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+      "No invented quotes, spreads or weekend bars",
+      "Commission, latency, fill reserve and lot/margin rules are scenarios"
+    ]
+  },
+  {
+    "schema": "gold-micro-native/v1",
+    "source": "EXNESS_BROKER_BID_ASK",
+    "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/10/Exness_XAUUSD_Raw_Spread_2026_10.zip",
+    "month": "2026-10",
+    "symbol": "XAUUSD",
+    "timeframe": "1m",
+    "archiveSha256": "a131b2c531a58c5e4470f9b65afea4d7894816d7c7bfd580dba70dbe877dc981",
+    "rowsSha256": "bce9796004d4bf884395d1c440964bfd98b103a98e9368774d2a7ffe79585e03",
+    "archiveBytes": 57057758,
+    "rows": 30174,
+    "ticks": 5910062,
+    "firstTick": 1790812800036,
+    "lastTick": 1793393879352,
+    "vendorChecksum": false,
+    "volumeMeaning": "Observed quote count, not traded volume",
+    "limitations": [
+      "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+      "No invented quotes, spreads or weekend bars",
+      "Commission, latency, fill reserve and lot/margin rules are scenarios"
+    ]
+  }
+]

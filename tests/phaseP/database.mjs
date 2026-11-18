@@ -79,6 +79,22 @@ try{
   assert.equal(raw(`select status from validation_simulation_runs where id='${simulation.run_id}';`).trim(),kind==='PROP'?'INCOMPLETE':'COMPLETED');
  }
  fails(()=>raw(`update portable_jobs set customer_id='${other}' where id='${replayJob.id}';`),/IMMUTABLE_PORTABLE_LINEAGE/);
+ // Canonical Mission 2 journal: real independent sessions, not a serialized in-process mock.
+ if(raw("select coalesce(to_regprocedure('public.checkpoint_historical_replay(uuid,uuid,jsonb)')::text,'');").trim()){
+  const journalJob='11111111-1111-4111-8111-111111111191',journalRun='22222222-2222-4222-8222-222222222291',journalLease='33333333-3333-4333-8333-333333333391';
+  raw(`insert into validation_runs(id,mode,status,configuration_hash,immutable_configuration,max_cycles,max_requests,created_by) values('${journalRun}','REPLAY','RUNNING','native-journal','{}',60,1,'${actor}');insert into portable_jobs(id,kind,payload,customer_id,idempotency_key,status,lease_token,lease_expires_at,run_id) values('${journalJob}','REPLAY',${literal({entryPolicyVersion:'entry-decision/v1',start:'2025-01-01T00:00:00Z',end:'2025-01-01T01:00:00Z',maxCycles:60})},'${actor}','native-journal-race','RUNNING','${journalLease}',clock_timestamp()+interval '1 hour','${journalRun}');`);
+  const journalTick={cursor:1,lineage:'a'.repeat(64),through:'2025-01-01T00:00:00Z',states:[{state:{id:'native-journal-watch',version:1,status:'WAITING',origin:{immutable:'frozen'}},createdAt:1735689600000,updatedAt:1735689600000}],events:[{id:'native-journal-watch:1',at:'2025-01-01T00:00:00Z',status:'WAITING'}],observations:[],health:[],rejections:[]};
+  const journalSave=value=>`select checkpoint_historical_replay('${journalJob}','${journalLease}',${literal(value)});`;
+  const saves=await Promise.all([raceSql(journalSave(journalTick)),raceSql(journalSave(journalTick))]);assert(saves.every(r=>r.code===0),JSON.stringify(saves));assert.deepEqual(saves.map(r=>r.out.trim()).sort(),['f','t'],'journal identical concurrent retry is idempotent');
+  const expired={...journalTick,cursor:2,through:'2025-01-01T00:01:00Z',states:[{...journalTick.states[0],state:{...journalTick.states[0].state,version:2,status:'EXPIRED',watchOutcome:'EXPIRED'},updatedAt:1735689660000}],events:[{id:'native-journal-watch:2',at:'2025-01-01T00:01:00Z',status:'EXPIRED'}]};
+  const invalidated={...expired,states:[{...expired.states[0],state:{...expired.states[0].state,status:'INVALIDATED',watchOutcome:'INVALIDATED'}}],events:[{...expired.events[0],status:'INVALIDATED'}]};
+  const terminalRace=await Promise.all([raceSql(journalSave(expired)),raceSql(journalSave(invalidated))]);assert.equal(terminalRace.filter(r=>r.code===0).length,1,'journal same-cursor conflict has one committed terminal transition');
+  assert.equal(query(`select count(*) from historical_replay_ticks where job_id='${journalJob}';`),'2');assert.equal(query(`select count(*) from historical_replay_events where job_id='${journalJob}';`),'2');
+  fails(()=>query(journalSave({...expired,cursor:3,through:'2025-01-01T00:02:00Z',states:[{...expired.states[0],state:{...expired.states[0].state,version:3,status:'ACTIVE',watchOutcome:'CONFIRMED'}}],events:[]})),/TERMINAL_WATCH_OUTCOME/);
+  raw(`update portable_jobs set lease_token=gen_random_uuid() where id='${journalJob}';`);fails(()=>query(journalSave(expired)),/LEASE_LOST/);
+  assert.equal(query(`select count(*) from historical_replay_ticks where job_id='${journalJob}';`),'2','failed writes leave no partial ticks');
+  console.log('PASS: Mission 2 native journal concurrent identical retry, conflicting terminal CAS, rollback and lease fencing');
+ }
  // Real ACL/RLS denial; no browser service-role or generic table mutation path.
  fails(()=>raw('SET ROLE authenticated; SELECT * FROM portable_jobs;'),/permission denied/);fails(()=>raw("SET ROLE anon; SELECT * FROM claim_phase_p_job('x','x');"),/permission denied/);
  for(let i=Number(query('select jobs from phase_p_worker_usage'));i<20;i++)enqueue(`quota000${i}`);fails(()=>enqueue('quotaover1'),/QUOTA_EXCEEDED/);

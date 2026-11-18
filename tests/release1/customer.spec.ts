@@ -6,7 +6,7 @@ test('Free → VIP → authentication and recovery surfaces',async({page})=>{
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
   await expect(page.locator('body')).not.toContainText('0712482447');
  }
- await page.goto('/pricing');await expect(page).toHaveURL(/\/vip$/);await expect(page.locator('body')).toContainText('3,500');await expect(page.locator('body')).toContainText('29');await expect(page.locator('body')).toContainText('verification');
+ await page.goto('/pricing');await expect(page).toHaveURL(/\/vip$/);await expect(page.locator('body')).toContainText('3,500');await expect(page.locator('body')).toContainText('29');await page.getByRole('button',{name:'Continue to secure checkout',exact:true}).first().click();await expect(page).toHaveURL(/\/login/);
  await page.goto('/free');await page.getByRole('button',{name:'Join Free Telegram',exact:true}).first().click();await expect(page).toHaveURL(/\/login/);
  await page.goto('/payment/result');await expect(page).toHaveURL(/\/login/);await expect(page.locator('body')).not.toContainText('Payment verified');
 });

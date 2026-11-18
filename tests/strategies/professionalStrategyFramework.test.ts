@@ -37,7 +37,10 @@ function functionHash(name: string): string {
   const start = source.indexOf(`function ${name}`); assert.ok(start >= 0, `${name} exists in active shared evaluator authority`);
   const body = source.indexOf('{', start); let depth = 0; let end = body;
   for (; end < source.length; end++) { if (source[end] === '{') depth++; else if (source[end] === '}' && --depth === 0) { end++; break; } }
-  return createHash('sha256').update(source.slice(start, end)).digest('hex');
+  // An underscore on the already-unused indicator argument is TypeScript metadata, not a formula change.
+  // Keep the entire executable body byte-for-byte under the existing baseline hash.
+  const signature=source.slice(start,body).replace(/\b_ind\b/g,'ind');
+  return createHash('sha256').update(signature+source.slice(body,end)).digest('hex');
 }
 const ROOT_EVALUATOR_BASELINE = {
   // Intentional ranging/range_chop compatibility repair; behavioral guard covered by phaseL/regimeSafety.

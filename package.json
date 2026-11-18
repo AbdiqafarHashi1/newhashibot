@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "node --import tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "lint": "eslint .",
@@ -139,7 +139,12 @@
     "test:conditional-signals": "node --import tsx --test tests/conditionalSignals/*.test.ts",
     "typecheck:entry-engine": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/entry-decision.ts supabase/functions/_shared/entry-regime.ts supabase/functions/_shared/frozen-strategy-confirmation.ts supabase/functions/_shared/watched-strategy-discovery.ts supabase/functions/_shared/conditional-signal-runtime.ts",
     "test:phase-l-engineering": "node scripts/test-phase-l-engineering.mjs",
-    "test:release1-engineering": "node scripts/release1/test.mjs --engineering"
+    "test:release1-engineering": "node scripts/release1/test.mjs --engineering",
+    "test:mission2": "node --import tsx --test --test-concurrency=2 tests/mission2/*.test.ts",
+    "typecheck:mission2": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/canonical-historical-replay.ts supabase/functions/_shared/historical-account-ledger.ts supabase/functions/_shared/historical-account-scenario.ts supabase/functions/_shared/historical-prop-observer.ts supabase/functions/_shared/research-conversion-funnel.ts scripts/research/run-frequency-audit.ts",
+    "research:canonical-policy": "node --import tsx scripts/research/run-canonical-policy.ts",
+    "test:complementary": "node --import tsx --test tests/complementary/*.test.ts && node tests/complementary/database.mjs",
+    "research:complementary": "node --import tsx scripts/research/complementary/study.ts"
   },
   "dependencies": {
     "@google/genai": "^2.19.0",

@@ -12,6 +12,7 @@ export function CommerceLayout({ children }: { children: ReactNode }) {
             Hashi<span className="-ml-2 text-blue-400">Bot</span>
           </Link>
           <div className="flex items-center gap-4 text-xs font-semibold text-zinc-400">
+            <Link to="/results" className="hover:text-white">Results</Link>
             <Link to="/free" className="hover:text-white">Free</Link>
             <Link to="/vip" className="text-blue-400 hover:text-blue-300">VIP</Link>
           </div>

@@ -78,7 +78,8 @@ for (const field of ['latest_monitor_error','latest_sync_error','last_monitor_ac
   assert.match(b67Sql, new RegExp(field), `B6.7 adds ${field}`);
 }
 assert.match(monitorFn, /for \(const row of[\s\S]*try[\s\S]*monitorRow\(supabase, row, stats\)[\s\S]*catch \(rowErr\)/, 'B6.7 isolates per-row monitor failures');
-assert.match(monitorFn, /return jsonResponse\(\{ success: true, action: "binance_testnet_monitor"[\s\S]*row_errors/, 'B6.7 returns 200 summaries with row_errors');
+assert.match(monitorFn, /return jsonResponse\(\{ success: true,[^\n]*action: "binance_testnet_monitor"[^\n]*\.\.\.stats \}\);/, 'B6.7 returns default-200 summaries including the per-account statistics');
+assert.match(monitorFn, /function freshMonitorStats\(\):MonitorStats\{return \{[^\n]*row_errors: \[\]/, 'B6.7 statistics retain a row_errors collection');
 assert.match(monitorFn, /orphan_protection_orders_cancelled/, 'B6.7 cancels orphan protection orders after manual close');
 assert.match(monitorFn, /closed_unprotected_safety/, 'B6.7 retains safety close path for unprotected positions');
 assert.match(monitorFn, /unsafe_untracked_position/, 'Crypto Fix 1 monitor marks unsafe untracked Binance positions');

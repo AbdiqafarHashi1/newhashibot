@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-test('Owner Preview opens isolated fixtures without establishing backend authentication', async () => {
+test('Admin workspace opens current state without establishing backend authentication', async () => {
   const values = new Map<string, string>();
   const redirects: string[] = [];
   Object.defineProperty(globalThis, 'window', { configurable: true, value: {
@@ -11,9 +11,9 @@ test('Owner Preview opens isolated fixtures without establishing backend authent
   try {
     const state = await import('../../src/lib/ownerPreview/state');
     state.enterOwnerPreview();
-    assert.equal(state.isAdminPass(), false);
-    assert.equal(state.isOwnerPreview(), true);
-    assert.equal(redirects[0], '/admin/operator');
+    assert.equal(state.isAdminPass(), true);
+    assert.equal(state.isOwnerPreview(), false);
+    assert.equal(redirects[0], '/admin/launch');
     state.exitOwnerPreview();
     assert.equal(state.isAdminPass(), false);
     assert.equal(redirects[1], '/');

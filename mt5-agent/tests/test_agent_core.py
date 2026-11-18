@@ -77,9 +77,9 @@ class TestMarketDataPublisher(unittest.TestCase):
         cloud, terminal = MagicMock(), MagicMock()
         terminal.check_connection.return_value = True
         terminal.get_symbol_info.side_effect = lambda symbol: {"broker_symbol": symbol}
-        terminal.get_market_data.side_effect = lambda canonical, broker, frames: {
+        terminal.get_market_data.side_effect = lambda canonical, broker, frames, bars=140: {
             "canonical_symbol": canonical, "broker_symbol": broker, "bid": 1.0, "ask": 1.1,
-            "candles": [{"timeframe": tf, "open": 1, "high": 2, "low": 1, "close": 1.5} for tf in frames],
+            "candles": [{"timeframe": tf, "open_time":f"2026-01-01T00:{i:02}:00Z", "open": 1, "high": 2, "low": 1, "close": 1.5} for tf in frames for i in range(60)],
         }
         cloud.publish_market_data.return_value = True
         self.assertTrue(MarketDataPublisher(cloud, terminal).publish("account-id"))

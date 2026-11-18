@@ -32,7 +32,7 @@ export function OwnerPreviewShell() {
       });
       // Labels travel with each results table, evidence inspector and screen section.
       document.querySelectorAll('main table, main pre, main section').forEach(element => {
-        if (element.previousElementSibling?.hasAttribute('data-preview-evidence')) return;
+        if (element.closest('[data-published-research]') || element.previousElementSibling?.hasAttribute('data-preview-evidence')) return;
         const label = document.createElement('p');
         label.setAttribute('data-preview-evidence', 'true');
         label.className = 'text-[10px] text-amber-300 my-2';
@@ -60,7 +60,7 @@ export function OwnerPreviewShell() {
         <span>Risk {previewStore.account().risk_percent}% · {previewStore.account().status} · fixtures do not prove database isolation.</span>
         <details ref={routeMenu} className="relative"><summary className="cursor-pointer">All implemented routes</summary><nav aria-label="Preview route inventory" className="fixed right-3 top-[var(--owner-preview-height)] max-h-[65vh] w-72 overflow-auto rounded border border-amber-500/30 bg-zinc-950 p-3 shadow-xl">{ownerPreviewRoutes.map(path => <Link key={path} to={path} className="block py-2 text-xs">{path}</Link>)}<p className="mt-3 text-amber-400">Support is in customer Readiness. Incidents are in Operations Center / Recovery. Live certification, signed bridge pairing, AI, payment, membership delivery, remote workers and real provider actions are unavailable here; fixtures are not verification.</p></nav></details>
       </div>
-      <p className="mt-1 text-[10px]">All performance, payment, membership and certification results are demonstration evidence. Real backtests and forward testing require authenticated backend configuration.</p>
+      <p className="mt-1 text-[10px]">Preview actions and account fixtures are simulated. Published historical research keeps its own source and scenario labels. Connected services require authenticated backend configuration.</p>
     </aside>
     {/* Remount existing page subtree on customer/account change, retaining adapter state. */}
     <span hidden data-preview-revision={revision} />

@@ -1,0 +1,4111 @@
+{
+  "schema": "execution-frontier-summary/v1",
+  "baseScreenMonthCases": 47808,
+  "orderedQuoteMonthCases": 630,
+  "continuousAccounts": 12,
+  "continuousTradeRecordsReconciled": 2217,
+  "canonical": [
+    {
+      "file": "compression-canonical-capacity.json.gz",
+      "sha256": "dc32bfd7cabe9d161941e4c0a89a1a8cce1d1648727567f228e095f1cbd73c65",
+      "engineSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+      "period": {
+        "start": "2026-05-05T00:00:00.000Z",
+        "end": "2026-08-01T00:00:00.000Z",
+        "days": 88
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "RISK_CAPACITY_ONLY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 48,
+            "openPositions": 1,
+            "authorizedEntries": 49,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.25,
+            "profitFactor": 1.0545851115086067,
+            "expectancyR": 0.05181952064204742,
+            "realizedNet": 226.59282775000497,
+            "endingBalance": 25220.001847250012,
+            "endingEquity": 25304.931847250013,
+            "netReturnPct": 1.2197273890000506,
+            "maximumDrawdownPct": 5.832817180495577,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 8,
+            "costs": 36.12,
+            "financing": 111.44815274999998,
+            "tradesPerDay": 0.5568181818181818,
+            "tradesPerWeek": 3.8977272727272725,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-development-final.json.gz",
+      "sha256": "2f36ec74b508b5eb316b78db34f2d94db72525b788a86be9183609a46fcf44b3",
+      "engineSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+      "period": {
+        "start": "2026-05-05T00:00:00.000Z",
+        "end": "2026-07-01T00:00:00.000Z",
+        "days": 57
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.25,
+          "metrics": {
+            "closedTrades": 24,
+            "openPositions": 1,
+            "authorizedEntries": 25,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.25,
+            "profitFactor": 1.2060510720870057,
+            "expectancyR": 0.10220963465974209,
+            "realizedNet": 188.54392650000494,
+            "endingBalance": 25187.889636400007,
+            "endingEquity": 25183.361636400008,
+            "netReturnPct": 0.7334465456000325,
+            "maximumDrawdownPct": 2.0725396939180345,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 8,
+            "costs": 7.822500000000001,
+            "financing": 23.467863599999998,
+            "tradesPerDay": 0.43859649122807015,
+            "tradesPerWeek": 3.070175438596491,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        },
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 24,
+            "openPositions": 1,
+            "authorizedEntries": 25,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.25,
+            "profitFactor": 1.1374643717496788,
+            "expectancyR": 0.10220963465974209,
+            "realizedNet": 281.66182615001134,
+            "endingBalance": 25279.698955850025,
+            "endingEquity": 25266.114955850026,
+            "netReturnPct": 1.0644598234001024,
+            "maximumDrawdownPct": 4.8601206347168135,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 8,
+            "costs": 17.1675,
+            "financing": 52.10354415,
+            "tradesPerDay": 0.43859649122807015,
+            "tradesPerWeek": 3.070175438596491,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-first-v2.json.gz",
+      "sha256": "7294ce7cb6826c32098bf6070267f3cfa4c8433081180fb4107d207f3f5179de",
+      "engineSourceSha256": "9fa10735df50593475388a298a4d72e4e634d238f31a67c6e3372e30211c0235",
+      "period": {
+        "start": "2026-05-05T00:00:00.000Z",
+        "end": "2026-08-01T00:00:00.000Z",
+        "days": 88
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 38,
+            "openPositions": 1,
+            "authorizedEntries": 39,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.21052631578947367,
+            "profitFactor": 0.8824573798331274,
+            "expectancyR": -0.08876595929294968,
+            "realizedNet": -405.0529294000015,
+            "endingBalance": 24589.015188150006,
+            "endingEquity": 24620.992188150005,
+            "netReturnPct": -1.5160312473999802,
+            "maximumDrawdownPct": 5.381530516228499,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 10,
+            "costs": 29.1375,
+            "financing": 99.32731185,
+            "tradesPerDay": 0.4431818181818182,
+            "tradesPerWeek": 3.102272727272727,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-first.json.gz",
+      "sha256": "c81fa4868ba04d27edc6345bc1549f7007f78a0f87e69d4ed66a84162fd71e4e",
+      "engineSourceSha256": "41362a170693fe9ae3e8d19cbc64652f71fe1a542470fa23a1b62521853ff425",
+      "period": {
+        "start": "2026-05-05T00:00:00.000Z",
+        "end": "2026-08-01T00:00:00.000Z",
+        "days": 88
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 0,
+            "openPositions": 0,
+            "authorizedEntries": 0,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": null,
+            "profitFactor": null,
+            "expectancyR": null,
+            "realizedNet": 0,
+            "endingBalance": 25000,
+            "endingEquity": 25000,
+            "netReturnPct": 0,
+            "maximumDrawdownPct": 0,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 0,
+            "costs": 0,
+            "financing": 0,
+            "tradesPerDay": 0,
+            "tradesPerWeek": 0,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-later.json.gz",
+      "sha256": "c0559ee0df24dd842307165a070e601d9f0b453df069e2121ac2d1c133bf7cad",
+      "engineSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+      "period": {
+        "start": "2026-08-05T00:00:00.000Z",
+        "end": "2026-11-01T00:00:00.000Z",
+        "days": 88
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 45,
+            "openPositions": 0,
+            "authorizedEntries": 45,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.26666666666666666,
+            "profitFactor": 1.2640432333182408,
+            "expectancyR": 0.21910133785948402,
+            "realizedNet": 1085.76665159999,
+            "endingBalance": 26085.766651600003,
+            "endingEquity": 26085.766651600003,
+            "netReturnPct": 4.3430666064000105,
+            "maximumDrawdownPct": 5.229628295221755,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 8,
+            "costs": 41.26500000000001,
+            "financing": 98.61834839999999,
+            "tradesPerDay": 0.5113636363636364,
+            "tradesPerWeek": 3.5795454545454546,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-november.json.gz",
+      "sha256": "3f833036e10d01678e6aea31e4153feac99c7f1d123c014b3bc57770a1610cb4",
+      "engineSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+      "period": {
+        "start": "2026-11-01T00:00:00.000Z",
+        "end": "2026-11-14T00:00:00.000Z",
+        "days": 13
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 6,
+            "openPositions": 1,
+            "authorizedEntries": 7,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.5,
+            "profitFactor": 5.267840421736099,
+            "expectancyR": 2.011444526603554,
+            "realizedNet": 1459.259997000002,
+            "endingBalance": 26451.962050900005,
+            "endingEquity": 26842.022050900006,
+            "netReturnPct": 7.368088203600026,
+            "maximumDrawdownPct": 1.1083931482476421,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 2,
+            "costs": 5.25,
+            "financing": 10.027949099999999,
+            "tradesPerDay": 0.5384615384615384,
+            "tradesPerWeek": 3.769230769230769,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "file": "compression-canonical-validation-final.json.gz",
+      "sha256": "46c0a054a6ffe177bc37547c5864eb7c3b85b0ec27b082ce03285f3cff32110e",
+      "engineSourceSha256": "766500bb9c9a94f4545e41849887f75af211582ad8b858f5b7c7356afc5ab458",
+      "period": {
+        "start": "2026-07-01T00:00:00.000Z",
+        "end": "2026-11-01T00:00:00.000Z",
+        "days": 123
+      },
+      "experiment": {
+        "entryPolicy": "COMBINED",
+        "admissionProfile": "PRODUCTION_PARITY",
+        "microTp2": 1.8,
+        "partition": "DEVELOPMENT",
+        "hypothesisId": "mission2-cost-aware-entry-comparison-20261105",
+        "strategyScope": "gold.frontier-compression-15-24-1.5-5-h96"
+      },
+      "accounts": [
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.25,
+          "metrics": {
+            "closedTrades": 59,
+            "openPositions": 0,
+            "authorizedEntries": 59,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.23728813559322035,
+            "profitFactor": 1.0904687458814182,
+            "expectancyR": 0.04939460995097797,
+            "realizedNet": 231.73878884998868,
+            "endingBalance": 25231.73878884999,
+            "endingEquity": 25231.73878884999,
+            "netReturnPct": 0.9269551553999626,
+            "maximumDrawdownPct": 2.3875420801529974,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 9,
+            "costs": 24.675000000000008,
+            "financing": 69.68621114999999,
+            "tradesPerDay": 0.4796747967479675,
+            "tradesPerWeek": 3.3577235772357725,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        },
+        {
+          "provider": "MT5_PERSONAL",
+          "capital": 25000,
+          "riskPct": 0.5,
+          "metrics": {
+            "closedTrades": 59,
+            "openPositions": 0,
+            "authorizedEntries": 59,
+            "rejectedAttempts": 0,
+            "rejectionReasons": {},
+            "winRate": 0.23728813559322035,
+            "profitFactor": 1.0581259518068074,
+            "expectancyR": 0.049394609950978004,
+            "realizedNet": 318.5909974999761,
+            "endingBalance": 25318.59099749999,
+            "endingEquity": 25318.59099749999,
+            "netReturnPct": 1.2743639899999544,
+            "maximumDrawdownPct": 5.194747310274094,
+            "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+            "maxLosingStreak": 9,
+            "costs": 52.08000000000002,
+            "financing": 148.76900250000003,
+            "tradesPerDay": 0.4796747967479675,
+            "tradesPerWeek": 3.3577235772357725,
+            "accountFailed": false,
+            "sharpe": null,
+            "sortino": null,
+            "riskOfRuin": null,
+            "qualification": "NOT_GRANTED",
+            "limitations": [
+              "Short/correlated samples do not establish risk of ruin or statistical confidence",
+              "Unclosed positions remain marked, not counted as completed wins"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "continuous": [
+    {
+      "name": "RSI",
+      "config": {
+        "family": "rsi_exhaustion",
+        "minutes": 15,
+        "n": 12,
+        "stop": 1.5,
+        "rr": 5,
+        "hold": 1440,
+        "style": 2
+      },
+      "months": [
+        {
+          "month": "2026-05",
+          "lastTick": 1780271999795,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 26660.031196250013,
+              "equity": 26660.031196250013,
+              "realizedChangePctOriginal": 6.640124785000051,
+              "equityChangePctOriginal": 6.640124785000051,
+              "closedTrades": 38,
+              "drawdownPct": 2.3102977351943403,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 28655.460280399995,
+              "equity": 28655.460280399995,
+              "realizedChangePctOriginal": 14.62184112159998,
+              "equityChangePctOriginal": 14.62184112159998,
+              "closedTrades": 38,
+              "drawdownPct": 4.644104436104165,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.14
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25847.11387965,
+              "equity": 25847.11387965,
+              "realizedChangePctOriginal": 3.3884555186000074,
+              "equityChangePctOriginal": 3.3884555186000074,
+              "closedTrades": 38,
+              "drawdownPct": 1.03207197415038,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26660.031196250013,
+              "equity": 26660.031196250013,
+              "realizedChangePctOriginal": 6.640124785000051,
+              "equityChangePctOriginal": 6.640124785000051,
+              "closedTrades": 38,
+              "drawdownPct": 2.3102977351943403,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-06",
+          "lastTick": 1782863999741,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 28875.039434700066,
+              "equity": 28875.039434700066,
+              "realizedChangePctOriginal": 8.860032953800212,
+              "equityChangePctOriginal": 8.860032953800212,
+              "closedTrades": 89,
+              "drawdownPct": 4.405232280639313,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 33790.61420625005,
+              "equity": 33790.61420625005,
+              "realizedChangePctOriginal": 20.540615703400224,
+              "equityChangePctOriginal": 20.540615703400224,
+              "closedTrades": 89,
+              "drawdownPct": 8.939657721641707,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.16
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26733.043614050017,
+              "equity": 26733.043614050017,
+              "realizedChangePctOriginal": 3.543718937600061,
+              "equityChangePctOriginal": 3.543718937600061,
+              "closedTrades": 89,
+              "drawdownPct": 2.191525059835743,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 28875.039434700066,
+              "equity": 28875.039434700066,
+              "realizedChangePctOriginal": 8.860032953800212,
+              "equityChangePctOriginal": 8.860032953800212,
+              "closedTrades": 89,
+              "drawdownPct": 4.405232280639313,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-07",
+          "lastTick": 1785531479774,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 31447.83975085006,
+              "equity": 31475.044750850062,
+              "realizedChangePctOriginal": 10.291201264599978,
+              "equityChangePctOriginal": 10.400021264599985,
+              "closedTrades": 154,
+              "drawdownPct": 4.572184136678981,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.1
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 32551.19083800003,
+              "equity": 32551.19083800003,
+              "realizedChangePctOriginal": -4.957693473000079,
+              "equityChangePctOriginal": -4.957693473000079,
+              "closedTrades": 114,
+              "drawdownPct": 8.939657721641707,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27919.145990550038,
+              "equity": 27930.02799055004,
+              "realizedChangePctOriginal": 4.744409506000084,
+              "equityChangePctOriginal": 4.787937506000089,
+              "closedTrades": 154,
+              "drawdownPct": 2.191525059835743,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 31328.797325650063,
+              "equity": 31356.002325650064,
+              "realizedChangePctOriginal": 9.815031563799987,
+              "equityChangePctOriginal": 9.923851563799996,
+              "closedTrades": 153,
+              "drawdownPct": 4.572184136678981,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.1
+            }
+          ]
+        },
+        {
+          "month": "2026-08",
+          "lastTick": 1788220799883,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 30073.787674850064,
+              "equity": 30073.787674850064,
+              "realizedChangePctOriginal": -5.496208303999985,
+              "equityChangePctOriginal": -5.605028303999992,
+              "closedTrades": 210,
+              "drawdownPct": 6.317295929354391,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 32551.19083800003,
+              "equity": 32551.19083800003,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 114,
+              "drawdownPct": 8.939657721641707,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27406.046585550095,
+              "equity": 27406.046585550095,
+              "realizedChangePctOriginal": -2.0523976199997707,
+              "equityChangePctOriginal": -2.0959256199997762,
+              "closedTrades": 210,
+              "drawdownPct": 2.9410601671590655,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30052.73524965006,
+              "equity": 30052.73524965006,
+              "realizedChangePctOriginal": -5.1042483040000075,
+              "equityChangePctOriginal": -5.213068304000014,
+              "closedTrades": 209,
+              "drawdownPct": 5.665493019489665,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            }
+          ]
+        },
+        {
+          "month": "2026-09",
+          "lastTick": 1790812798675,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 30236.698791000068,
+              "equity": 30236.698791000068,
+              "realizedChangePctOriginal": 0.6516444646000163,
+              "equityChangePctOriginal": 0.6516444646000163,
+              "closedTrades": 265,
+              "drawdownPct": 6.317295929354391,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 32551.19083800003,
+              "equity": 32551.19083800003,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 114,
+              "drawdownPct": 8.939657721641707,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27395.891207150096,
+              "equity": 27395.891207150096,
+              "realizedChangePctOriginal": -0.04062151359999552,
+              "equityChangePctOriginal": -0.04062151359999552,
+              "closedTrades": 265,
+              "drawdownPct": 2.964440758945818,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30366.168198600062,
+              "equity": 30366.168198600062,
+              "realizedChangePctOriginal": 1.2537317958000058,
+              "equityChangePctOriginal": 1.2537317958000058,
+              "closedTrades": 263,
+              "drawdownPct": 5.665493019489665,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.09
+            }
+          ]
+        },
+        {
+          "month": "2026-10",
+          "lastTick": 1793393879352,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 30995.105508700108,
+              "equity": 30995.105508700108,
+              "realizedChangePctOriginal": 3.033626870800159,
+              "equityChangePctOriginal": 3.033626870800159,
+              "closedTrades": 322,
+              "drawdownPct": 8.77429911896143,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.11
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 32551.19083800003,
+              "equity": 32551.19083800003,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 114,
+              "drawdownPct": 8.939657721641707,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27815.65708295015,
+              "equity": 27815.65708295015,
+              "realizedChangePctOriginal": 1.6790635032002172,
+              "equityChangePctOriginal": 1.6790635032002172,
+              "closedTrades": 322,
+              "drawdownPct": 4.289951187470313,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.05
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 29797.961929800065,
+              "equity": 29797.961929800065,
+              "realizedChangePctOriginal": -2.2728250751999877,
+              "equityChangePctOriginal": -2.2728250751999877,
+              "closedTrades": 270,
+              "drawdownPct": 6.288652055973179,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            }
+          ]
+        },
+        {
+          "month": "2026-11",
+          "lastTick": 1794527996941,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 33328.41703000013,
+              "equity": 33285.98203000013,
+              "realizedChangePctOriginal": 9.33324608520008,
+              "equityChangePctOriginal": 9.163506085200089,
+              "closedTrades": 342,
+              "drawdownPct": 8.77429911896143,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.06
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 32551.19083800003,
+              "equity": 32551.19083800003,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 114,
+              "drawdownPct": 8.939657721641707,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 28671.769842800168,
+              "equity": 28657.624842800167,
+              "realizedChangePctOriginal": 3.424451039400068,
+              "equityChangePctOriginal": 3.3678710394000664,
+              "closedTrades": 342,
+              "drawdownPct": 4.289951187470313,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.02
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 29797.961929800065,
+              "equity": 29797.961929800065,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 270,
+              "drawdownPct": 6.288652055973179,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            }
+          ]
+        }
+      ],
+      "final": [
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": 33.1420081200005,
+          "drawdownPct": 8.77429911896143,
+          "closedTrades": 343,
+          "profitFactor": 1.2807598942837828,
+          "endingBalance": 33285.50203000013,
+          "costsIncludingCarry": 932.6579699999983,
+          "blocked": 0.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 1,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": 30.20476335200013,
+          "drawdownPct": 8.939657721641707,
+          "closedTrades": 114,
+          "profitFactor": 1.4169307309800523,
+          "endingBalance": 32551.19083800003,
+          "costsIncludingCarry": 583.6291619999998,
+          "blocked": 0.0,
+          "failed": true
+        },
+        {
+          "profile": {
+            "profile": "PROP_FUNDED",
+            "risk": 0.25,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 14.62985937120067,
+          "drawdownPct": 4.289951187470313,
+          "closedTrades": 343,
+          "profitFactor": 1.2889751237823404,
+          "endingBalance": 28657.464842800167,
+          "costsIncludingCarry": 400.8451571999997,
+          "blocked": 0.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PROP_EVAL",
+            "risk": 0.5,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 19.19184771920026,
+          "drawdownPct": 6.288652055973179,
+          "closedTrades": 270,
+          "profitFactor": 1.211970580474022,
+          "endingBalance": 29797.961929800065,
+          "costsIncludingCarry": 664.4280701999983,
+          "blocked": 115.0,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "name": "COMPRESSION",
+      "config": {
+        "family": "compression_expand",
+        "minutes": 15,
+        "n": 24,
+        "stop": 1.5,
+        "rr": 5,
+        "hold": 1440,
+        "style": 0
+      },
+      "months": [
+        {
+          "month": "2026-05",
+          "lastTick": 1780271999795,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24878.247775000033,
+              "equity": 24878.247775000033,
+              "realizedChangePctOriginal": -0.48700889999986974,
+              "equityChangePctOriginal": -0.48700889999986974,
+              "closedTrades": 18,
+              "drawdownPct": 5.497258177372757,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24807.70779320004,
+              "equity": 24807.70779320004,
+              "realizedChangePctOriginal": -0.7691688271998428,
+              "equityChangePctOriginal": -0.7691688271998428,
+              "closedTrades": 18,
+              "drawdownPct": 10.675262866679553,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 24909.780333100014,
+              "equity": 24909.780333100014,
+              "realizedChangePctOriginal": -0.3608786675999436,
+              "equityChangePctOriginal": -0.3608786675999436,
+              "closedTrades": 18,
+              "drawdownPct": 2.789091624279836,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.02
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 24878.247775000033,
+              "equity": 24878.247775000033,
+              "realizedChangePctOriginal": -0.48700889999986974,
+              "equityChangePctOriginal": -0.48700889999986974,
+              "closedTrades": 18,
+              "drawdownPct": 5.497258177372757,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            }
+          ]
+        },
+        {
+          "month": "2026-06",
+          "lastTick": 1782863999741,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 26042.76638295004,
+              "equity": 26021.887882950043,
+              "realizedChangePctOriginal": 4.658074431800037,
+              "equityChangePctOriginal": 4.574560431800041,
+              "closedTrades": 39,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": -2.78515999999996,
+              "equityChangePctOriginal": -2.78515999999996,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25443.69232590001,
+              "equity": 25436.73282590001,
+              "realizedChangePctOriginal": 2.1356479711999854,
+              "equityChangePctOriginal": 2.107809971199982,
+              "closedTrades": 39,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.01
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26042.76638295004,
+              "equity": 26021.887882950043,
+              "realizedChangePctOriginal": 4.658074431800037,
+              "equityChangePctOriginal": 4.574560431800041,
+              "closedTrades": 39,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.03
+            }
+          ]
+        },
+        {
+          "month": "2026-07",
+          "lastTick": 1785531479774,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 25804.912520150054,
+              "equity": 25888.117520150055,
+              "realizedChangePctOriginal": -0.9514154511999514,
+              "equityChangePctOriginal": -0.5350814511999488,
+              "closedTrades": 61,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.1
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25255.332447200013,
+              "equity": 25296.934947200014,
+              "realizedChangePctOriginal": -0.7534395147999894,
+              "equityChangePctOriginal": -0.5591915147999825,
+              "closedTrades": 61,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.05
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25804.912520150054,
+              "equity": 25888.117520150055,
+              "realizedChangePctOriginal": -0.9514154511999514,
+              "equityChangePctOriginal": -0.5350814511999488,
+              "closedTrades": 61,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.1
+            }
+          ]
+        },
+        {
+          "month": "2026-08",
+          "lastTick": 1788220799883,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 26503.572812650054,
+              "equity": 26503.572812650054,
+              "realizedChangePctOriginal": 2.794641170000003,
+              "equityChangePctOriginal": 2.4618211699999955,
+              "closedTrades": 83,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25520.0230122,
+              "equity": 25520.0230122,
+              "realizedChangePctOriginal": 1.0587622599999449,
+              "equityChangePctOriginal": 0.8923522599999414,
+              "closedTrades": 83,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26503.572812650054,
+              "equity": 26503.572812650054,
+              "realizedChangePctOriginal": 2.794641170000003,
+              "equityChangePctOriginal": 2.4618211699999955,
+              "closedTrades": 83,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.08
+            }
+          ]
+        },
+        {
+          "month": "2026-09",
+          "lastTick": 1790812798675,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 26990.829551150076,
+              "equity": 27089.211051150076,
+              "realizedChangePctOriginal": 1.9490269540000882,
+              "equityChangePctOriginal": 2.342552954000086,
+              "closedTrades": 109,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.07
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 25887.78328585002,
+              "equity": 25929.946785850017,
+              "realizedChangePctOriginal": 1.4710410946000774,
+              "equityChangePctOriginal": 1.6396950946000726,
+              "closedTrades": 109,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26990.829551150076,
+              "equity": 27089.211051150076,
+              "realizedChangePctOriginal": 1.9490269540000882,
+              "equityChangePctOriginal": 2.342552954000086,
+              "closedTrades": 109,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.07
+            }
+          ]
+        },
+        {
+          "month": "2026-10",
+          "lastTick": 1793393879352,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 28546.851853850054,
+              "equity": 28546.851853850054,
+              "realizedChangePctOriginal": 6.224089210799909,
+              "equityChangePctOriginal": 5.830563210799912,
+              "closedTrades": 133,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.13
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26583.553042150026,
+              "equity": 26583.553042150026,
+              "realizedChangePctOriginal": 2.7830790252000295,
+              "equityChangePctOriginal": 2.6144250252000347,
+              "closedTrades": 133,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 28546.851853850054,
+              "equity": 28546.851853850054,
+              "realizedChangePctOriginal": 6.224089210799909,
+              "equityChangePctOriginal": 5.830563210799912,
+              "closedTrades": 133,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.13
+            }
+          ]
+        },
+        {
+          "month": "2026-11",
+          "lastTick": 1794527996941,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 30921.66258465006,
+              "equity": 30921.66258465006,
+              "realizedChangePctOriginal": 9.499242923200029,
+              "equityChangePctOriginal": 9.499242923200029,
+              "closedTrades": 140,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.11
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 24111.41779320005,
+              "equity": 24111.41779320005,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 21,
+              "drawdownPct": 11.074186402458759,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.18
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27544.63526355003,
+              "equity": 27544.63526355003,
+              "realizedChangePctOriginal": 3.8443288856000146,
+              "equityChangePctOriginal": 3.8443288856000146,
+              "closedTrades": 140,
+              "drawdownPct": 3.448143015280681,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.05
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30921.66258465006,
+              "equity": 30921.66258465006,
+              "realizedChangePctOriginal": 9.499242923200029,
+              "equityChangePctOriginal": 9.499242923200029,
+              "closedTrades": 140,
+              "drawdownPct": 7.205595444859244,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.11
+            }
+          ]
+        }
+      ],
+      "final": [
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": 23.686650338600245,
+          "drawdownPct": 7.205595444859244,
+          "closedTrades": 140,
+          "profitFactor": 1.4834553353578612,
+          "endingBalance": 30921.66258465006,
+          "costsIncludingCarry": 405.95741535000013,
+          "blocked": 1.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 1,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": -3.554328827199804,
+          "drawdownPct": 11.074186402458759,
+          "closedTrades": 21,
+          "profitFactor": 0.7879454711135979,
+          "endingBalance": 24111.41779320005,
+          "costsIncludingCarry": 59.9122068,
+          "blocked": 1.0,
+          "failed": true
+        },
+        {
+          "profile": {
+            "profile": "PROP_FUNDED",
+            "risk": 0.25,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 10.17854105420013,
+          "drawdownPct": 3.448143015280681,
+          "closedTrades": 140,
+          "profitFactor": 1.460801638262846,
+          "endingBalance": 27544.63526355003,
+          "costsIncludingCarry": 182.17473644999987,
+          "blocked": 1.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PROP_EVAL",
+            "risk": 0.5,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 23.686650338600245,
+          "drawdownPct": 7.205595444859244,
+          "closedTrades": 140,
+          "profitFactor": 1.4834553353578612,
+          "endingBalance": 30921.66258465006,
+          "costsIncludingCarry": 405.95741535000013,
+          "blocked": 1.0,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "name": "ARBITRATED",
+      "config": {
+        "family": "ARBITRATED",
+        "minutes": 15,
+        "n": 12,
+        "stop": 1.5,
+        "rr": 5,
+        "hold": 1440,
+        "style": 2
+      },
+      "months": [
+        {
+          "month": "2026-05",
+          "lastTick": 1780271999795,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27328.103302750027,
+              "equity": 27328.103302750027,
+              "realizedChangePctOriginal": 9.312413211000107,
+              "equityChangePctOriginal": 9.312413211000107,
+              "closedTrades": 39,
+              "drawdownPct": 2.807724371049239,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 30060.309676600016,
+              "equity": 30060.309676600016,
+              "realizedChangePctOriginal": 20.241238706400065,
+              "equityChangePctOriginal": 20.241238706400065,
+              "closedTrades": 39,
+              "drawdownPct": 5.689370297944139,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26097.246826050017,
+              "equity": 26097.246826050017,
+              "realizedChangePctOriginal": 4.388987304200069,
+              "equityChangePctOriginal": 4.388987304200069,
+              "closedTrades": 39,
+              "drawdownPct": 1.4129988348321532,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.03
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27328.103302750027,
+              "equity": 27328.103302750027,
+              "realizedChangePctOriginal": 9.312413211000107,
+              "equityChangePctOriginal": 9.312413211000107,
+              "closedTrades": 39,
+              "drawdownPct": 2.807724371049239,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-06",
+          "lastTick": 1782863999741,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 28671.317973950085,
+              "equity": 28643.479973950085,
+              "realizedChangePctOriginal": 5.37285868480023,
+              "equityChangePctOriginal": 5.261506684800231,
+              "closedTrades": 89,
+              "drawdownPct": 5.402344130399006,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": -8.281581665199788,
+              "equityChangePctOriginal": -8.281581665199788,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26759.85585230004,
+              "equity": 26752.89635230004,
+              "realizedChangePctOriginal": 2.6504361050000877,
+              "equityChangePctOriginal": 2.6225981050000846,
+              "closedTrades": 89,
+              "drawdownPct": 2.520000416500799,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.01
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 28949.46431985008,
+              "equity": 28921.626319850082,
+              "realizedChangePctOriginal": 6.485444068400219,
+              "equityChangePctOriginal": 6.37409206840022,
+              "closedTrades": 88,
+              "drawdownPct": 5.2313929103775125,
+              "failed": false,
+              "openSide": 1.0,
+              "openLots": 0.04
+            }
+          ]
+        },
+        {
+          "month": "2026-07",
+          "lastTick": 1785531479774,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 31248.26077010008,
+              "equity": 31348.106770100083,
+              "realizedChangePctOriginal": 10.307771184599988,
+              "equityChangePctOriginal": 10.818507184599992,
+              "closedTrades": 158,
+              "drawdownPct": 5.402344130399006,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.12
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 28038.730847350063,
+              "equity": 28080.333347350064,
+              "realizedChangePctOriginal": 5.115499980200097,
+              "equityChangePctOriginal": 5.309747980200104,
+              "closedTrades": 158,
+              "drawdownPct": 2.520000416500799,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.05
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 31458.932116000087,
+              "equity": 31558.77811600009,
+              "realizedChangePctOriginal": 10.037871184600021,
+              "equityChangePctOriginal": 10.548607184600026,
+              "closedTrades": 156,
+              "drawdownPct": 5.2313929103775125,
+              "failed": false,
+              "openSide": -1.0,
+              "openLots": 0.12
+            }
+          ]
+        },
+        {
+          "month": "2026-08",
+          "lastTick": 1788220799883,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 29755.60700165007,
+              "equity": 29755.60700165007,
+              "realizedChangePctOriginal": -5.970615073800043,
+              "equityChangePctOriginal": -6.36999907380005,
+              "closedTrades": 189,
+              "drawdownPct": 9.160189288523833,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.13
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27622.54649635008,
+              "equity": 27622.54649635008,
+              "realizedChangePctOriginal": -1.6647374039999268,
+              "equityChangePctOriginal": -1.8311474039999305,
+              "closedTrades": 218,
+              "drawdownPct": 4.552711223034857,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30630.309380250077,
+              "equity": 30630.309380250077,
+              "realizedChangePctOriginal": -3.314490943000041,
+              "equityChangePctOriginal": -3.7138749430000466,
+              "closedTrades": 177,
+              "drawdownPct": 6.13081706433352,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-09",
+          "lastTick": 1790812798675,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 29755.60700165007,
+              "equity": 29755.60700165007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 189,
+              "drawdownPct": 9.160189288523833,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.13
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 27190.719107000095,
+              "equity": 27190.719107000095,
+              "realizedChangePctOriginal": -1.7273095573999455,
+              "equityChangePctOriginal": -1.7273095573999455,
+              "closedTrades": 276,
+              "drawdownPct": 6.764531102181066,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.04
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30630.309380250077,
+              "equity": 30630.309380250077,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 177,
+              "drawdownPct": 6.13081706433352,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-10",
+          "lastTick": 1793393879352,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 29755.60700165007,
+              "equity": 29755.60700165007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 189,
+              "drawdownPct": 9.160189288523833,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.13
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26668.547900000092,
+              "equity": 26668.547900000092,
+              "realizedChangePctOriginal": -2.0886848280000123,
+              "equityChangePctOriginal": -2.0886848280000123,
+              "closedTrades": 286,
+              "drawdownPct": 6.960796073977213,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.02
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30630.309380250077,
+              "equity": 30630.309380250077,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 177,
+              "drawdownPct": 6.13081706433352,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        },
+        {
+          "month": "2026-11",
+          "lastTick": 1794527996941,
+          "cases": [
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 0.5,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 29755.60700165007,
+              "equity": 29755.60700165007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 189,
+              "drawdownPct": 9.160189288523833,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.13
+            },
+            {
+              "profile": {
+                "profile": "PERSONAL",
+                "risk": 1,
+                "leverage": 10,
+                "prop": 0
+              },
+              "balance": 27989.91426030007,
+              "equity": 27989.91426030007,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 54,
+              "drawdownPct": 9.676458084882102,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.15
+            },
+            {
+              "profile": {
+                "profile": "PROP_FUNDED",
+                "risk": 0.25,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 26668.547900000092,
+              "equity": 26668.547900000092,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 286,
+              "drawdownPct": 6.960796073977213,
+              "failed": false,
+              "openSide": 0.0,
+              "openLots": 0.02
+            },
+            {
+              "profile": {
+                "profile": "PROP_EVAL",
+                "risk": 0.5,
+                "leverage": 5,
+                "prop": 1
+              },
+              "balance": 30630.309380250077,
+              "equity": 30630.309380250077,
+              "realizedChangePctOriginal": 0.0,
+              "equityChangePctOriginal": 0.0,
+              "closedTrades": 177,
+              "drawdownPct": 6.13081706433352,
+              "failed": true,
+              "openSide": 0.0,
+              "openLots": 0.06
+            }
+          ]
+        }
+      ],
+      "final": [
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": 19.02242800660028,
+          "drawdownPct": 9.160189288523833,
+          "closedTrades": 189,
+          "profitFactor": 1.2893355078390543,
+          "endingBalance": 29755.60700165007,
+          "costsIncludingCarry": 524.3429983499997,
+          "blocked": 0.0,
+          "failed": true
+        },
+        {
+          "profile": {
+            "profile": "PERSONAL",
+            "risk": 1,
+            "leverage": 10,
+            "prop": 0
+          },
+          "returnPct": 11.959657041200277,
+          "drawdownPct": 9.676458084882102,
+          "closedTrades": 54,
+          "profitFactor": 1.3342330615516056,
+          "endingBalance": 27989.91426030007,
+          "costsIncludingCarry": 289.79573970000007,
+          "blocked": 686.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PROP_FUNDED",
+            "risk": 0.25,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 6.674191600000379,
+          "drawdownPct": 6.960796073977213,
+          "closedTrades": 286,
+          "profitFactor": 1.148579443146822,
+          "endingBalance": 26668.547900000092,
+          "costsIncludingCarry": 325.44209999999987,
+          "blocked": 174.0,
+          "failed": false
+        },
+        {
+          "profile": {
+            "profile": "PROP_EVAL",
+            "risk": 0.5,
+            "leverage": 5,
+            "prop": 1
+          },
+          "returnPct": 22.5212375210003,
+          "drawdownPct": 6.13081706433352,
+          "closedTrades": 177,
+          "profitFactor": 1.3874900704728172,
+          "endingBalance": 30630.309380250077,
+          "costsIncludingCarry": 467.33061974999964,
+          "blocked": 3.0,
+          "failed": true
+        }
+      ]
+    }
+  ],
+  "november": [
+    {
+      "stage": "original",
+      "candidate": {
+        "family": "session_break",
+        "minutes": 15,
+        "n": 12,
+        "stop": 2.5,
+        "rr": 2,
+        "hold": 360,
+        "style": 0
+      },
+      "symbol": "EURUSD",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2026/11/Exness_EURUSD_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "EURUSD",
+        "timeframe": "1m",
+        "archiveSha256": "8aed57875010e34fe007932906872fbe3d3c72ed1ec2cf65dec115c2eebec67c",
+        "rowsSha256": "057931115a88a0f81b84f21651d3961a6643f8bd80811a3ca20f7580f08f1168",
+        "archiveBytes": 3045237,
+        "rows": 13020,
+        "ticks": 459127,
+        "firstTick": 1793570948272,
+        "lastTick": 1794527984871,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 3.7523600000001656,
+          "drawdownPct": 1.4446068512088222,
+          "closedTrades": 10,
+          "profitFactor": 3.166489607390545,
+          "endingBalance": 25938.09000000004,
+          "commission": 62.16,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 3.8261999999999796,
+          "drawdownPct": 1.4540364056950335,
+          "closedTrades": 10,
+          "profitFactor": 3.2007362245485305,
+          "endingBalance": 25956.549999999996,
+          "commission": 62.719999999999985,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 3.492800000000096,
+          "drawdownPct": 1.4441776197583722,
+          "closedTrades": 10,
+          "profitFactor": 3.0144880727173105,
+          "endingBalance": 25873.200000000023,
+          "commission": 60.829999999999984,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 3.4808999999999424,
+          "drawdownPct": 1.4647174579759255,
+          "closedTrades": 10,
+          "profitFactor": 2.980484751934377,
+          "endingBalance": 25870.224999999984,
+          "commission": 90.82500000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.5293800000000264,
+          "drawdownPct": 1.4619638832438882,
+          "closedTrades": 10,
+          "profitFactor": 3.0132452597714345,
+          "endingBalance": 25882.34500000001,
+          "commission": 91.24500000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 3.2381399999998894,
+          "drawdownPct": 1.4586331850484142,
+          "closedTrades": 10,
+          "profitFactor": 2.8475152621668203,
+          "endingBalance": 25809.53499999997,
+          "commission": 88.93499999999999,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 1.8570800000000887,
+          "drawdownPct": 0.71626124678145,
+          "closedTrades": 10,
+          "profitFactor": 3.174668602745106,
+          "endingBalance": 25464.270000000022,
+          "commission": 30.73,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 1.8812400000000284,
+          "drawdownPct": 0.7295051417383565,
+          "closedTrades": 10,
+          "profitFactor": 3.168026552344118,
+          "endingBalance": 25470.310000000005,
+          "commission": 31.080000000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 1.7320400000000458,
+          "drawdownPct": 0.716194999208149,
+          "closedTrades": 10,
+          "profitFactor": 3.018694638694743,
+          "endingBalance": 25433.01000000001,
+          "commission": 30.17,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 1.7356999999999623,
+          "drawdownPct": 0.7263713427741918,
+          "closedTrades": 10,
+          "profitFactor": 3.0033471837487657,
+          "endingBalance": 25433.924999999992,
+          "commission": 45.045,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 1.7460599999999937,
+          "drawdownPct": 0.7264289127898897,
+          "closedTrades": 10,
+          "profitFactor": 3.009460019334406,
+          "endingBalance": 25436.515,
+          "commission": 45.255,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 1.615279999999908,
+          "drawdownPct": 0.7298466816512392,
+          "closedTrades": 10,
+          "profitFactor": 2.8489503445432716,
+          "endingBalance": 25403.819999999978,
+          "commission": 44.309999999999995,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 2.5339999999999696,
+          "drawdownPct": 1.0513646852868,
+          "closedTrades": 10,
+          "profitFactor": 3.060162601626086,
+          "endingBalance": 512.6699999999998,
+          "commission": 1.26,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 2.835499999999991,
+          "drawdownPct": 1.2454862902265176,
+          "closedTrades": 10,
+          "profitFactor": 2.8716171617162325,
+          "endingBalance": 1028.355,
+          "commission": 3.045,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.4501000000000115,
+          "drawdownPct": 1.4461721824933989,
+          "closedTrades": 10,
+          "profitFactor": 2.9897917988350553,
+          "endingBalance": 5172.505,
+          "commission": 17.955000000000002,
+          "blocked": 0,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "stage": "original",
+      "candidate": {
+        "family": "band_reentry",
+        "minutes": 5,
+        "n": 12,
+        "stop": 1.5,
+        "rr": 8,
+        "hold": 360,
+        "style": 1
+      },
+      "symbol": "USDJPY",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2026/11/Exness_USDJPY_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "USDJPY",
+        "timeframe": "1m",
+        "archiveSha256": "b7cbef69beb0cc910c90504917b3ed6d2a8a8b6d26630e741c576b359f121637",
+        "rowsSha256": "351ea0e321df6107d49517e7d99a2fbca7ecb036ffc93c468d27a064711c2ce7",
+        "archiveBytes": 4221970,
+        "rows": 12988,
+        "ticks": 636158,
+        "firstTick": 1793570713371,
+        "lastTick": 1794527997208,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": -7.952715949983746,
+          "drawdownPct": 9.01501399624415,
+          "closedTrades": 34,
+          "profitFactor": 0.35197913947144627,
+          "endingBalance": 23011.821012504064,
+          "commission": 415.5199999999998,
+          "blocked": 7,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": -10.613425360009254,
+          "drawdownPct": 11.152546530292899,
+          "closedTrades": 37,
+          "profitFactor": 0.19523110879489458,
+          "endingBalance": 22346.643659997688,
+          "commission": 458.28999999999996,
+          "blocked": 5,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": -7.247483782672437,
+          "drawdownPct": 8.855269478704585,
+          "closedTrades": 33,
+          "profitFactor": 0.3806912655957082,
+          "endingBalance": 23188.12905433189,
+          "commission": 402.0100000000001,
+          "blocked": 9,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": -2.564801243531356,
+          "drawdownPct": 5.291730745826486,
+          "closedTrades": 18,
+          "profitFactor": 0.4963129981080593,
+          "endingBalance": 24358.79968911716,
+          "commission": 255.57000000000002,
+          "blocked": 25,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": -3.6027416733552475,
+          "drawdownPct": 5.783874096925504,
+          "closedTrades": 19,
+          "profitFactor": 0.4064500713566449,
+          "endingBalance": 24099.314581661187,
+          "commission": 268.79999999999995,
+          "blocked": 24,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": -1.9793980861635307,
+          "drawdownPct": 4.3198039289562145,
+          "closedTrades": 17,
+          "profitFactor": 0.5685306195080824,
+          "endingBalance": 24505.150478459116,
+          "commission": 233.72999999999996,
+          "blocked": 26,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": -4.0327109376918635,
+          "drawdownPct": 4.590254493184371,
+          "closedTrades": 34,
+          "profitFactor": 0.35545849856727435,
+          "endingBalance": 23991.822265577033,
+          "commission": 212.23999999999995,
+          "blocked": 7,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": -5.4358027364702854,
+          "drawdownPct": 5.721826570578338,
+          "closedTrades": 37,
+          "profitFactor": 0.19435738141602896,
+          "endingBalance": 23641.04931588243,
+          "commission": 235.12999999999985,
+          "blocked": 5,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": -3.67260709251811,
+          "drawdownPct": 4.508195423503413,
+          "closedTrades": 33,
+          "profitFactor": 0.3835244751263504,
+          "endingBalance": 24081.848226870472,
+          "commission": 205.30999999999997,
+          "blocked": 9,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": -1.2849284642246661,
+          "drawdownPct": 2.666745820691088,
+          "closedTrades": 18,
+          "profitFactor": 0.494921439735998,
+          "endingBalance": 24678.767883943834,
+          "commission": 127.995,
+          "blocked": 25,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": -1.8185692065268655,
+          "drawdownPct": 2.927266782321001,
+          "closedTrades": 19,
+          "profitFactor": 0.4038740150066724,
+          "endingBalance": 24545.357698368283,
+          "commission": 135.13500000000005,
+          "blocked": 24,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": -0.9826840635659861,
+          "drawdownPct": 2.1722902955114174,
+          "closedTrades": 17,
+          "profitFactor": 0.5707415266490881,
+          "endingBalance": 24754.328984108502,
+          "commission": 116.76000000000005,
+          "blocked": 26,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": -2.975223784131109,
+          "drawdownPct": 4.695812499907914,
+          "closedTrades": 18,
+          "profitFactor": 0.4016478491811544,
+          "endingBalance": 485.12388107934447,
+          "commission": 4.410000000000004,
+          "blocked": 25,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": -3.3683953493250596,
+          "drawdownPct": 5.318614409097051,
+          "closedTrades": 19,
+          "profitFactor": 0.4000949830135602,
+          "endingBalance": 966.3160465067494,
+          "commission": 9.975,
+          "blocked": 24,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": -3.558190837811781,
+          "drawdownPct": 5.71509698439616,
+          "closedTrades": 19,
+          "profitFactor": 0.4072324754606202,
+          "endingBalance": 4822.090458109411,
+          "commission": 53.23500000000001,
+          "blocked": 24,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "stage": "original",
+      "candidate": {
+        "family": "pullback_resume",
+        "minutes": 15,
+        "n": 12,
+        "stop": 2.5,
+        "rr": 3,
+        "hold": 120,
+        "style": 0
+      },
+      "symbol": "XAUUSD",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/11/Exness_XAUUSD_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "XAUUSD",
+        "timeframe": "1m",
+        "archiveSha256": "7e22d6844233dadfc95351f99cfd1869744c2c6c46d69ae9dcf941a458913cbb",
+        "rowsSha256": "7dc673a24e617f8f1471f448de3b3701bf873af6dc7d7ea42586ff5eaa2acb28",
+        "archiveBytes": 28419097,
+        "rows": 12460,
+        "ticks": 2947913,
+        "firstTick": 1793574090232,
+        "lastTick": 1794527996941,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 1.267920000000089,
+          "drawdownPct": 2.5377377709845925,
+          "closedTrades": 22,
+          "profitFactor": 1.3888752576307728,
+          "endingBalance": 25316.98000000002,
+          "commission": 9.240000000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 1.1885600000000052,
+          "drawdownPct": 2.613360385284922,
+          "closedTrades": 22,
+          "profitFactor": 1.3639459115182742,
+          "endingBalance": 25297.140000000003,
+          "commission": 9.240000000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 1.2237600000000626,
+          "drawdownPct": 2.6297901803759833,
+          "closedTrades": 22,
+          "profitFactor": 1.365266601399264,
+          "endingBalance": 25305.940000000017,
+          "commission": 9.450000000000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 1.2242800000000775,
+          "drawdownPct": 2.5691709123613204,
+          "closedTrades": 22,
+          "profitFactor": 1.3729650029245566,
+          "endingBalance": 25306.070000000018,
+          "commission": 13.86,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 1.143960000000055,
+          "drawdownPct": 2.6447142355657887,
+          "closedTrades": 22,
+          "profitFactor": 1.3478308461342106,
+          "endingBalance": 25285.990000000016,
+          "commission": 13.86,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 1.0599600000000597,
+          "drawdownPct": 2.6620577720110132,
+          "closedTrades": 22,
+          "profitFactor": 1.3138762214983832,
+          "endingBalance": 25264.990000000016,
+          "commission": 14.069999999999995,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 0.47400000000001885,
+          "drawdownPct": 1.1475764241311814,
+          "closedTrades": 22,
+          "profitFactor": 1.3195103537532304,
+          "endingBalance": 25118.500000000007,
+          "commission": 4.200000000000001,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 0.43416000000002786,
+          "drawdownPct": 1.1867173555033417,
+          "closedTrades": 22,
+          "profitFactor": 1.2916565900846204,
+          "endingBalance": 25108.540000000005,
+          "commission": 4.200000000000001,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 0.5634000000000361,
+          "drawdownPct": 1.1479274759062514,
+          "closedTrades": 22,
+          "profitFactor": 1.3804289109766594,
+          "endingBalance": 25140.85000000001,
+          "commission": 4.270000000000001,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 0.4541999999999602,
+          "drawdownPct": 1.16211503779299,
+          "closedTrades": 22,
+          "profitFactor": 1.304117843990635,
+          "endingBalance": 25113.54999999999,
+          "commission": 6.3000000000000025,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.41391999999993434,
+          "drawdownPct": 1.201256064907202,
+          "closedTrades": 22,
+          "profitFactor": 1.2761123340671183,
+          "endingBalance": 25103.479999999985,
+          "commission": 6.3000000000000025,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 0.542859999999945,
+          "drawdownPct": 1.162585228076768,
+          "closedTrades": 22,
+          "profitFactor": 1.3636132247347676,
+          "endingBalance": 25135.714999999986,
+          "commission": 6.405000000000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 500.0,
+          "commission": 0.0,
+          "blocked": 43,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 1000.0,
+          "commission": 0.0,
+          "blocked": 43,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.6868000000001206,
+          "drawdownPct": 2.13691694424454,
+          "closedTrades": 18,
+          "profitFactor": 1.2876769707631877,
+          "endingBalance": 5034.340000000006,
+          "commission": 1.89,
+          "blocked": 10,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "stage": "literature",
+      "candidate": {
+        "family": "lit_opening_impulse",
+        "minutes": 30,
+        "n": 14,
+        "stop": 2,
+        "rr": 8,
+        "hold": 360,
+        "style": 2
+      },
+      "symbol": "EURUSD",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2026/11/Exness_EURUSD_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "EURUSD",
+        "timeframe": "1m",
+        "archiveSha256": "8aed57875010e34fe007932906872fbe3d3c72ed1ec2cf65dec115c2eebec67c",
+        "rowsSha256": "057931115a88a0f81b84f21651d3961a6643f8bd80811a3ca20f7580f08f1168",
+        "archiveBytes": 3045237,
+        "rows": 13020,
+        "ticks": 459127,
+        "firstTick": 1793570948272,
+        "lastTick": 1794527984871,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 5.0461999999999785,
+          "drawdownPct": 1.9945525175532917,
+          "closedTrades": 15,
+          "profitFactor": 2.9537105866319413,
+          "endingBalance": 26261.549999999996,
+          "commission": 89.11000000000001,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 4.9399199999999865,
+          "drawdownPct": 1.998113133377854,
+          "closedTrades": 15,
+          "profitFactor": 2.9159155432134876,
+          "endingBalance": 26234.979999999996,
+          "commission": 88.69,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 4.786879999999849,
+          "drawdownPct": 1.983940261865768,
+          "closedTrades": 15,
+          "profitFactor": 2.8497588722639966,
+          "endingBalance": 26196.719999999965,
+          "commission": 87.5,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 4.637140000000017,
+          "drawdownPct": 1.9853310836403775,
+          "closedTrades": 15,
+          "profitFactor": 2.7936148157316723,
+          "endingBalance": 26159.285000000003,
+          "commission": 129.88500000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 4.542040000000069,
+          "drawdownPct": 2.0010451797329543,
+          "closedTrades": 15,
+          "profitFactor": 2.7549030214048837,
+          "endingBalance": 26135.510000000017,
+          "commission": 129.57000000000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 4.4089199999999495,
+          "drawdownPct": 1.9802067887518138,
+          "closedTrades": 15,
+          "profitFactor": 2.7008541073536505,
+          "endingBalance": 26102.22999999999,
+          "commission": 127.89,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 2.495120000000006,
+          "drawdownPct": 0.9992412984306843,
+          "closedTrades": 15,
+          "profitFactor": 2.959846675882835,
+          "endingBalance": 25623.780000000002,
+          "commission": 43.959999999999994,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 2.4342000000000086,
+          "drawdownPct": 0.998790618370703,
+          "closedTrades": 15,
+          "profitFactor": 2.911755466197509,
+          "endingBalance": 25608.550000000003,
+          "commission": 43.75,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 2.3680399999999713,
+          "drawdownPct": 0.9911618165084947,
+          "closedTrades": 15,
+          "profitFactor": 2.8681287472387456,
+          "endingBalance": 25592.00999999999,
+          "commission": 43.05,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 2.286739999999976,
+          "drawdownPct": 0.9910021614254619,
+          "closedTrades": 15,
+          "profitFactor": 2.795070256692063,
+          "endingBalance": 25571.684999999994,
+          "commission": 63.94500000000001,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 2.239400000000047,
+          "drawdownPct": 1.0027149507944653,
+          "closedTrades": 15,
+          "profitFactor": 2.747592514554213,
+          "endingBalance": 25559.850000000013,
+          "commission": 64.05,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 2.171239999999952,
+          "drawdownPct": 0.9887575893265541,
+          "closedTrades": 15,
+          "profitFactor": 2.695327628209127,
+          "endingBalance": 25542.80999999999,
+          "commission": 62.999999999999986,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.0590000000000117,
+          "drawdownPct": 1.2382396970327862,
+          "closedTrades": 14,
+          "profitFactor": 2.678924259056038,
+          "endingBalance": 515.2950000000001,
+          "commission": 1.785,
+          "blocked": 10,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.544500000000017,
+          "drawdownPct": 1.6731899687572434,
+          "closedTrades": 15,
+          "profitFactor": 2.6601873536300307,
+          "endingBalance": 1035.4450000000002,
+          "commission": 4.3050000000000015,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 4.455700000000085,
+          "drawdownPct": 1.9638744686481437,
+          "closedTrades": 15,
+          "profitFactor": 2.7770908945878485,
+          "endingBalance": 5222.785000000004,
+          "commission": 25.304999999999996,
+          "blocked": 0,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "stage": "swing",
+      "candidate": {
+        "family": "rsi_exhaustion",
+        "minutes": 15,
+        "n": 12,
+        "stop": 1.5,
+        "rr": 5,
+        "hold": 1440,
+        "style": 2
+      },
+      "symbol": "XAUUSD",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/11/Exness_XAUUSD_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "XAUUSD",
+        "timeframe": "1m",
+        "archiveSha256": "7e22d6844233dadfc95351f99cfd1869744c2c6c46d69ae9dcf941a458913cbb",
+        "rowsSha256": "7dc673a24e617f8f1471f448de3b3701bf873af6dc7d7ea42586ff5eaa2acb28",
+        "archiveBytes": 28419097,
+        "rows": 12460,
+        "ticks": 2947913,
+        "firstTick": 1793574090232,
+        "lastTick": 1794527996941,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 6.9971020788000216,
+          "drawdownPct": 2.71582290177081,
+          "closedTrades": 21,
+          "profitFactor": 2.283383784730445,
+          "endingBalance": 26749.275519700008,
+          "commission": 25.774480300000004,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 7.000622078800101,
+          "drawdownPct": 2.6970936583067573,
+          "closedTrades": 21,
+          "profitFactor": 2.2941412373050527,
+          "endingBalance": 26750.155519700023,
+          "commission": 25.564480300000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 7.2570023110000825,
+          "drawdownPct": 2.7567980504242975,
+          "closedTrades": 21,
+          "profitFactor": 2.2966968286318656,
+          "endingBalance": 26814.250577750023,
+          "commission": 26.03942225,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 6.932342078800047,
+          "drawdownPct": 2.7259856702605463,
+          "closedTrades": 21,
+          "profitFactor": 2.26291653399456,
+          "endingBalance": 26733.08551970001,
+          "commission": 32.6344803,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 6.937522078800051,
+          "drawdownPct": 2.706523631739671,
+          "closedTrades": 21,
+          "profitFactor": 2.2741899403595505,
+          "endingBalance": 26734.38051970001,
+          "commission": 32.3194803,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 7.191042311000029,
+          "drawdownPct": 2.767885085492176,
+          "closedTrades": 21,
+          "profitFactor": 2.2763314246508917,
+          "endingBalance": 26797.760577750007,
+          "commission": 33.03942225,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 3.5635310394000363,
+          "drawdownPct": 1.345272512711874,
+          "closedTrades": 21,
+          "profitFactor": 2.3882968552100023,
+          "endingBalance": 25890.88275985001,
+          "commission": 12.60724015,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 3.4108910394000658,
+          "drawdownPct": 1.3601857999718767,
+          "closedTrades": 21,
+          "profitFactor": 2.353637502375146,
+          "endingBalance": 25852.722759850018,
+          "commission": 12.39724015,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 3.354394339200062,
+          "drawdownPct": 1.3349334935086645,
+          "closedTrades": 21,
+          "profitFactor": 2.2736659254221205,
+          "endingBalance": 25838.598584800013,
+          "commission": 12.0014152,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 3.532491039400032,
+          "drawdownPct": 1.3501887542419222,
+          "closedTrades": 21,
+          "profitFactor": 2.3668639382717136,
+          "endingBalance": 25883.122759850008,
+          "commission": 15.897240149999996,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.4860143391999943,
+          "drawdownPct": 1.3146171400781086,
+          "closedTrades": 21,
+          "profitFactor": 2.4337517849219266,
+          "endingBalance": 25871.503584799997,
+          "commission": 14.7664152,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 3.3233543392000353,
+          "drawdownPct": 1.340186002733671,
+          "closedTrades": 21,
+          "profitFactor": 2.253446455671633,
+          "endingBalance": 25830.838584800007,
+          "commission": 15.291415199999996,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 500.0,
+          "commission": 0.0,
+          "blocked": 35,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 1000.0,
+          "commission": 0.0,
+          "blocked": 35,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 4.777751664000229,
+          "drawdownPct": 2.321071817975913,
+          "closedTrades": 21,
+          "profitFactor": 1.971634182464678,
+          "endingBalance": 5238.887583200011,
+          "commission": 5.372416800000001,
+          "blocked": 1,
+          "failed": false
+        }
+      ]
+    },
+    {
+      "stage": "swing",
+      "candidate": {
+        "family": "compression_expand",
+        "minutes": 15,
+        "n": 24,
+        "stop": 1.5,
+        "rr": 5,
+        "hold": 1440,
+        "style": 0
+      },
+      "symbol": "XAUUSD",
+      "manifest": {
+        "schema": "gold-micro-native/v1",
+        "source": "EXNESS_BROKER_BID_ASK",
+        "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2026/11/Exness_XAUUSD_Raw_Spread_2026_11.zip",
+        "month": "2026-11",
+        "symbol": "XAUUSD",
+        "timeframe": "1m",
+        "archiveSha256": "7e22d6844233dadfc95351f99cfd1869744c2c6c46d69ae9dcf941a458913cbb",
+        "rowsSha256": "7dc673a24e617f8f1471f448de3b3701bf873af6dc7d7ea42586ff5eaa2acb28",
+        "archiveBytes": 28419097,
+        "rows": 12460,
+        "ticks": 2947913,
+        "firstTick": 1793574090232,
+        "lastTick": 1794527996941,
+        "vendorChecksum": false,
+        "volumeMeaning": "Observed quote count, not traded volume",
+        "limitations": [
+          "Exness Raw Spread reference; not JustMarkets or a prop firm fill record",
+          "No invented quotes, spreads or weekend bars",
+          "Commission, latency, fill reserve and lot/margin rules are scenarios"
+        ]
+      },
+      "results": [
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 8.198738479600065,
+          "drawdownPct": 2.6256059857481544,
+          "closedTrades": 7,
+          "profitFactor": 6.932901888092914,
+          "endingBalance": 27049.684619900014,
+          "commission": 17.815380100000002,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 8.38753847960001,
+          "drawdownPct": 2.635944567269682,
+          "closedTrades": 7,
+          "profitFactor": 6.9945657323599155,
+          "endingBalance": 27096.884619900004,
+          "commission": 17.885380100000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 8.033058479600008,
+          "drawdownPct": 2.6389959928105253,
+          "closedTrades": 7,
+          "profitFactor": 6.447358808699148,
+          "endingBalance": 27008.2646199,
+          "commission": 17.885380100000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 8.193098479599993,
+          "drawdownPct": 2.6276720136582057,
+          "closedTrades": 7,
+          "profitFactor": 6.897665911013627,
+          "endingBalance": 27048.274619899996,
+          "commission": 19.845380100000003,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 8.13193847960001,
+          "drawdownPct": 2.6380111888366646,
+          "closedTrades": 7,
+          "profitFactor": 6.78172365245245,
+          "endingBalance": 27032.984619900002,
+          "commission": 19.8453801,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 8.02759847960004,
+          "drawdownPct": 2.641070581148497,
+          "closedTrades": 7,
+          "profitFactor": 6.4142841129511075,
+          "endingBalance": 27006.89961990001,
+          "commission": 19.950380099999997,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 1000
+          },
+          "returnPct": 3.9089088856000265,
+          "drawdownPct": 1.2995936543410864,
+          "closedTrades": 7,
+          "profitFactor": 6.888017891276786,
+          "endingBalance": 25977.227221400004,
+          "commission": 8.5327786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 3000
+          },
+          "returnPct": 3.649948885599996,
+          "drawdownPct": 1.3036873066026142,
+          "closedTrades": 7,
+          "profitFactor": 6.423439932105102,
+          "endingBalance": 25912.4872214,
+          "commission": 8.4627786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1,
+            "delayMs": 15000
+          },
+          "returnPct": 3.6514288856000388,
+          "drawdownPct": 1.3049936220184704,
+          "closedTrades": 7,
+          "profitFactor": 6.540903856626041,
+          "endingBalance": 25912.85722140001,
+          "commission": 8.4627786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 1000
+          },
+          "returnPct": 3.9063888856000206,
+          "drawdownPct": 1.3005161201176534,
+          "closedTrades": 7,
+          "profitFactor": 6.8535380471777545,
+          "endingBalance": 25976.597221400007,
+          "commission": 9.5127786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 3.64764888560003,
+          "drawdownPct": 1.3046099016202282,
+          "closedTrades": 7,
+          "profitFactor": 6.392140082731256,
+          "endingBalance": 25911.91222140001,
+          "commission": 9.4077786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PROP",
+            "risk": 0.25,
+            "leverage": 5,
+            "capital": 25000,
+            "stress": 1.5,
+            "delayMs": 15000
+          },
+          "returnPct": 3.649128885600028,
+          "drawdownPct": 1.3059182129931801,
+          "closedTrades": 7,
+          "profitFactor": 6.506995469304243,
+          "endingBalance": 25912.282221400008,
+          "commission": 9.4077786,
+          "blocked": 0,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 500,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 500.0,
+          "commission": 0.0,
+          "blocked": 23,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 1000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 0.0,
+          "drawdownPct": 0.0,
+          "closedTrades": 0,
+          "profitFactor": null,
+          "endingBalance": 1000.0,
+          "commission": 0.0,
+          "blocked": 23,
+          "failed": false
+        },
+        {
+          "arm": {
+            "profile": "PERSONAL",
+            "risk": 0.5,
+            "leverage": 10,
+            "capital": 5000,
+            "stress": 1.5,
+            "delayMs": 3000
+          },
+          "returnPct": 8.591984858000078,
+          "drawdownPct": 1.761398218507441,
+          "closedTrades": 6,
+          "profitFactor": 15.93624513372554,
+          "endingBalance": 5429.599242900003,
+          "commission": 3.3407571,
+          "blocked": 1,
+          "failed": false
+        }
+      ]
+    }
+  ],
+  "decision": "Optional fixed-target Gold compression add-on prepared for signals/demo via canonical evidence. Stronger RSI trailing candidate remains research; not execution-ready.",
+  "limitations": [
+    "All variant counts are correlated retrospective scenarios, not pass probabilities.",
+    "May\u2013July canonical compression was negative; retained alongside other partitions.",
+    "November partial ends 2026-11-12; not a full month, actual payout or pass guarantee.",
+    "No live orders, activation, payments, Telegram send or Actions dispatch."
+  ]
+}

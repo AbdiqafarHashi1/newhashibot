@@ -2,7 +2,7 @@ export interface RiskPosition {symbol:string;open_risk_pct:number;}
 /** Conservative shared risk factors, not estimated correlation coefficients or synthetic hedges. */
 export function exposureFactors(symbol:string):string[]{
  const s=symbol.toUpperCase().replace(/[^A-Z0-9]/g,'');
- if(s.endsWith('USDT'))return ['CRYPTO_MARKET','USD_QUOTE'];
+ if(s.endsWith('USDT'))return ['CRYPTO_MARKET','USD_QUOTE','CURRENCY_USD'];
  const pair=/^([A-Z]{3})([A-Z]{3})/.exec(s);
  const currencies=new Set(['USD','EUR','GBP','JPY','AUD','CAD','NZD','CHF','XAU','XAG']);
  if(pair&&currencies.has(pair[1])&&currencies.has(pair[2]))return [...new Set([`CURRENCY_${pair[1]}`,`CURRENCY_${pair[2]}`])];

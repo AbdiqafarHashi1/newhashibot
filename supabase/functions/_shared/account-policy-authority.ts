@@ -28,6 +28,8 @@ export interface OwnedExecutionAccount {
 }
 
 export interface PolicyConfiguration {
+  readonly historicalPropStudy?: "SIZING_AND_STATIC_20261113";
+  readonly historicalStaticBasis?: boolean;
   readonly preset: PolicyPreset;
   readonly lossResponse?: LossResponsePolicy;
   readonly riskPerTradePct?: number;
@@ -43,6 +45,7 @@ export interface PolicyConfiguration {
 }
 
 export interface AccountEvaluationInput {
+  readonly historicalResearch?: true;
   readonly liveAuthorization?: {execution_account_id:string;customer_id:string;expires_at:string;maximum_equity:number;maximum_risk_pct:number};
   readonly signal: SignalContract;
   readonly account: OwnedExecutionAccount;
@@ -68,6 +71,7 @@ export interface AccountDecisionRecord {
   readonly signalId: string;
   readonly decision: "ALLOW" | "REDUCE" | "BLOCK" | "LOCK";
   readonly reasonCodes: readonly string[];
+  readonly ruleDiagnostics?: readonly Readonly<{ ruleId: string; category: string; severity: string; message: string }>[];
   readonly authorizedRiskPct: number;
   readonly brainFamily: BrainFamily;
   readonly brainProvider: BrainProvider;
@@ -83,7 +87,7 @@ const presetBounds: Readonly<Record<PolicyPreset, Readonly<{ risk: number; open:
   CONSERVATIVE: Object.freeze({ risk: 0.5, open: 2, leverage: 5, positions: 2, daily: 3, total: 8 }),
   BALANCED: Object.freeze({ risk: 1, open: 3, leverage: 10, positions: 4, daily: 5, total: 12 }),
   GROWTH: Object.freeze({ risk: 2, open: 6, leverage: 20, positions: 6, daily: 8, total: 20 }),
-  PROP_SAFE: Object.freeze({ risk: 0.5, open: 1.5, leverage: 5, positions: 2, daily: 4, total: 8 }),
+  PROP_SAFE: Object.freeze({ risk: 0.5, open: 1.5, leverage: 5, positions: 3, daily: 4, total: 8 }),
 });
 
 function stableId(parts: readonly string[]): string {
@@ -99,19 +103,25 @@ function bounded(name: string, value: number, maximum: number): number {
   return value;
 }
 
-export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, base: AccountPolicy, config: PolicyConfiguration): AccountPolicy {
+export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, base: AccountPolicy, config: PolicyConfiguration, historicalResearch=false): AccountPolicy {
   if (account.policyProfileId !== base.policy_id || account.policyVersion !== base.policy_version) throw new Error("POLICY_LINEAGE_MISMATCH");
   if (account.provider !== base.provider || account.accountType !== base.account_type) throw new Error("POLICY_ACCOUNT_MISMATCH");
-  const limit = presetBounds[config.preset];
-  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, limit.risk);
-  const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, limit.open);
+  if(historicalResearch&&(account.customerId!=='isolated-research-customer'||!account.immutableIdentity?.startsWith('historical:')))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
+  if((config.historicalPropStudy||config.historicalStaticBasis||base.historical_static_loss_basis)&&!historicalResearch)throw Error("ISOLATED_RESEARCH_POLICY_REQUIRED");
+  if(config.historicalStaticBasis&&!config.historicalPropStudy)throw Error("EXPLICIT_PROP_STUDY_REQUIRED");
+  const declaredLimit = presetBounds[config.preset];
+  const limit=historicalResearch&&config.preset==='PROP_SAFE'?{...declaredLimit,risk:1,leverage:10}:declaredLimit;
+  const study=historicalResearch&&config.preset==='PROP_SAFE'&&config.historicalPropStudy==='SIZING_AND_STATIC_20261113';
+  const cap=study?{risk:2,open:3,leverage:30,positions:3,daily:4.5,total:9}:limit;
+  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, cap.risk);
+  const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? limit.open, cap.open);
   bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
-  const leverage = bounded("maxLeverage", config.maxLeverage ?? limit.leverage, limit.leverage);
-  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? limit.positions, limit.positions);
-  const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, limit.daily);
-  const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, limit.total);
+  const leverage = bounded("maxLeverage", config.maxLeverage ?? (config.preset === "PROP_SAFE" ? 5 : limit.leverage), cap.leverage);
+  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (config.preset === "PROP_SAFE" ? 2 : limit.positions), limit.positions);
+  const daily = bounded("maxDailyDrawdownPct", config.maxDailyDrawdownPct ?? limit.daily, cap.daily);
+  const total = bounded("maxTotalDrawdownPct", config.maxTotalDrawdownPct ?? limit.total, cap.total);
   if (account.accountType !== "PERSONAL" && config.preset !== "PROP_SAFE") throw new Error("PROP_ACCOUNT_REQUIRES_PROP_SAFE");
-  return composeAccountPolicy(base, { max_risk_per_trade_pct: risk, max_portfolio_risk_pct: open, max_leverage_allowed: leverage, max_open_positions_total: positions, max_daily_drawdown_pct: daily, max_total_drawdown_pct: total, allowed_symbols: config.allowedSymbols === undefined ? base.allowed_symbols : config.allowedSymbols as string[] | null });
+  return composeAccountPolicy(base, { historical_static_loss_basis:study&&config.historicalStaticBasis?true:undefined, max_risk_per_trade_pct: risk, max_portfolio_risk_pct: open, max_leverage_allowed: leverage, max_open_positions_total: positions, max_daily_drawdown_pct: daily, max_total_drawdown_pct: total, allowed_symbols: config.allowedSymbols === undefined ? base.allowed_symbols : config.allowedSymbols as string[] | null });
 }
 
 /** Canonical signal -> owned account -> entitlement -> mode/policy -> brain -> controller -> intent. */
@@ -119,8 +129,10 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const signalBefore = JSON.stringify(input.signal);
   if (input.account.customerId !== input.context.user_id || input.account.id !== input.context.account_id || input.account.provider !== input.context.provider || input.account.accountType !== input.context.account_type) throw new Error("ACCOUNT_CONTEXT_OWNERSHIP_MISMATCH");
   const performance=accountPerformanceGate({policy:input.configuration.lossResponse,evidence:input.performanceEvidence,customerId:input.account.customerId,accountId:input.account.id,provider:input.account.provider,evaluatedAt:input.evaluatedAt,dailyDrawdownPct:input.context.daily_drawdown.current_drawdown_pct});
-  const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration);
-  const policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
+  if(input.historicalResearch&&(input.account.customerId!=='isolated-research-customer'||!input.account.immutableIdentity.startsWith('historical:')||input.context.environment!=='DEMO'))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
+  const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration,input.historicalResearch===true);
+  let policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
+  if(input.product.endsWith('PROP'))policy=composeAccountPolicy(policy,{max_daily_drawdown_pct:Math.min(policy.max_daily_drawdown_pct,4)});
   const brain = getExecutionBrain(input.account.provider);
   const preReasons: string[] = performance.blocked?[...performance.reasonCodes]:[];
   if(input.context.environment==='LIVE'){
@@ -144,7 +156,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version,JSON.stringify(freezeConfig(input.configuration)),JSON.stringify(input.context),JSON.stringify(input.performanceEvidence??null),JSON.stringify(input.entitlement),input.evaluatedAt];
   const positionPlan = decision === "ALLOW" || decision === "REDUCE" ? brain.createPositionPlan(brainDecision, input.signal, input.context, policy) : null;
   if((decision==="ALLOW"||decision==="REDUCE")&&(!positionPlan||!Number.isFinite(positionPlan.quantity)||positionPlan.quantity<=0)){decision='BLOCK';reasons=Object.freeze([...reasons,'APPROVED_POSITION_PLAN_UNAVAILABLE']);}
-  return Object.freeze({ authorityVersion: ACCOUNT_POLICY_AUTHORITY_VERSION, decisionId: `decision_${stableId(lineage)}`, customerId: input.account.customerId, accountId: input.account.id, immutableAccountIdentity: input.account.immutableIdentity, signalId: input.signal.signal_id, decision, reasonCodes: reasons, authorizedRiskPct: decision === "ALLOW" || decision === "REDUCE" ? brainDecision.authorized_risk_pct : 0, brainFamily: input.account.accountType === "PERSONAL" ? "PERSONAL" : "PROP", brainProvider: brain.provider, brainVersion: brain.brain_version, policyProfileId: policy.policy_id, policyVersion: policy.policy_version, configuration: freezeConfig(input.configuration), evaluatedAt: input.evaluatedAt, executionIntent: positionPlan && (decision==="ALLOW"||decision==="REDUCE") ? Object.freeze({ intentId: `intent_${stableId([...lineage, "intent"])}`, accountId: input.account.id, customerId: input.account.customerId, signalId: input.signal.signal_id, approvedQuantity: positionPlan.quantity, positionPlan }) : null });
+  return Object.freeze({ authorityVersion: ACCOUNT_POLICY_AUTHORITY_VERSION, decisionId: `decision_${stableId(lineage)}`, customerId: input.account.customerId, accountId: input.account.id, immutableAccountIdentity: input.account.immutableIdentity, signalId: input.signal.signal_id, decision, reasonCodes: reasons, ruleDiagnostics: Object.freeze(brainDecision.rule_violations.map(v=>Object.freeze({ruleId:v.rule_id,category:v.rule_category,severity:v.severity,message:v.message}))), authorizedRiskPct: decision === "ALLOW" || decision === "REDUCE" ? brainDecision.authorized_risk_pct : 0, brainFamily: input.account.accountType === "PERSONAL" ? "PERSONAL" : "PROP", brainProvider: brain.provider, brainVersion: brain.brain_version, policyProfileId: policy.policy_id, policyVersion: policy.policy_version, configuration: freezeConfig(input.configuration), evaluatedAt: input.evaluatedAt, executionIntent: positionPlan && (decision==="ALLOW"||decision==="REDUCE") ? Object.freeze({ intentId: `intent_${stableId([...lineage, "intent"])}`, accountId: input.account.id, customerId: input.account.customerId, signalId: input.signal.signal_id, approvedQuantity: positionPlan.quantity, positionPlan }) : null });
 }
 
 /** Safe customer/admin projection; credentials can never enter a read model. */
@@ -152,3 +164,4 @@ export function toSafeAccountReadModel(account: OwnedExecutionAccount) {
   const { credentialRef: _secretBoundary, ...safe } = account;
   return Object.freeze({ ...safe });
 }
+

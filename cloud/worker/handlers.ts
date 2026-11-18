@@ -1,3 +1,4 @@
+import {runCanonicalPolicyJob} from './canonical-policy.ts';
 import {isTenAsset} from '../../supabase/functions/_shared/ten-asset-profile.ts';
 import {admitDailyRows} from '../../supabase/functions/_shared/daily-trend.ts';
 import {hasDaily,dailyOutcomeAssumptions} from '../../supabase/functions/_shared/daily-trend-profile.ts';
@@ -49,6 +50,7 @@ export function createHandlers(db:SupabaseClient,fetcher:typeof fetch=fetch):Rec
       return {done:true,summary:{datasetHash:await hashValidationDataset(candles),rowCount:candles.length,first:candles[0]?.open_time,last:candles.at(-1)?.open_time,pages,classification:'RESEARCH'}};
     },
     REPLAY:async context=>{
+      if(context.job.payload.entryPolicyVersion==='entry-decision/v1')return runCanonicalPolicyJob(db,context);
       const job=context.job,p=job.payload,datasets=[];
       if(p.signalLifecycleVersion!==undefined&&p.signalLifecycleVersion!==REPLAY_LIFECYCLE_VERSION)throw new WorkerFault('UNSUPPORTED_SELECTION_LIFECYCLE',true);
       if(p.signalLifecycleVersion===REPLAY_LIFECYCLE_VERSION&&p.selectionPolicyHash!==await fingerprint(replaySelectionDescriptor(p.configuration)))throw new WorkerFault('SELECTION_POLICY_LINEAGE_INVALID',true);

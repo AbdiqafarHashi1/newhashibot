@@ -1,7 +1,6 @@
 import { isOwnerPreview } from './lib/ownerPreview/state';
 import { useSyncExternalStore } from 'react';
 import { previewStore } from './lib/ownerPreview/adapter';
-import { OwnerPreviewShell } from './components/preview/OwnerPreviewShell';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -92,6 +91,7 @@ const Recovery = lazy(() => import('./pages/admin/Recovery'));
 const Risk = lazy(() => import('./pages/admin/Risk'));
 const Capital = lazy(() => import('./pages/admin/Capital'));
 const RuntimeTruth = lazy(() => import('./pages/admin/RuntimeTruth'));
+const Research = lazy(() => import('./pages/admin/Research'));
 const MissionControl = lazy(() => import('./pages/admin/MissionControl'));
 
 // Minimal page-level loading fallback
@@ -123,7 +123,6 @@ function App() {
       <ScrollToAnchor />
       <AuthProvider>
         <PWAProvider>
-          <OwnerPreviewShell />
           <Suspense fallback={<PageLoader />}>
             <Routes key={previewRevision}>
               {/* Public Pages */}
@@ -174,8 +173,8 @@ function App() {
             <Route path="/app/crypto-execution" element={<RequireAuth><CryptoExecutionPortal /></RequireAuth>} />
             <Route path="/app/mt5-personal"    element={<RequireAuth><MT5PersonalPortal /></RequireAuth>} />
             <Route path="/app/mt5-prop"         element={<RequireAuth><MT5PropPortal /></RequireAuth>} />
-            <Route path="/app/bridge"           element={<CustomerVisualBridge />} />
-            <Route path="/app/visual-bridge"    element={<CustomerVisualBridge />} />
+            <Route path="/app/bridge"           element={<RequireAdmin><CustomerVisualBridge /></RequireAdmin>} />
+            <Route path="/app/visual-bridge"    element={<RequireAdmin><CustomerVisualBridge /></RequireAdmin>} />
             <Route path="/app/bot-setup"        element={<RequireAuth><CustomerBotSetup /></RequireAuth>} />
             <Route path="/app/telegram"    element={<RequireAuth><TelegramSetup /></RequireAuth>} />
             <Route path="/app/package-request" element={<RequireAuth><Navigate to="/vip" replace /></RequireAuth>} />
@@ -251,9 +250,9 @@ function App() {
             <Route path="/admin/reporting"         element={<RequireAdmin><Navigate to="/admin/performance" replace /></RequireAdmin>} />
             <Route path="/admin/trading-brain"     element={<RequireAdmin><TradingBrain /></RequireAdmin>} />
             <Route path="/admin/modes"             element={<RequireAdmin><Modes /></RequireAdmin>} />
+            <Route path="/admin/research" element={<RequireAdmin><Research /></RequireAdmin>} />
             <Route path="/admin/backtest"          element={<RequireAdmin><BacktestLab /></RequireAdmin>} />
             <Route path="/admin/backtest-lab"      element={<Navigate to="/admin/backtest" replace />} />
-            <Route path="/admin/research"          element={<Navigate to="/admin/backtest" replace />} />
             <Route path="/admin/handoff"           element={<RequireAdmin><Handoff /></RequireAdmin>} />
             <Route path="/admin/prop"              element={<RequireAdmin><PropTradingPanel /></RequireAdmin>} />
 

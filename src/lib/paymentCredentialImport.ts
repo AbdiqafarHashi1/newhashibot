@@ -1,0 +1,6 @@
+/** Parse payment settings only in memory. Imported source is never evaluated or logged. */
+export function parsePaymentCredentials(text:string,allowed:readonly string[]):Record<string,string>{
+ if(text.length>64000)throw Error('Use a settings file under 64 KB.');let record:Record<string,unknown>={};
+ try{if(text.trimStart().startsWith('{')){const p=JSON.parse(text);if(!p||Array.isArray(p)||typeof p!=='object')throw Error();record=p;}else for(const line of text.split(/\r?\n/)){const s=line.trim();if(!s||s.startsWith('#'))continue;const m=s.match(/^(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*(.*)$/);if(!m)throw Error();let value=m[2].trim();if((value.startsWith('"')&&value.endsWith('"'))||(value.startsWith("'")&&value.endsWith("'")))value=value.slice(1,-1);record[m[1]]=value;}}catch{throw Error('Use a JSON object or KEY=value lines.');}
+ const result=Object.fromEntries(allowed.filter(k=>Object.hasOwn(record,k)).map(k=>{if(typeof record[k]!=='string'||!(record[k] as string).trim())throw Error('Recognized settings require non-empty text.');return [k,(record[k] as string).trim()];}));if(!Object.keys(result).length)throw Error('No settings for the selected provider were found.');return result;
+}

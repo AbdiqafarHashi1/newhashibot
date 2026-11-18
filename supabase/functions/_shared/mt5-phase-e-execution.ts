@@ -1,3 +1,4 @@
+import {validateAtrTrailingPolicy,type AtrTrailingPolicy} from './atr-trailing-policy.ts';
 /**
  * Phase E boundary between the Phase-D account decision and the existing MT5
  * certified planner/command transport.  This module is deliberately pure: it
@@ -76,6 +77,8 @@ export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
   now: string;
   maximumIntentAgeMs: number;
   nativeChildOrders?: readonly Record<string,unknown>[];
+  maximumHoldingSeconds?:number;
+  trailingPolicy?:AtrTrailingPolicy;
 }): Readonly<Mt5EntryCommand> {
   const { lineage, route } = input;
   requireValue(lineage.decision === "ALLOW" || lineage.decision === "REDUCE", "PHASE_D_DECISION_NOT_EXECUTABLE");
@@ -96,10 +99,20 @@ export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
   requireValue(Number.isFinite(lineage.authorizedRiskPct) && lineage.authorizedRiskPct > 0, "AUTHORIZED_RISK_INVALID");
   requireValue(Number.isFinite(input.stopLoss) && input.stopLoss > 0, "INITIAL_PROTECTION_REQUIRED");
 
-  if(input.nativeChildOrders){const c=input.nativeChildOrders;requireValue(c.length===2&&c.every((x,i)=>x.role===(i===0?'ENTRY_TP1':'ENTRY_TP2')&&(x.action===undefined||x.action==='market')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(i===0?input.takeProfit1:input.takeProfit2)&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');}
+  if(input.nativeChildOrders){
+    const c=input.nativeChildOrders;
+    // The certified planner can conserve a minimum-lot single-target allocation
+    // as one ENTRY_TP2 child. It must never collapse two different targets.
+    const single=c.length===1&&Number.isFinite(input.takeProfit1)&&input.takeProfit1>0&&input.takeProfit1===input.takeProfit2;
+    requireValue((single||c.length===2)&&c.every((x,i)=>x.role===(single||i===1?'ENTRY_TP2':'ENTRY_TP1')&&(x.action===undefined||x.action==='market')&&x.symbol===input.symbol&&String(x.side).toUpperCase()===input.side&&Number(x.sl)===input.stopLoss&&Number(x.tp)===(single||i===1?input.takeProfit2:input.takeProfit1)&&Number.isFinite(Number(x.quantity))&&Number(x.quantity)>0)&&Math.abs(c.reduce((n,x)=>n+Number(x.quantity),0)-lineage.approvedQuantity)<1e-9,'MT5_CHILD_ALLOCATION_MISMATCH');
+  }
+  if(input.maximumHoldingSeconds!==undefined)requireValue(Number.isSafeInteger(input.maximumHoldingSeconds)&&input.maximumHoldingSeconds>=60&&input.maximumHoldingSeconds<=30*86400,'MT5_HOLDING_LIMIT_INVALID');
+  if(input.trailingPolicy){validateAtrTrailingPolicy(input.trailingPolicy);requireValue(route.environment==='DEMO'&&input.maximumHoldingSeconds===86400&&input.takeProfit1===input.takeProfit2,'MT5_TRAILING_DEMO_CONTRACT_REQUIRED');}
   // Quantity and risk are copied from Phase D. MT5 is not permitted to resize.
   const payload = Object.freeze({
     certified: true,
+    ...(input.trailingPolicy?{trailing_policy:Object.freeze({...input.trailingPolicy})}:{}),
+    ...(input.maximumHoldingSeconds!==undefined?{maximum_holding_seconds:input.maximumHoldingSeconds}:{}),
     ...(input.nativeChildOrders?{native_child_orders:Object.freeze(input.nativeChildOrders.map(x=>Object.freeze({...x})))}:{}),
     execution_plan_id: input.executionPlanId,
     deterministic_identity: input.deterministicOrderId,
@@ -156,4 +169,13 @@ export function projectMt5Lifecycle(current: Mt5LifecycleState, event: Mt5Lifecy
 
 export function safeMt5AuditProjection(command: Mt5EntryCommand) {
   return Object.freeze({ version: command.version, operation: command.operation, idempotencyKey: command.idempotencyKey, accountId: command.accountId, customerId: command.customerId, bridgeId: command.bridgeId, payload: command.payload });
+}
+
+/** Convert only the certified immutable plan's holding instruction, never a user override. */
+export function mt5HoldingSeconds(value:{bars:number;timeframe:string}|null|undefined){
+ if(value==null)return undefined;
+ const m=/^(\d+)(m|h|d)$/.exec(value.timeframe);
+ const seconds=m?value.bars*Number(m[1])*(m[2]==='m'?60:m[2]==='h'?3600:86400):NaN;
+ if(!Number.isSafeInteger(value.bars)||value.bars<1||!Number.isSafeInteger(seconds)||seconds<60||seconds>30*86400)throw new Mt5PhaseERejection('MT5_HOLDING_LIMIT_INVALID');
+ return seconds;
 }

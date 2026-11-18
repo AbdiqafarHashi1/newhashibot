@@ -43,7 +43,7 @@ test('persistent genuine conditional evaluator → restart → confirmation → 
 test('persistent conditional rejection matrix: invalidated, expired, stale, missing data and conflicting opportunities never project',async(t)=>{
  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-04T13:55:00Z')});const db=new PGlite();try{
  await bootstrapMissionDatabase(db);const at=Date.now(),{rows,s}=setup(at),store=missionStore(db);
- const conflict={...s,id:s.id+':opposite',side:'sell' as const};const rejected=await admitConditionalBatch(store,[s,conflict],at);assert.equal(rejected.admitted,0);assert.equal((await db.query('select * from signals')).rows.length,0);
+ const conflict={...s,id:s.id+':opposite',side:'sell' as const,stop:2*s.trigger-s.stop,tp1:2*s.trigger-s.tp1,tp2:2*s.trigger-s.tp2};const rejected=await admitConditionalBatch(store,[s,conflict],at);assert.equal(rejected.admitted,0);assert.equal((await db.query('select * from signals')).rows.length,0);
  assert.equal((await admitConditionalBatch(store,[s],at)).admitted,1);
  // A gap is nonterminal and cannot advance the frozen candle watermark.
  const missing={...rows.at(-1)!,open_time:new Date(at+w).toISOString()};await observeConditionalSymbol(store,s.symbol,'5m',[missing],at+2*w);assert.equal((await store.open(s.symbol,s.timeframe))[0].status,'WAITING');

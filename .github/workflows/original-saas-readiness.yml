@@ -29,6 +29,8 @@ jobs:
       - run: npm run build
       - run: npm run test:release1-engineering
       - run: npm run test:conditional-signals
+      - run: npm run test:mission2
+      - run: npm run typecheck:mission2
       - run: npm run test:operations-readiness
       - run: python3 -m unittest discover -s mt5-agent/tests
       - run: npm run test:strategies

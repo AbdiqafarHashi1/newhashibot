@@ -1,0 +1,2820 @@
+{
+  "schema": "prop-campaign/v1",
+  "sourceReportSha256": "336b5b14b031101b8f1ce5968080223988ecf816761976e574b8951576d3eb4d",
+  "engineSourceSha256": "e569009c947ce4ed64fce003cae23a690517cb6a62a271f89401e299e5b9c050",
+  "profile": {
+    "firmId": "ftmo",
+    "firmName": "FTMO",
+    "programId": "FTMO_TWO_STEP",
+    "programName": "FTMO 2-Step Swing",
+    "programType": "TWO_STEP",
+    "profileVersion": "2026-11-13-ftmo-2step-swing",
+    "effectiveDate": "2026-11-13",
+    "verifiedAt": null,
+    "verificationStatus": "PARTIALLY_VERIFIED",
+    "verificationNotes": [
+      "https://ftmo.com/en/trading-objectives/",
+      "https://ftmo.com/en/faq/ftmo-swing-account-type/",
+      "Core targets, loss limits, minimum days and Swing news/holding terms checked 2026-11-13. Contract-specific instruments, payouts and account eligibility remain separate."
+    ],
+    "accountSizes": [
+      5000,
+      10000,
+      25000,
+      50000,
+      100000,
+      200000
+    ],
+    "supportedPlatforms": [
+      "MT5"
+    ],
+    "phases": [
+      {
+        "id": "PHASE_1",
+        "profitTargetPct": 10,
+        "minimumTradingDays": 4,
+        "durationDays": null
+      },
+      {
+        "id": "VERIFICATION",
+        "profitTargetPct": 5,
+        "minimumTradingDays": 4,
+        "durationDays": null
+      },
+      {
+        "id": "FUNDED",
+        "profitTargetPct": null,
+        "minimumTradingDays": 0,
+        "durationDays": null
+      }
+    ],
+    "rules": {
+      "dailyLossPct": 5,
+      "maxLossPct": 10,
+      "dailyLossBasis": "START_OF_DAY_BALANCE",
+      "maxLossBasis": "INITIAL_BALANCE",
+      "floatingPnlIncluded": true,
+      "commissionIncluded": true,
+      "swapIncluded": true,
+      "feesIncluded": true,
+      "resetTimezone": "Europe/Prague",
+      "resetTime": "00:00",
+      "dstBehavior": "ZONE_DATABASE",
+      "flatRequiredForPayout": true,
+      "dailyLossAmountBasis": "INITIAL_BALANCE"
+    },
+    "payout": {
+      "waitingDays": null,
+      "profitSplitPct": 80,
+      "frequency": "PENDING_VERIFICATION"
+    },
+    "automation": {
+      "ea": "EA_UNKNOWN",
+      "vps": "VPS_UNKNOWN"
+    },
+    "compliance": [
+      "latency_exploitation",
+      "stale_price_abuse",
+      "account_sharing",
+      "unauthorized_copy_trading",
+      "prohibited_arbitrage",
+      "server_abuse"
+    ]
+  },
+  "period": {
+    "start": "2025-03-01T00:00:00.000Z",
+    "end": "2025-09-01T00:00:00.000Z",
+    "days": 184
+  },
+  "strategyScope": "forex.native-band-reentry-60-12-2-5,forex.native-sweep-retest-60-16-2-5-usdjpy-h72,forex.native-squeeze-15-48-2-3-usdjpy-h12,forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008,gold.native-momentum-15-48-2-5,gold.native-momentum-60-24-2-5,gold.native-band-reentry-15-48-3-5",
+  "signalCount": 247,
+  "protocol": {
+    "accountBundles": {
+      "ALL_TESTED": {
+        "label": "All seven tested Forex / Gold configurations",
+        "ids": [
+          "gold.native-momentum-15-48-2-5",
+          "gold.native-momentum-60-24-2-5",
+          "gold.native-band-reentry-15-48-3-5",
+          "forex.native-band-reentry-60-12-2-5",
+          "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008"
+        ]
+      },
+      "INTRADAY": {
+        "label": "Prop intraday: Gold momentum, Yen breakout, Sterling pullback",
+        "ids": [
+          "gold.native-momentum-15-48-2-5",
+          "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+          "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008"
+        ]
+      }
+    },
+    "startCount": 12,
+    "spacingDays": 7,
+    "fundedRiskPct": 0.25,
+    "phaseDelayHours": 24,
+    "internalDrawdownModel": "CONSERVATIVE_OBSERVED_HIGH_WATER",
+    "firmDrawdownModel": "STATIC_INITIAL_BALANCE",
+    "withdrawalsSimulated": false,
+    "costStressComponents": [
+      "commission",
+      "slippage",
+      "carry"
+    ],
+    "observedSpreadMultiplied": false
+  },
+  "summary": [
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 11,
+      "funded": 1,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.33102149539350645,
+        9.599267096766125
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.511022975995572,
+      "medianDaysToFunded": 161.59722222222223,
+      "failed": 0,
+      "unfinished": 11,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.04827959809805179,
+        7.440518221335987
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.296482675537512,
+      "medianDaysToFunded": 81.67361111111111,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 11,
+          "failed": 0,
+          "censored": 1
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 7
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 11,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        2.372004071038755,
+        6.538804732879652
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.014986571778833,
+      "medianDaysToFunded": 75.46875,
+      "failed": 0,
+      "unfinished": 1,
+      "survival": {
+        "30": {
+          "survived": 11,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 7
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 10,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.4109966628682742,
+        8.976118080998749
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.4834640875099,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 10,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.1151802597293863,
+        6.585542719406913
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.438117728414018,
+      "medianDaysToFunded": 111.5625,
+      "failed": 0,
+      "unfinished": 2,
+      "survival": {
+        "30": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 6
+        },
+        "60": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 6
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 10
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 10
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 7,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.060757174743321235,
+        5.162000211256017
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.3104537349193786,
+      "medianDaysToFunded": 95.50694444444444,
+      "failed": 0,
+      "unfinished": 5,
+      "survival": {
+        "30": {
+          "survived": 7,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 3
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        9.599267096766125,
+        15.966062652750587
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.336298987505562,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        8.698035715675177,
+        13.627926020395243
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.3801804234666304,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 7,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.1733821953388542,
+        4.131751866771039
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.197898725420499,
+      "medianDaysToFunded": 109.22916666666667,
+      "failed": 0,
+      "unfinished": 5,
+      "survival": {
+        "30": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 2
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 2
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 11,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        1.0374125711982196,
+        7.021853601335243
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.4447764142866553,
+      "medianDaysToFunded": 77.83680555555556,
+      "failed": 0,
+      "unfinished": 1,
+      "survival": {
+        "30": {
+          "survived": 11,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 8,
+          "failed": 0,
+          "censored": 3
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        1.760620074403327,
+        7.863376630540326
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.197898725420499,
+      "medianDaysToFunded": 74.04166666666667,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 10,
+          "failed": 0,
+          "censored": 2
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 4,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.6932330993542709,
+        3.1142461729545174
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.3166279812892903,
+      "medianDaysToFunded": 109.23263888888889,
+      "failed": 0,
+      "unfinished": 8,
+      "survival": {
+        "30": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 3,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 8,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.7351814191469166,
+        6.761030161980686
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.8121932182174545,
+      "medianDaysToFunded": 87.53472222222223,
+      "failed": 0,
+      "unfinished": 4,
+      "survival": {
+        "30": {
+          "survived": 8,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 3
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 11,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.7351814191469166,
+        7.002057443383499
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.6497745584475325,
+      "medianDaysToFunded": 88.3125,
+      "failed": 0,
+      "unfinished": 1,
+      "survival": {
+        "30": {
+          "survived": 11,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 7,
+          "failed": 0,
+          "censored": 4
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        12.833880030935777,
+        20.155503863534598
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.013440225841295,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        11.349709003156168,
+        17.786273152091496
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.1050183723054845,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 4,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        1.2846275140735453,
+        3.5049217014500025
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.46278144595818,
+      "medianDaysToFunded": 111.52083333333333,
+      "failed": 0,
+      "unfinished": 8,
+      "survival": {
+        "30": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 3,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.04827959809805179,
+        7.321241654621699
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.5503847655044307,
+      "medianDaysToFunded": 88.06597222222223,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 9,
+          "failed": 0,
+          "censored": 3
+        },
+        "60": {
+          "survived": 8,
+          "failed": 0,
+          "censored": 4
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.9443689221119713,
+        6.222874640323972
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.5269922481384373,
+      "medianDaysToFunded": 80.54861111111111,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 3,
+          "failed": 0,
+          "censored": 9
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 12
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 7,
+      "funded": 1,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.1151802597293863,
+        9.25596732495229
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.6547220963439813,
+      "medianDaysToFunded": 131.12847222222223,
+      "failed": 0,
+      "unfinished": 11,
+      "survival": {
+        "30": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 11,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.3186172950338005,
+        6.414079795406906
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.4089577278163308,
+      "medianDaysToFunded": 108.61111111111111,
+      "failed": 0,
+      "unfinished": 1,
+      "survival": {
+        "30": {
+          "survived": 3,
+          "failed": 0,
+          "censored": 8
+        },
+        "60": {
+          "survived": 3,
+          "failed": 0,
+          "censored": 8
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 7,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.8711882321237864,
+        6.414079795406906
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.53876773205561,
+      "medianDaysToFunded": 88.06597222222223,
+      "failed": 0,
+      "unfinished": 5,
+      "survival": {
+        "30": {
+          "survived": 6,
+          "failed": 0,
+          "censored": 1
+        },
+        "60": {
+          "survived": 6,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 7
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        10.351584530017789,
+        15.956308210727913
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.9819460354608966,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        8.845091938542392,
+        14.097868295995905
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.023366169544555,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 6,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.9035233414321702,
+        3.8839532926441898
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.45432860070914,
+      "medianDaysToFunded": 101.99305555555556,
+      "failed": 0,
+      "unfinished": 6,
+      "survival": {
+        "30": {
+          "survived": 6,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 6
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 6
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 8,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.44753031921487124,
+        7.7047523276686265
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.758151769134298,
+      "medianDaysToFunded": 94.54861111111111,
+      "failed": 0,
+      "unfinished": 4,
+      "survival": {
+        "30": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 3
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 3
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 10,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.9022901565125504,
+        7.7047523276686265
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.327342039485323,
+      "medianDaysToFunded": 70.76041666666667,
+      "failed": 0,
+      "unfinished": 2,
+      "survival": {
+        "30": {
+          "survived": 10,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 9,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 10
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 10
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 5,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.9518780218198517,
+        2.7937046452385257
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.5648533608067217,
+      "medianDaysToFunded": 95.23611111111111,
+      "failed": 0,
+      "unfinished": 7,
+      "survival": {
+        "30": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 5,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 5
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 5
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 4,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        0.4142841276105173,
+        6.657202590450849
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.291029939904691,
+      "medianDaysToFunded": 87.53472222222223,
+      "failed": 0,
+      "unfinished": 8,
+      "survival": {
+        "30": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 4,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 4
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 12,
+      "funded": 8,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.0021190995853685307,
+        6.9187873924667365
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.664290508598764,
+      "medianDaysToFunded": 88.23263888888889,
+      "failed": 0,
+      "unfinished": 4,
+      "survival": {
+        "30": {
+          "survived": 8,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 8,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 8
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        12.426086270701548,
+        20.771194978310987
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.685022679011786,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "ALL_TESTED",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        10.716897959970375,
+        18.391294261318706
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.781792973090257,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.5244822579305763,
+        6.383320829387248
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.801252754357799,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 4,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.2605057532806495,
+        8.578372161986954
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.529036117043424,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 8,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.38604322647523076,
+        7.766800536066803
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.029149283362474,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.095371330516973,
+        5.780640214662326
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.934271661509231,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 1,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.47724778715701177,
+        8.477607627664712
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.62304785322761,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 5,
+      "funded": 1,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.7687989738959187,
+        7.923929738493735
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.281293164024063,
+      "medianDaysToFunded": 167.36805555555554,
+      "failed": 0,
+      "unfinished": 11,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.5244822579305763,
+        6.383320829387248
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.801252754357799,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.095371330516973,
+        5.780640214662326
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.934271661509231,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.6194951132732966,
+        7.678723503506743
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.206544380602777,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 5,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.26094482463820895,
+        8.625100037671816
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.127558037254242,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 9,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.3198427810520225,
+        8.067579165716495
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.989345103882285,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        2.753331805171954,
+        6.468486321941803
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.3955778993067245,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 3,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.5025490138795722,
+        8.49459901473974
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.386685066664476,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 8,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.6622339589127223,
+        7.0099699368866135
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.706932390273225,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.6194951132732966,
+        7.678723503506743
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.206544380602777,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 2,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        2.753331805171954,
+        6.468486321941803
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.3955778993067245,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.5244822579305763,
+        6.383320829387248
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.801252754357799,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 4,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.2605057532806495,
+        8.578372161986954
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.529036117043424,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 8,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.38604322647523076,
+        7.766800536066803
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.029149283362474,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.095371330516973,
+        5.780640214662326
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.934271661509231,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 1,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.47724778715701177,
+        8.477607627664712
+      ],
+      "worstCurrentPhaseDrawdownPct": 4.62304785322761,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 5,
+      "funded": 1,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.7687989738959187,
+        7.923929738493735
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.281293164024063,
+      "medianDaysToFunded": 167.36805555555554,
+      "failed": 0,
+      "unfinished": 11,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 1
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.5244822579305763,
+        6.383320829387248
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.801252754357799,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 10000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.095371330516973,
+        5.780640214662326
+      ],
+      "worstCurrentPhaseDrawdownPct": 2.934271661509231,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.6194951132732966,
+        7.678723503506743
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.206544380602777,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 5,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.26094482463820895,
+        8.625100037671816
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.127558037254242,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 9,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.3198427810520225,
+        8.067579165716495
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.989345103882285,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        2.753331805171954,
+        6.468486321941803
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.3955778993067245,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.4,
+      "cohorts": 12,
+      "phase1Passed": 3,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.5025490138795722,
+        8.49459901473974
+      ],
+      "worstCurrentPhaseDrawdownPct": 5.386685066664476,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "CHALLENGE",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.5,
+      "cohorts": 12,
+      "phase1Passed": 8,
+      "funded": 0,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        -0.6622339589127223,
+        7.0099699368866135
+      ],
+      "worstCurrentPhaseDrawdownPct": 6.706932390273225,
+      "medianDaysToFunded": null,
+      "failed": 0,
+      "unfinished": 12,
+      "survival": {
+        "30": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 0,
+          "failed": 0,
+          "censored": 0
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        3.6194951132732966,
+        7.678723503506743
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.206544380602777,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    },
+    {
+      "bundleId": "INTRADAY",
+      "maximumPositions": 3,
+      "initialPhase": "FUNDED",
+      "capital": 100000,
+      "costScale": 1.5,
+      "riskPct": 0.25,
+      "cohorts": 12,
+      "phase1Passed": 0,
+      "funded": 12,
+      "tradingCohorts": 12,
+      "currentPhaseReturnRangePct": [
+        2.753331805171954,
+        6.468486321941803
+      ],
+      "worstCurrentPhaseDrawdownPct": 3.3955778993067245,
+      "medianDaysToFunded": 0,
+      "failed": 0,
+      "unfinished": 0,
+      "survival": {
+        "30": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "60": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "90": {
+          "survived": 12,
+          "failed": 0,
+          "censored": 0
+        },
+        "180": {
+          "survived": 1,
+          "failed": 0,
+          "censored": 11
+        }
+      }
+    }
+  ],
+  "productionAuthorization": false,
+  "fullReportSha256": "7386c4ce26f76c2322c5a22209527629f69f161c5260600b19c076d8ee6d2f0c"
+}

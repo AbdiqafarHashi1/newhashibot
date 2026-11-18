@@ -1,3 +1,4 @@
+import {executionAccessBoundary,ownedExpiryQuantity,type ExecutionAccessBoundary} from '../_shared/execution-access-expiry.ts';
 import {collectCryptoProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import {synchronizeCanonicalMonitor} from '../_shared/canonical-monitor-observations.ts';
 import {admitProviderPositions} from "../_shared/provider-snapshot-admission.ts";
@@ -423,6 +424,8 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
       }
     }
     Object.assign(stats, { untracked_positions_found: untrackedPositions.length, orphan_provider_orders_found: orphanOrders.length, reconciliation_sync: true });
+    let access:ExecutionAccessBoundary|undefined;
+    try{access=await executionAccessBoundary(supabase,ownership,'BYBIT')}catch{(stats.warnings as unknown[]).push({warning:'EXECUTION_ACCESS_READ_UNAVAILABLE',action:'retain_protection_retry_access_read'});}
     for (const row of (rows ?? []) as Array<Json & { id: string; symbol: string; status: string }>) {
       assertMonitorBudget(startedMs, `row:${row.symbol}`);
       stats.rows_checked = Number(stats.rows_checked) + 1;
@@ -442,6 +445,29 @@ async function monitorBybit(supabase: SupabaseClient, payload: Json, ownership: 
       const currentPrice = Number(position?.markPrice ?? 0) || null;
       const raw = { ...(row.raw_exchange_response as Json ?? {}), bybit_monitor: { hasPosition, open_order_count: symbolOrders.length, sl_order_ids: slOrders.map(orderId), tp_order_ids: tpOrders.map(orderId), last_sync_at: now } };
       const update: Json = { last_monitor_run_id: runId, last_monitor_checked_at: now, latest_monitor_error: "", latest_sync_error: "", raw_exchange_response: raw, updated_at: now, position_size: qty || null, latest_unrealized_pnl: Number(position?.unrealisedPnl ?? 0), current_price: currentPrice };
+
+      if(access?.state==='EXPIRED'){
+        const entryId=String(row.entry_order_id??'');
+        if(!entryId)throw Error('EXPIRED_ENTRY_NATIVE_BINDING_REQUIRED');
+        for(const order of symbolOrders.filter(o=>orderId(o)===entryId))await bybitPost<Json>(credential,'/v5/order/cancel',{category:'linear',symbol:row.symbol,orderId:entryId});
+        const history=await bybitRequest<{list:Json[]}>(credential,'/v5/order/history',{category:'linear',symbol:row.symbol,orderId:entryId,limit:1});
+        const native=history.list?.[0];if(!native||String(native.orderId)!==entryId||String(native.symbol)!==row.symbol||!['Filled','Cancelled','Canceled','Rejected','Deactivated'].includes(String(native.orderStatus)))throw Error('EXPIRY_ENTRY_RECONCILIATION_REQUIRED');
+        const filled=Number(native.cumExecQty);if(!Number.isFinite(filled)||filled<0)throw Error('EXPIRY_ENTRY_FILL_UNAVAILABLE');
+        const snapshot=await bybitRequest<{list:Json[]}>(credential,'/v5/position/list',{category:'linear',symbol:row.symbol});
+        if(!Array.isArray(snapshot.list))throw Error('EXPIRY_POSITION_SNAPSHOT_UNAVAILABLE');
+        const fresh=snapshot.list.filter(p=>p.symbol===row.symbol&&Math.abs(Number(p.size))>0);if(fresh.length>1)throw Error('EXPIRY_POSITION_AMBIGUOUS');const current=fresh[0],currentQty=current?Math.abs(Number(current.size)):0;
+        if(currentQty>0&&filled>0){
+          const quantity=ownedExpiryQuantity(currentQty,Math.min(Number(row.remaining_quantity)||Number(row.remaining_qty)||filled,filled)),link=`hb:${compactId(row.id)}:sub-expire`;
+          if(positionSideText(current??{},row)!==String(row.direction).toUpperCase().replace('BUY','LONG').replace('SELL','SHORT'))throw Error('EXPIRY_POSITION_SIDE_MISMATCH');
+          const prior=await bybitRequest<{list:Json[]}>(credential,'/v5/order/history',{category:'linear',symbol:row.symbol,orderLinkId:link,limit:1});
+          if(!prior.list?.length)await bybitPost<Json>(credential,'/v5/order/create',{category:'linear',symbol:row.symbol,side:closeSide(current??{},row),orderType:'Market',qty:String(quantity),reduceOnly:true,orderLinkId:link});
+          const proof=await bybitRequest<{list:Json[]}>(credential,'/v5/order/history',{category:'linear',symbol:row.symbol,orderLinkId:link,limit:1});
+          const close=proof.list?.[0];if(!close||close.orderStatus!=='Filled'||close.orderLinkId!==link||close.symbol!==row.symbol||(close.reduceOnly!==true&&close.reduceOnly!=='true')||Number(close.cumExecQty)+1e-9<quantity)throw Error('EXPIRY_CLOSE_SUBMISSION_UNCERTAIN');
+        }else if(currentQty>0&&filled===0)throw Error('EXPIRY_POSITION_OWNERSHIP_UNCONFIRMED');
+        for(const order of symbolOrders.filter(o=>orderId(o)!==entryId))await bybitPost<Json>(credential,'/v5/order/cancel',{category:'linear',symbol:row.symbol,orderId:orderId(order)});
+        const saved=await supabase.from('execution_orders').update({...update,status:'closed_expired',lifecycle_state:'CLOSED',expiry_reason:'EXECUTION_ACCESS_EXPIRED',expiry_status:'NATIVE_CLOSE_CONFIRMED',remaining_quantity:0,remaining_qty:0}).eq('id',row.id).eq('execution_scope_key',ownership.execution_scope_key);
+        if(saved.error)throw Error('EXPIRY_CLOSE_RESULT_NOT_PERSISTED');stats.rows_updated=Number(stats.rows_updated)+1;continue;
+      }
 
       // A provider acknowledgement followed by no position is not evidence of a fill/exit.
       // Canonical submission reconciliation owns the uncertain entry; never cancel it as an orphan.

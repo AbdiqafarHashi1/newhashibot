@@ -3,6 +3,7 @@ import {stableFingerprint} from './strategy-plan.ts';
 export function assertMeasuredExecutionLineage(evidence:any){
  const release=evidence.measured_release,signal=evidence.signal,plan=evidence.strategy_plan;
  if(!release||release.state!=='PROMOTED'||release.strategy_id!==signal?.strategy_id||plan?.provenance?.measured_release_id!==release.id)throw Error('CURRENT_MEASURED_EXECUTION_RELEASE_REQUIRED');
+ if(release.release_kind==='FORWARD_DEMO'&&!['DEMO','TESTNET'].includes(String(evidence.account?.environment).toUpperCase()))throw Error('DEMO_RELEASE_CANNOT_AUTHORIZE_LIVE');
  const frozen=release.immutable_configuration?.strategies?.find((s:any)=>s.id===signal.strategy_id&&s.enabled===true);
  if(!frozen||!Array.isArray(frozen.symbols)||!frozen.symbols.includes(signal.symbol)||!Array.isArray(frozen.timeframes)||!frozen.timeframes.includes(signal.timeframe))throw Error('MEASURED_RELEASE_SCOPE_MISMATCH');
  const actual=plan.provenance.evaluated_parameters;

@@ -1,0 +1,36 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {buildCanonicalDemoBundle} from '../../supabase/functions/_shared/canonical-demo-release';import {LAUNCH_CANONICAL_REVIEWS} from '../../supabase/functions/_shared/launch-canonical-reviews';import {assertMeasuredExecutionLineage} from '../../supabase/functions/_shared/measured-execution-lineage';
+test('only reviewed profitable canonical configurations become exact signal/demo releases',()=>{const ids=LAUNCH_CANONICAL_REVIEWS.map(r=>r.strategyId),bundle=buildCanonicalDemoBundle(ids,LAUNCH_CANONICAL_REVIEWS);assert.equal(bundle.strategies.length,LAUNCH_CANONICAL_REVIEWS.length);assert(bundle.strategies.every(s=>s.configuration.strategies[0].parameters.entry_engine_version===1));assert.throws(()=>buildCanonicalDemoBundle(['forex.native-squeeze-60-12-2-5'],LAUNCH_CANONICAL_REVIEWS),/REVIEW_REQUIRED/);const bad=structuredClone(LAUNCH_CANONICAL_REVIEWS) as any;bad[0].periods[0].metrics.netReturnPct=NaN;assert.throws(()=>buildCanonicalDemoBundle(ids,bad),/POSITIVE_COSTED/);});
+test('forward demo approval cannot authorize a live account even with otherwise identical provenance',()=>{const s=buildCanonicalDemoBundle([LAUNCH_CANONICAL_REVIEWS[0].strategyId],LAUNCH_CANONICAL_REVIEWS).strategies[0],f=s.configuration.strategies[0],e:any={measured_release:{id:'reviewed',strategy_id:s.strategyId,state:'PROMOTED',release_kind:'FORWARD_DEMO',immutable_configuration:s.configuration},account:{environment:'demo'},signal:{strategy_id:s.strategyId,strategy_version:f.version,symbol:f.symbols[0],timeframe:f.timeframes[0]},strategy_plan:{provenance:{measured_release_id:'reviewed',evaluated_parameters:f.parameters}},qualified_set:{entries:[{strategyId:s.strategyId,strategyVersion:f.version,supportedSymbols:f.symbols,supportedTimeframes:f.timeframes,strategyParameters:f.parameters}]}};assert.doesNotThrow(()=>assertMeasuredExecutionLineage(e));e.account.environment='live';assert.throws(()=>assertMeasuredExecutionLineage(e),/DEMO_RELEASE_CANNOT_AUTHORIZE_LIVE/);});
+
+test('stored reviews match complete compressed account replay evidence',async()=>{
+ const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto');
+ for(const [id,prefix] of [['forex.native-sweep-retest-60-16-2-5-usdjpy-h72','yen-sweep'],['forex.native-squeeze-15-48-2-3-usdjpy-h12','yen-scalp'],['crypto.launch-trend-pullback-48-2-3-h72','crypto-pullback-72'],['crypto.launch-rsi2-48-3-3-h72','crypto-rsi-72'],['crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006','crypto-doge-vwap'],['forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008','forex-gbp-rsi'],['crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006','crypto-ltc-range']]){
+  const review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId===id)!;
+  for(const [i,period] of ['early','later'].entries()){
+   const raw=gunzipSync(readFileSync(`docs/research/launch-20261113/canonical/${prefix}-${period}.json.gz`)),report=JSON.parse(raw.toString());assert.equal(createHash('sha256').update(raw).digest('hex'),review.periods[i].reportSha256);assert.equal(report.status,'COMPLETED');assert.equal(report.engineSourceSha256,review.periods[i].engineSourceSha256);assert.equal(report.experiment.strategyScope,review.strategyId);assert.deepEqual(report.accounts[0].metrics,review.periods[i].metrics);assert(report.signalSnapshots.length>=10);
+  }
+ }
+});
+
+test('LTC retains its small positive 2026 observation without counting it as a qualifying period',async()=>{
+ const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto'),review=LAUNCH_CANONICAL_REVIEWS.find(r=>r.strategyId==='crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006')!;
+ assert.equal(review.periods.length,2);assert(review.periods.every(p=>p.metrics.closedTrades>=10));assert('supportingObservations' in review);const observation=review.supportingObservations[0],raw=gunzipSync(readFileSync('docs/research/launch-20261113/canonical/crypto-ltc-range-2026.json.gz')),report=JSON.parse(raw.toString());assert.equal(observation.metrics.closedTrades,9);assert.equal(createHash('sha256').update(raw).digest('hex'),observation.reportSha256);assert.deepEqual(report.accounts[0].metrics,observation.metrics);
+});
+
+test('optional Gold trailing releases bind the complete integrated account ledgers rather than native research returns',async()=>{
+ const {RSI_TRAILING_CANONICAL_REVIEWS}=await import('../../supabase/functions/_shared/rsi-trailing-canonical-reviews');
+ const {gunzipSync}=await import('node:zlib'),{readFileSync}=await import('node:fs'),{createHash}=await import('node:crypto');
+ const review=RSI_TRAILING_CANONICAL_REVIEWS[0],root='docs/research/demo-completion-20261114/';
+ const manifest=JSON.parse(readFileSync(root+'SHA256SUMS.json','utf8'));
+ for(const [file,digest] of Object.entries(manifest))assert.equal(createHash('sha256').update(readFileSync(root+file)).digest('hex'),digest,file);
+ for(const [i,period] of ['early','later'].entries()){
+  const raw=gunzipSync(readFileSync(root+`gold-rsi-${period}.json.gz`)),report=JSON.parse(raw.toString()),proof=review.periods[i];
+  assert.equal(createHash('sha256').update(raw).digest('hex'),proof.reportSha256);
+  assert.equal(report.status,'COMPLETED');assert.equal(report.engineSourceSha256,proof.engineSourceSha256);
+  assert.equal(report.experiment.strategyScope,review.strategyId);assert.equal(report.accounts.length,1);
+  const account=report.accounts[0];assert.equal(account.capital,proof.capital);assert.equal(account.riskPct,proof.riskPct);
+  assert.deepEqual(account.metrics,proof.metrics);assert(account.metrics.expectancyR>0);assert.equal(account.metrics.openPositions,0);
+ }
+ const bundle=buildCanonicalDemoBundle([review.strategyId],RSI_TRAILING_CANONICAL_REVIEWS);
+ assert.equal(bundle.strategies.length,1);assert.equal(bundle.strategies[0].strategyId,review.strategyId);
+});

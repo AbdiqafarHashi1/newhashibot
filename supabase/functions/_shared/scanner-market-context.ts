@@ -1,3 +1,4 @@
+import {complementaryMarketPolicy} from './complementary-strategies.ts';
 import {dailyEvidence} from './daily-trend-contract.ts';
 import {signalEnsembleMarketPolicy} from './crypto-signal-ensemble.ts';
 import {cryptoTeamPolicy} from './coordinated-crypto-policy.ts';
@@ -138,6 +139,7 @@ export function strategyFreshnessScore(e: MarketArbitrationEntry, ctx: MarketCon
 
 export function arbitrationNoTradeReason(ctx: MarketContext, entries: MarketArbitrationEntry[]): string {
   if (entries.length === 0) return "";
+  const complementaryPolicy=complementaryMarketPolicy(entries);if(complementaryPolicy!==undefined)return complementaryPolicy;
   if(entries.every(e=>e.name==='DailyEmaTrend'))return entries.every(e=>dailyEvidence(e.result.score_breakdown))?"":"DAILY_POLICY_MISMATCH";
   const sleevePolicy=signalEnsembleMarketPolicy(entries);if(sleevePolicy!==undefined)return sleevePolicy;
   const teamPolicy=cryptoTeamPolicy(entries);if(teamPolicy!==undefined)return teamPolicy;
@@ -303,4 +305,5 @@ export function arbitrationScore(e: MarketArbitrationEntry, ctx?: MarketContext)
   const riskQualityPenalty = ctx?.risk_quality === "poor" ? 0.08 : ctx?.risk_quality === "mixed" ? 0.025 : 0;
   return parseFloat(Math.max(0, (scorePct * 0.18) + (identityPct * 0.13) + (roleFitPct * 0.20) + (freshnessPct * 0.08) + (opportunityPct * 0.12) + (rrPct * 0.14) + (distMargin * 0.08) + (gradePct * 0.07) + gradeQualityBonus + preferredBonus - mixedMarketPenalty - swingChopPenalty - overextensionPenalty(e) - riskQualityPenalty).toFixed(4));
 }
+
 

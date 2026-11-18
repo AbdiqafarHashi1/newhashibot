@@ -1,0 +1,532 @@
+{
+  "schema": "participation-entry-screen/v1",
+  "symbol": "EURUSD",
+  "gridCount": 162,
+  "protocol": {
+    "development": [
+      "2025-01-20",
+      "2025-04-01"
+    ],
+    "validation": [
+      "2025-04-01",
+      "2025-06-01"
+    ],
+    "later": [
+      "2025-06-01",
+      "2025-09-01"
+    ],
+    "selection": "Top eight positive costed development configurations per family; later periods already observed in previous research are not an untouched holdout"
+  },
+  "sourceSha256": "c86e181c244d9acd61dc231b2411ba2ed2456b32f1c1bbda56b785f306213a29",
+  "results": [
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 24,
+        "stopAtr": 1.5,
+        "rewardR": 1.5
+      },
+      "development": {
+        "equityReturnPct": 5.013234960000035,
+        "maximumDrawdownPct": 2.000312250446504,
+        "profitFactor": 1.7833520725868202,
+        "closedTrades": 28,
+        "entries": 28,
+        "blocked": 0,
+        "failed": false,
+        "costs": 62.57650399999999,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -0.31684002999987637,
+        "maximumDrawdownPct": 2.2248778512514003,
+        "profitFactor": 0.9167908101739952,
+        "closedTrades": 17,
+        "entries": 18,
+        "blocked": 0,
+        "failed": false,
+        "costs": 36.264002999999995,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 24,
+        "stopAtr": 2,
+        "rewardR": 1.5
+      },
+      "development": {
+        "equityReturnPct": 4.643027149999934,
+        "maximumDrawdownPct": 1.7326217789415965,
+        "profitFactor": 1.8944097707025038,
+        "closedTrades": 24,
+        "entries": 24,
+        "blocked": 0,
+        "failed": false,
+        "costs": 47.237285,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -0.700168019999925,
+        "maximumDrawdownPct": 2.580825277325668,
+        "profitFactor": 0.813334316524403,
+        "closedTrades": 14,
+        "entries": 15,
+        "blocked": 0,
+        "failed": false,
+        "costs": 26.746802000000002,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 24,
+        "stopAtr": 1.5,
+        "rewardR": 3
+      },
+      "development": {
+        "equityReturnPct": 5.961907380000087,
+        "maximumDrawdownPct": 3.0039044182703583,
+        "profitFactor": 1.691928641096113,
+        "closedTrades": 26,
+        "entries": 26,
+        "blocked": 0,
+        "failed": false,
+        "costs": 69.629262,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -2.2972898599999514,
+        "maximumDrawdownPct": 4.39936757294448,
+        "profitFactor": 0.542616875819587,
+        "closedTrades": 13,
+        "entries": 14,
+        "blocked": 0,
+        "failed": false,
+        "costs": 36.628986000000005,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 24,
+        "stopAtr": 3,
+        "rewardR": 1.5
+      },
+      "development": {
+        "equityReturnPct": 3.519526330000078,
+        "maximumDrawdownPct": 3.1730180764365787,
+        "profitFactor": 1.1657435638734805,
+        "closedTrades": 77,
+        "entries": 78,
+        "blocked": 0,
+        "failed": false,
+        "costs": 184.64736700000034,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -3.0861814599998816,
+        "maximumDrawdownPct": 7.705274190337189,
+        "profitFactor": 0.8563061097386642,
+        "closedTrades": 73,
+        "entries": 74,
+        "blocked": 0,
+        "failed": false,
+        "costs": 109.09814600000007,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 48,
+        "stopAtr": 3,
+        "rewardR": 1.5
+      },
+      "development": {
+        "equityReturnPct": 4.178136310000169,
+        "maximumDrawdownPct": 5.43361204269435,
+        "profitFactor": 1.234823468602872,
+        "closedTrades": 64,
+        "entries": 65,
+        "blocked": 0,
+        "failed": false,
+        "costs": 148.04636900000014,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -1.7202337299997872,
+        "maximumDrawdownPct": 5.719942519407904,
+        "profitFactor": 0.8965445939981102,
+        "closedTrades": 59,
+        "entries": 60,
+        "blocked": 0,
+        "failed": false,
+        "costs": 88.74337300000003,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 60,
+        "lookback": 24,
+        "stopAtr": 2,
+        "rewardR": 3
+      },
+      "development": {
+        "equityReturnPct": 2.3332098499999843,
+        "maximumDrawdownPct": 3.809266407690368,
+        "profitFactor": 1.2570057708882705,
+        "closedTrades": 21,
+        "entries": 22,
+        "blocked": 0,
+        "failed": false,
+        "costs": 50.13901499999997,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -1.130291449999965,
+        "maximumDrawdownPct": 2.918749004515793,
+        "profitFactor": 0.7039124048302446,
+        "closedTrades": 11,
+        "entries": 12,
+        "blocked": 0,
+        "failed": false,
+        "costs": 26.669144999999997,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 24,
+        "stopAtr": 2,
+        "rewardR": 1.5
+      },
+      "development": {
+        "equityReturnPct": 2.7579682599999433,
+        "maximumDrawdownPct": 5.450486660709726,
+        "profitFactor": 1.096812748391294,
+        "closedTrades": 107,
+        "entries": 107,
+        "blocked": 0,
+        "failed": false,
+        "costs": 307.79317400000036,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -3.9283773399993116,
+        "maximumDrawdownPct": 10.77340814868678,
+        "profitFactor": 0.8615664492462738,
+        "closedTrades": 94,
+        "entries": 95,
+        "blocked": 0,
+        "failed": false,
+        "costs": 193.88773399999985,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "sweep_retest",
+        "timeframe": 15,
+        "lookback": 48,
+        "stopAtr": 2,
+        "rewardR": 5
+      },
+      "development": {
+        "equityReturnPct": 3.3034469400001543,
+        "maximumDrawdownPct": 8.281539125077902,
+        "profitFactor": 1.142507456238216,
+        "closedTrades": 56,
+        "entries": 57,
+        "blocked": 0,
+        "failed": false,
+        "costs": 180.4153060000002,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -5.100561479999599,
+        "maximumDrawdownPct": 8.78768837930595,
+        "profitFactor": 0.7007023214357113,
+        "closedTrades": 47,
+        "entries": 48,
+        "blocked": 0,
+        "failed": false,
+        "costs": 109.776148,
+        "openPositions": 1
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 15,
+        "lookback": 24,
+        "stopAtr": 3,
+        "rewardR": 3
+      },
+      "development": {
+        "equityReturnPct": 4.639103100000175,
+        "maximumDrawdownPct": 5.6729582518444,
+        "profitFactor": 1.2272573435548004,
+        "closedTrades": 61,
+        "entries": 62,
+        "blocked": 0,
+        "failed": false,
+        "costs": 143.67968999999994,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -3.9763250699998753,
+        "maximumDrawdownPct": 5.466907603808592,
+        "profitFactor": 0.7820414074567702,
+        "closedTrades": 57,
+        "entries": 57,
+        "blocked": 0,
+        "failed": false,
+        "costs": 94.51250700000001,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "band_reentry",
+        "timeframe": 15,
+        "lookback": 24,
+        "stopAtr": 3,
+        "rewardR": 5
+      },
+      "development": {
+        "equityReturnPct": 2.9768122800002406,
+        "maximumDrawdownPct": 4.800131859905889,
+        "profitFactor": 1.1439426652159883,
+        "closedTrades": 58,
+        "entries": 59,
+        "blocked": 0,
+        "failed": false,
+        "costs": 151.448772,
+        "openPositions": 1
+      },
+      "validation": {
+        "equityReturnPct": -4.992490509999858,
+        "maximumDrawdownPct": 6.195147376008375,
+        "profitFactor": 0.7254956109463498,
+        "closedTrades": 56,
+        "entries": 56,
+        "blocked": 0,
+        "failed": false,
+        "costs": 96.769051,
+        "openPositions": 0
+      }
+    },
+    {
+      "configuration": {
+        "family": "london_range_break",
+        "timeframe": 15,
+        "lookback": 12,
+        "stopAtr": 3,
+        "rewardR": 5
+      },
+      "development": {
+        "equityReturnPct": 0.8510397199997799,
+        "maximumDrawdownPct": 4.710563019604801,
+        "profitFactor": 1.0662036530819492,
+        "closedTrades": 44,
+        "entries": 44,
+        "blocked": 0,
+        "failed": false,
+        "costs": 82.32602800000006,
+        "openPositions": 0
+      },
+      "validation": {
+        "equityReturnPct": -4.954309550000091,
+        "maximumDrawdownPct": 5.4400549572100925,
+        "profitFactor": 0.424313081468527,
+        "closedTrades": 25,
+        "entries": 25,
+        "blocked": 0,
+        "failed": false,
+        "costs": 29.840954999999976,
+        "openPositions": 0
+      }
+    }
+  ],
+  "manifests": [
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/01/Exness_EURUSD_Raw_Spread_2025_01.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-01",
+      "archiveSha256": "306d23e3e9f675c141d5ce3569867f03ae0b55b27aeceea63f5e132f1a1a8b38",
+      "rowsSha256": "804350ba4a1be2d93d79bf2efd3a39e603417e0df50754127837188d0109ef72",
+      "rows": 6318,
+      "ticks": 1478757,
+      "firstTick": 1735769115727,
+      "lastTick": 1738360738539,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/02/Exness_EURUSD_Raw_Spread_2025_02.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-02",
+      "archiveSha256": "3674cfab4051d6056c5201c227dba95127efaec8257d81016c39e7c64bed9cb3",
+      "rowsSha256": "5a1725e2dca918f1559f7613de75e1fca3f0505da70911bd6103fc927c8dfbe2",
+      "rows": 5756,
+      "ticks": 1226849,
+      "firstTick": 1738533910023,
+      "lastTick": 1740779937063,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/03/Exness_EURUSD_Raw_Spread_2025_03.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-03",
+      "archiveSha256": "e8baffdc8381ef296ef46f017dca3dc8d04a707f1c3de7135d5ef4ca1e56ebfe",
+      "rowsSha256": "9b66fcc06a4f2b997dd3f112bc321627cfcaf4adca8986e2e761571394912eeb",
+      "rows": 6079,
+      "ticks": 1467452,
+      "firstTick": 1740953103877,
+      "lastTick": 1743465595807,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/04/Exness_EURUSD_Raw_Spread_2025_04.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-04",
+      "archiveSha256": "73e025932bdf4cd8d12784bb3c7cb71dff9b6dd34f17ab1688aaac7a2bc16a9d",
+      "rowsSha256": "70ec0de4b8fbb2e689debf7463ffed84fd9f35f86bf4bb622733a0874abb3d33",
+      "rows": 6314,
+      "ticks": 2880296,
+      "firstTick": 1743465600089,
+      "lastTick": 1746057599760,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/05/Exness_EURUSD_Raw_Spread_2025_05.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-05",
+      "archiveSha256": "7e29e821ef9eef241ce27192b83c385a5d9b3c12371f5b852811a8d57bc9b128",
+      "rowsSha256": "da59463f6a53ff816c28054e365de648639197a3f9c5fe205d61aec80c2deeff",
+      "rows": 6296,
+      "ticks": 1707678,
+      "firstTick": 1746057601359,
+      "lastTick": 1748638737662,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/06/Exness_EURUSD_Raw_Spread_2025_06.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-06",
+      "archiveSha256": "81ae57033d04f8376d221d14633a39d4dee4f3042e3860dc2a4531ec332582ba",
+      "rowsSha256": "314f67f6d1443aa084298b11166452dfe6ff31b4ff9ba00c842a912707777343",
+      "rows": 6079,
+      "ticks": 1417170,
+      "firstTick": 1748811904567,
+      "lastTick": 1751327995309,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/07/Exness_EURUSD_Raw_Spread_2025_07.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-07",
+      "archiveSha256": "7cadec307c45b069a3a100046d7e5cbec93e0d5d3215290315a843eae350c11f",
+      "rowsSha256": "3e1950718196dcf2b49f40f8cc9982a57110a9a0ee172b86fda0a3197b66d9fb",
+      "rows": 6620,
+      "ticks": 1308306,
+      "firstTick": 1751328003433,
+      "lastTick": 1754006397253,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    },
+    {
+      "sourceUrl": "https://ticks.ex2archive.com/ticks/EURUSD_Raw_Spread/2025/08/Exness_EURUSD_Raw_Spread_2025_08.zip",
+      "source": "EXNESS_BROKER_BID_ASK",
+      "variant": "EURUSD_Raw_Spread",
+      "symbol": "EURUSD",
+      "month": "2025-08",
+      "archiveSha256": "24d8753bec23a9a728b3fc3575f196d3b3df9ee0f89f7be1b726df19ee6c445a",
+      "rowsSha256": "9aca73a519d017720016a1469398cbc83a8ba8b6297f8550628ed33420aac5ce",
+      "rows": 6043,
+      "ticks": 1119606,
+      "firstTick": 1754006400095,
+      "lastTick": 1756684795414,
+      "vendorChecksum": false,
+      "volumeMeaning": "Observed quote tick count; not traded volume",
+      "limitations": [
+        "Exness reference prices, not a JustMarkets account execution record",
+        "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+        "No synthetic quotes or weekend candles"
+      ]
+    }
+  ],
+  "limitations": [
+    "Native bid/ask; explicit commission, carry and slippage scenarios",
+    "ATR stops/fixed reward exits are initial screens, not opposite-liquidity target claims",
+    "Canonical scanner/account replay is required before customer activation"
+  ],
+  "automaticPromotion": false
+}

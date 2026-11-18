@@ -1,0 +1,231 @@
+{
+  "schema": "capital-scenario-replay/v1",
+  "sourceReportSha256": "c03b7b50c6dcc58dc167490f91df36bb423491c09aa46aec605dad829c6acc53",
+  "period": {
+    "start": "2025-04-01T00:00:00.000Z",
+    "end": "2025-06-01T00:00:00.000Z",
+    "days": 61
+  },
+  "strategy": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+  "baselineReproduced": true,
+  "scenarios": [
+    {
+      "capital": 500,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 0,
+        "openPositions": 0,
+        "authorizedEntries": 0,
+        "rejectedAttempts": 16,
+        "rejectionReasons": {
+          "APPROVED_FULL_RISK": 16,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 16
+        },
+        "winRate": null,
+        "profitFactor": null,
+        "expectancyR": null,
+        "realizedNet": 0,
+        "endingBalance": 500,
+        "endingEquity": 500,
+        "netReturnPct": 0,
+        "maximumDrawdownPct": 0,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 0,
+        "costs": 0,
+        "financing": 0,
+        "tradesPerDay": 0,
+        "tradesPerWeek": 0,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "capital": 500,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 13,
+        "openPositions": 0,
+        "authorizedEntries": 13,
+        "rejectedAttempts": 3,
+        "rejectionReasons": {
+          "APPROVED_FULL_RISK": 3,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 3
+        },
+        "winRate": 0.23076923076923078,
+        "profitFactor": 1.1141628513956918,
+        "expectancyR": 0.07511242055773426,
+        "realizedNet": 4.786306365202391,
+        "endingBalance": 504.7863063652023,
+        "endingEquity": 504.7863063652023,
+        "netReturnPct": 0.9572612730404557,
+        "maximumDrawdownPct": 6.9547858940689915,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 8,
+        "costs": 0.9100000000000004,
+        "financing": 1.1,
+        "tradesPerDay": 0.21311475409836064,
+        "tradesPerWeek": 1.4918032786885245,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "capital": 1000,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 13,
+        "openPositions": 0,
+        "authorizedEntries": 13,
+        "rejectedAttempts": 3,
+        "rejectionReasons": {
+          "APPROVED_FULL_RISK": 3,
+          "APPROVED_POSITION_PLAN_UNAVAILABLE": 3
+        },
+        "winRate": 0.23076923076923078,
+        "profitFactor": 1.1141628513956918,
+        "expectancyR": 0.07511242055773426,
+        "realizedNet": 4.786306365202391,
+        "endingBalance": 1004.7863063652023,
+        "endingEquity": 1004.7863063652023,
+        "netReturnPct": 0.4786306365202336,
+        "maximumDrawdownPct": 3.6192122561013838,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 8,
+        "costs": 0.9100000000000004,
+        "financing": 1.1,
+        "tradesPerDay": 0.21311475409836064,
+        "tradesPerWeek": 1.4918032786885245,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "capital": 1000,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 16,
+        "openPositions": 0,
+        "authorizedEntries": 16,
+        "rejectedAttempts": 0,
+        "rejectionReasons": {},
+        "winRate": 0.25,
+        "profitFactor": 1.1040824711814117,
+        "expectancyR": 0.13805978122847812,
+        "realizedNet": 10.47719980935312,
+        "endingBalance": 1010.4771998093528,
+        "endingEquity": 1010.4771998093528,
+        "netReturnPct": 1.0477199809352782,
+        "maximumDrawdownPct": 5.405733410382933,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 2.1000000000000005,
+        "financing": 2.500032531099618,
+        "tradesPerDay": 0.26229508196721313,
+        "tradesPerWeek": 1.8360655737704918,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "capital": 10000,
+      "riskPct": 0.5,
+      "metrics": {
+        "closedTrades": 16,
+        "openPositions": 0,
+        "authorizedEntries": 16,
+        "rejectedAttempts": 0,
+        "rejectionReasons": {},
+        "winRate": 0.25,
+        "profitFactor": 1.16049367605527,
+        "expectancyR": 0.13805978122847817,
+        "realizedNet": 100.06872251064915,
+        "endingBalance": 10100.06872251064,
+        "endingEquity": 10100.06872251064,
+        "netReturnPct": 1.0006872251063943,
+        "maximumDrawdownPct": 3.046701877573663,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 13.020000000000001,
+        "financing": 15.90029277989656,
+        "tradesPerDay": 0.26229508196721313,
+        "tradesPerWeek": 1.8360655737704918,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    },
+    {
+      "capital": 10000,
+      "riskPct": 1,
+      "metrics": {
+        "closedTrades": 16,
+        "openPositions": 0,
+        "authorizedEntries": 16,
+        "rejectedAttempts": 0,
+        "rejectionReasons": {},
+        "winRate": 0.25,
+        "profitFactor": 1.1478236378514102,
+        "expectancyR": 0.13805978122847823,
+        "realizedNet": 189.4641106457531,
+        "endingBalance": 10189.464110645755,
+        "endingEquity": 10189.464110645755,
+        "netReturnPct": 1.8946411064575477,
+        "maximumDrawdownPct": 6.017843381477335,
+        "drawdownDefinition": "Conservative OHLC intrabar equity bound, not an observed tick path",
+        "maxLosingStreak": 5,
+        "costs": 26.740000000000002,
+        "financing": 32.80061809089274,
+        "tradesPerDay": 0.26229508196721313,
+        "tradesPerWeek": 1.8360655737704918,
+        "accountFailed": false,
+        "sharpe": null,
+        "sortino": null,
+        "riskOfRuin": null,
+        "qualification": "NOT_GRANTED",
+        "limitations": [
+          "Short/correlated samples do not establish risk of ruin or statistical confidence",
+          "Unclosed positions remain marked, not counted as completed wins"
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "Frozen canonical signal stream; customer capital/risk resimulation, not a new strategy search",
+    "Observed reference quotes, scenario commission/slippage/carry/contracts",
+    "No actual provider placement or fill proof; minimum lots and account rules can block entries"
+  ]
+}

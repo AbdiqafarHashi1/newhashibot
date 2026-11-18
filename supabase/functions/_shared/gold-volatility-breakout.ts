@@ -1,3 +1,4 @@
+import {nativeCandleEvidence} from './native-candle-evidence.ts';
 import { buildForexMarketContext, forexSessionContext, roundInstrumentPrice } from "./forex-domain.ts";
 import type { LegacyStrategyResult, StrategyEvaluationContext } from "./professional-strategies.ts";
 
@@ -16,7 +17,7 @@ function fingerprint(evidence: Evidence): string {
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 function provenance(input: StrategyEvaluationContext, evidence: Evidence): Evidence {
-  const base: Evidence = { strategy_id: GOLD_STRATEGY_ID, strategy_version: GOLD_STRATEGY_VERSION, evaluator_identity: GOLD_EVALUATOR_ID, certification: "MEASURED_RELEASE_REQUIRED", certification_provenance: GOLD_CERTIFICATION_PROVENANCE, symbol: input.symbol, instrument_class: "metal_gold", provider: "mt5", primary_timeframe: "15m", context_timeframe: "1h", ...evidence };
+  const base: Evidence = { strategy_id: GOLD_STRATEGY_ID, strategy_version: GOLD_STRATEGY_VERSION, evaluator_identity: GOLD_EVALUATOR_ID, certification: "MEASURED_RELEASE_REQUIRED", certification_provenance: GOLD_CERTIFICATION_PROVENANCE, symbol: input.symbol, instrument_class: "metal_gold", provider: input.candles[0]?.source==="EXNESS_BROKER_BID_ASK"?"EXNESS_REFERENCE":"mt5", primary_timeframe: "15m", context_timeframe: "1h", ...evidence };
   return { ...base, deterministic_fingerprint: fingerprint(base) };
 }
 function reject(input: StrategyEvaluationContext, reason: string, evidence: Evidence = {}): LegacyStrategyResult {
@@ -30,7 +31,7 @@ export function evaluateGoldVolatilityBreakout(input: StrategyEvaluationContext)
   if (input.symbol !== "XAUUSD") return reject(input, "gold_symbol_not_supported", { received_symbol: input.symbol });
   if (input.market !== "forex") return reject(input, "strategy_instrument_class_not_supported", { received_market: input.market });
   if (input.timeframe !== "15m") return reject(input, "unsupported_timeframe", { received_timeframe: input.timeframe });
-  if (input.candles.some(c => c.symbol !== "XAUUSD" || !c.source.toLowerCase().startsWith("mt5"))) return reject(input, "gold_provider_or_symbol_metadata_invalid");
+  if (input.candles.some(c => {if(c.symbol!=="XAUUSD")return true;if(c.source.toLowerCase().startsWith("mt5"))return false;if(c.source!=="EXNESS_BROKER_BID_ASK"||c.ask_open===undefined)return true;try{nativeCandleEvidence(c as unknown as Record<string,unknown>);return false;}catch{return true;}})) return reject(input, "gold_provider_or_symbol_metadata_invalid");
   const market = buildForexMarketContext({ symbol: input.symbol, timeframe: input.timeframe, candles: input.candles, indicators: input.indicators, evaluatedAt: input.evaluated_at, spreadPrice: context.spread_price, provider: "mt5" });
   if (!market || market.instrument.assetClass !== "gold") return reject(input, "strategy_instrument_class_not_supported");
   if (market.malformed) return reject(input, "gold_malformed_candles");

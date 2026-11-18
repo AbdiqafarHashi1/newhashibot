@@ -99,6 +99,8 @@ Deno.serve(async req => {
     try { body = await req.json(); } catch { throw new ApiError('INVALID_JSON', 'Request body must be valid JSON.', 400); }
     operation = String(body.action ?? 'unknown');
     safeContext = { action: operation, actor_id: user.id };
+    const {data:mutationActor,error:mutationRoleError}=await db.from('profiles').select('role').eq('id',user.id).maybeSingle();
+    if(mutationRoleError||(mutationActor?.role!=='admin'&&body.action!=='history_status'))throw new ApiError('CUSTOMER_TRADING_VIEW_ONLY','Your administrator manages trading account changes.',403);
 
     if (body.action === 'connect') {
       const accountNumber = String(body.accountNumber ?? '').trim();

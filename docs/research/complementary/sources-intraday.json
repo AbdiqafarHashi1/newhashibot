@@ -1,0 +1,1934 @@
+[
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-08.zip",
+    "sha256": "468f78cf3a11df085e538ae44edfe73ad9bf69ba8ab7bed83788aad26ad538bb",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-09.zip",
+    "sha256": "e879fa6903fd905201bd1f59e456773638cdf8c13848da79331cee89b0046964",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-10.zip",
+    "sha256": "4c146566bbff66b73f4058120be7d2188d7cef4d2fd7c0deab8308233de80b85",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/15m/BTCUSDT-15m-2026-08.zip",
+    "sha256": "0702d68a42de591fb39929d10327f1258ce1d59b9d81158c07e412029eb36306",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-10.zip",
+    "sha256": "364819225740c57472bace9e2199ad02a581c9dad815994efaac1df10cfe19d2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-09.zip",
+    "sha256": "d6b4f23739c277032b3ffaf849b5a9bbb5c1026dbcfb0de0c80d35909ec63a33",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/15m/ETHUSDT-15m-2026-09.zip",
+    "sha256": "1dc572ea53979b37c55d950b2a8ad337eb3846cdcfd85864a609c70c526d934a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-08.zip",
+    "sha256": "7861d59b7f70f3d7d56e8c1c12538f8001110467524215593e60173e7df50655",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-08.zip",
+    "sha256": "550d884c0cc6bf8987e811cb1d288410d23c8b4f571768fad24b1110a9f87c81",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-09.zip",
+    "sha256": "b1a5b3b8938051ec85f7c02e2dbeb81ce911ef75b146996307e418f9b7b4dfa0",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/15m/BNBUSDT-15m-2026-10.zip",
+    "sha256": "81b970bd65a598f18d0babff2a1c3f5f5275cce3725598ce120494971e147459",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/15m/SOLUSDT-15m-2026-10.zip",
+    "sha256": "20b3a656565d1d1ecd5dd41cbcdc2b906d68bc65f5977eee4ee5c1c6c2a22988",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/04/BID_candles_min_1.bi5",
+    "sha256": "f2cb547f6317fc01697eb9982bc73ca7739472fc53d9ffd5817a6a3553f0d66a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/04/ASK_candles_min_1.bi5",
+    "sha256": "83f70f58f9f628b6143d923ff07c3588c0b91054d17c609cdc0cf2814dfbfdde",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/03/BID_candles_min_1.bi5",
+    "sha256": "90c2ecae7472cd16623fee47182070616bd892c2a9420d58c4546211abefcb9c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/03/ASK_candles_min_1.bi5",
+    "sha256": "42e63d2f59a0c4a3a07eea5224ca5671edb8f98166bd4f61d8870bdeb0324f44",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/05/BID_candles_min_1.bi5",
+    "sha256": "a2171d9965f963f6eb2415f61241d395b371546ed2b5aa4eabc62d952586c337",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/05/ASK_candles_min_1.bi5",
+    "sha256": "0facaf77571fc561994ed7bfd894540e98fa7a64433384b98d33794ae8b27a82",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/07/BID_candles_min_1.bi5",
+    "sha256": "02e603943c37ded1500d0d83d33cbb4c251f1d4ad7a4e7393e53cd57d85f9b03",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/07/ASK_candles_min_1.bi5",
+    "sha256": "600c789fcc067aafb517b7f51c889dd9d4a46957a363dc4e71340f96bd6bf397",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/06/BID_candles_min_1.bi5",
+    "sha256": "52260a77316696624df5ea768b77a27f30060a6a6606d62854b34076d5c8bc35",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/06/ASK_candles_min_1.bi5",
+    "sha256": "c422a4cc55d472704113f59ee6e947cf5470a254982e8e7efaef67aaa60010ca",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/10/BID_candles_min_1.bi5",
+    "sha256": "0b32b23646451bd0515f03344855374b8d730c6e8aa51f9f97e6ac7c7648ca73",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/10/ASK_candles_min_1.bi5",
+    "sha256": "984a07e95d8301ab553093f37c0e76338a3cf8ae8590b93f58b13dd47dd70834",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/11/BID_candles_min_1.bi5",
+    "sha256": "610df4667eac1ff5b0ed3e40808c37b29dd43588a574dfd66a7c70e3ea419b90",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/11/ASK_candles_min_1.bi5",
+    "sha256": "9be990321a0e1e815ba1fb53f7952dd0cc8dbea83b2bf371b0f5ccf8e8abcb96",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/12/BID_candles_min_1.bi5",
+    "sha256": "9782183b3eba2fada6a7f9a647dd33fcf13f3124105f7916f9cea9350ea3c906",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/12/ASK_candles_min_1.bi5",
+    "sha256": "a590bc5009be2dd1b9920fca773b1da71db3e1299434478f2c7dfcbbfe86a644",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/13/BID_candles_min_1.bi5",
+    "sha256": "9df769175965cf0674ced10997577a5cd1dd1cd9543f66f614ea1d2fd06a49e2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/13/ASK_candles_min_1.bi5",
+    "sha256": "32fba530bc7495cfb37d147914bb1f88009d2084567bf64a1b02460ab0090497",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/14/BID_candles_min_1.bi5",
+    "sha256": "2b31624649f01d69983697bf4b30c0b8672d42d6721425a1757b70b136d74964",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/14/ASK_candles_min_1.bi5",
+    "sha256": "65e0699dc47849f2238d963f0775979d2ef7101ecfdc30351d23eebf3f77cce6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/17/BID_candles_min_1.bi5",
+    "sha256": "91ef3c4900538d82c3888aafafa2dde26dc63225cd70ad3f5b90f909cf9e1f3c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/17/ASK_candles_min_1.bi5",
+    "sha256": "12929068a7d1990e4b67dd01810b51f1fe1466c22bc730a0457cc9d28e20092f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/18/BID_candles_min_1.bi5",
+    "sha256": "d4f2be1d52d62217eb6002ffd2a105bcc8e9b3344514037fc61f67b578e7672c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/18/ASK_candles_min_1.bi5",
+    "sha256": "7d08563629d0c963a3dae7f327173bbbc618ccfd1944e5175fcc437126fc1044",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/19/BID_candles_min_1.bi5",
+    "sha256": "30dc2fcc6dcd314781e0b09e7bebfd416e4637fabc2630d30a95927b2ac37d00",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/19/ASK_candles_min_1.bi5",
+    "sha256": "e8906decccba9fc94a0ac6a78654178c422c17fb9889fffd4848daacd9a12d3f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/20/BID_candles_min_1.bi5",
+    "sha256": "cb5e34455b07952e6e38807f7032a34e2a519dc52047885270933aef7c8e0965",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/20/ASK_candles_min_1.bi5",
+    "sha256": "dbcfe0c54aba2703db994a12b29e5f4a43caa07b8b6c3378416e115cb0229890",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/21/BID_candles_min_1.bi5",
+    "sha256": "31f021754795fbfb88aa6132fbb14b3fccaf8cf5ea7eb9a53741670f8a0b6912",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/21/ASK_candles_min_1.bi5",
+    "sha256": "d6c3218b7adf6fdcea8ea28f0eadc66c549a77d6c302ba840a71c7e281531728",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/23/BID_candles_min_1.bi5",
+    "sha256": "53ff29564e5b474285d03ca455b60dc2df61b536f915912367710f428388916c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/23/ASK_candles_min_1.bi5",
+    "sha256": "1d8d6ba622b99bb8bbf2b09911e8460f28c55d7a3e9cf3a9c004b9bce127ba0b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/16/BID_candles_min_1.bi5",
+    "sha256": "6ed4120877540a1c2de8376c2dc40a0c2b25cf3156e803ba8891d78b9e5eec63",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/16/ASK_candles_min_1.bi5",
+    "sha256": "d33b8d5e2311dbcde6ad79326d45da8208f8cb5ebb1e1be589f596812a52ed05",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/24/BID_candles_min_1.bi5",
+    "sha256": "38453c16bf02e9f74d7cab55a05f5b98628827a3c7d43b2c9cee45ce5c397749",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/24/ASK_candles_min_1.bi5",
+    "sha256": "158c4c7b77e9bae170abea01630a415c2a5f99fc22abd983c4782c052c383ccd",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/25/BID_candles_min_1.bi5",
+    "sha256": "392f50fd725fd13a4a71a27fbe57c1633f8f135a028d926683b617622b904a2a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/25/ASK_candles_min_1.bi5",
+    "sha256": "c0b97c46d58cf0f77541d45212065bfcd3212c858300d7c4de960c0464fc1676",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/27/BID_candles_min_1.bi5",
+    "sha256": "a37f0c76b21bd42e3a09d7c59335f4007f2297413e7e57a4cb87f2dd08601f27",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/27/ASK_candles_min_1.bi5",
+    "sha256": "cc1cf7edeaa12a05cd2be60d6edd4a645fbf87a5dd7b2ae417de527fa930320d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/26/BID_candles_min_1.bi5",
+    "sha256": "d99075d278db753a7a6d901c0b91d03937bf6860247f762b9174bc6e27a1a3cb",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/26/ASK_candles_min_1.bi5",
+    "sha256": "36ed160fe77769373d1dcd434c568ee1331246f98c4f1633a5e0cf6aa15a26d7",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/28/BID_candles_min_1.bi5",
+    "sha256": "bab022de5fb275df4add3e9cbf4bf1380ec0cc3bf0b177673f6ca2eeeed2616e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/28/ASK_candles_min_1.bi5",
+    "sha256": "4a386639cd3622ef2162bf8e756365a78da41b329af00827d56cce0defb4cd46",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/31/BID_candles_min_1.bi5",
+    "sha256": "ca16a90e676694f02982848ad21dbdbafef1d66f08ce068249c4b25526d090c7",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/31/ASK_candles_min_1.bi5",
+    "sha256": "f419c44fa2ec9f4678e82b0d018f5807cebe783a46c772035090ed48f4611330",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/01/BID_candles_min_1.bi5",
+    "sha256": "bef5d99af30203fc92e308575d1359ba644e03876f850571ba75147a193f028a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/01/ASK_candles_min_1.bi5",
+    "sha256": "d62627c0e5edd9722f1d028cda5f284906c30c08ca2b9d5878b58a90a9795f64",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/02/BID_candles_min_1.bi5",
+    "sha256": "38c7a77097d27bc9f1db5b8fe123f215d8381878ab305a8840144c939dfa5969",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/02/ASK_candles_min_1.bi5",
+    "sha256": "6407f6cca2ccc3dd2e8945a2692fae41db46752e0a7663c5cf23f72878936554",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/03/BID_candles_min_1.bi5",
+    "sha256": "c61be4aa6f93791913d9462ffc6e913af93754ad0d79a11be392815d5f8e688f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/03/ASK_candles_min_1.bi5",
+    "sha256": "5bee734d391cb14d659f0ffeaebeab183c0ac014a798efa9a4b954d57f0c377d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/04/BID_candles_min_1.bi5",
+    "sha256": "9b7340057a7724534da2dc5cb2005c0a960911d6b10aedb1043f80adf477e8f8",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/04/ASK_candles_min_1.bi5",
+    "sha256": "dad5bc1189b194e9a647c6afb343f2ecc1f5d7fe923f3c20ba33c0858a397c6f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/09/BID_candles_min_1.bi5",
+    "sha256": "b2917323508f6501d35558bc0aad5f143f3360242123822a32426db18276de21",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/09/ASK_candles_min_1.bi5",
+    "sha256": "cf485fea7cdc6c5c672be1c7214a082a1c776ba7544bdb7de37ceccb8a8b67cf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/07/BID_candles_min_1.bi5",
+    "sha256": "5b820712b5f4d61d219070b44492f373b86577b29e986555b9154cd81f98aa80",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/07/ASK_candles_min_1.bi5",
+    "sha256": "7e0f11f356f2a2b9be353aebe9a6a1872b967e1aa2d2ce897cc7d6a7dee79f42",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/02/BID_candles_min_1.bi5",
+    "sha256": "f396023312ea397a22d7360eded465d9777d62c843e5a0af29f65bc533e12ff4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/02/ASK_candles_min_1.bi5",
+    "sha256": "a6ca565f8af229eccbdd814d3f9a0af5d33d59d9d1c2dc9c6f330e46d2edfef6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/08/BID_candles_min_1.bi5",
+    "sha256": "3ae5e1af0b64e93a31e4b2a8901739c31c5af0b81c718e82f34b6abdd0c61092",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/08/ASK_candles_min_1.bi5",
+    "sha256": "78bbfa6199af561e4c874fe386ff2255ce6ae1e43d58772beb0450ef0ca917c1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/09/BID_candles_min_1.bi5",
+    "sha256": "3bdc115d540dda12811f61ce1f3d498d14dbbe8ed933f45414033d3a10cd8a1f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/09/ASK_candles_min_1.bi5",
+    "sha256": "b3ce2a465c5e5da3286fe72ac5259ab102b0a5b75d19a94109917b09a8c614cf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/10/BID_candles_min_1.bi5",
+    "sha256": "2182d5b0a877d29504084005662d194d8d5e32ead3ca117589f637b1ff9bfbca",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/10/ASK_candles_min_1.bi5",
+    "sha256": "74ead95f3ce98b7b099daeef4bb48737db4dc6c3e2d1e43326236ccac439635b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/11/BID_candles_min_1.bi5",
+    "sha256": "0e30e523fbc9ae72fd228dadf1831de624f9e9a6cab1b960e3c40833e87856f9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/11/ASK_candles_min_1.bi5",
+    "sha256": "0e6ab7cd54114568067e92b6e2e59a4777b7d3524ffc20989a4e8abcd6faefd4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/14/BID_candles_min_1.bi5",
+    "sha256": "3e4251a1f750efc162b2f5ebd846d1d4700cf45a0047a8d6104bf91516c9b031",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/14/ASK_candles_min_1.bi5",
+    "sha256": "8c845511324e39f00f92f8ea0e23a00ad12b236fdaf87f581f133d7103e6acf0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/15/BID_candles_min_1.bi5",
+    "sha256": "407f47950a4f37640629231a5083bad570a2c435694d88238739bd82ee729e2f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/15/ASK_candles_min_1.bi5",
+    "sha256": "d99fbe8f6bdc1050df7ad6535c35195f79dd18a1269184697ce02e36c6a3ad3b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/16/BID_candles_min_1.bi5",
+    "sha256": "0c63ce4ac852ecac9b21a84e686952463385478b11229f1a1bb703e0bee6eed7",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/16/ASK_candles_min_1.bi5",
+    "sha256": "17ab46107784b2c3ed27578f070aef842097a9b1f05f0643ccea553e31de196c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/17/BID_candles_min_1.bi5",
+    "sha256": "9561b7c789575a001544da369689b6ce8c2b9c6a5b63083564fca2a697582f73",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/17/ASK_candles_min_1.bi5",
+    "sha256": "5ee10a68d869a37d88ca12c52ccf20a5f1a97589e556057bdb717b2bff9343f6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/18/BID_candles_min_1.bi5",
+    "sha256": "d1f1535683254e7ee2357cc75404b582778587ba83498400767f7d14a5bef9e0",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/18/ASK_candles_min_1.bi5",
+    "sha256": "f00bc1dc37d22a995b408c9e6bfc29600f23aaca6c2c9bce003b4409a2fa63b2",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/06/BID_candles_min_1.bi5",
+    "sha256": "a661a8dd182394876d9d271c2ff044e213b54e80ac4e93435b62193596e66ca9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/06/ASK_candles_min_1.bi5",
+    "sha256": "05bfed68660de46903fd9362be3e30fe7b212ae4b88b3641d81e38ca672d9efb",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/21/BID_candles_min_1.bi5",
+    "sha256": "e5b804d63a1f34ec2a674261250e13f683d702d9deb3ac955601ede82d682d55",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/21/ASK_candles_min_1.bi5",
+    "sha256": "3e5da3132adbcbdc34cf089458f3d71b42ed6dd360b5bd2298ee0798fbd08892",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/22/BID_candles_min_1.bi5",
+    "sha256": "a5e4012e85aefe861085b2aaff255b4ebdb18d37ee18eebf96c9f46dd9f94568",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/22/ASK_candles_min_1.bi5",
+    "sha256": "6e74f61767182eb375d9e0387d67b54df7e39a0fc9b25a3d9a97b310a4830fc9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/23/BID_candles_min_1.bi5",
+    "sha256": "38d1f09a45c6a6aa38f9d1950091b4c01a446386db242d275871ae40dd50b37a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/23/ASK_candles_min_1.bi5",
+    "sha256": "01858b5764c6ad585165991d6023ba48e63bc52acad384fac79c4243ba5ecbd9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/24/BID_candles_min_1.bi5",
+    "sha256": "0f41263ef70f32a80cd55b9b58e0cd337ab1cd99bb9c63103ee3180e17f69e25",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/24/ASK_candles_min_1.bi5",
+    "sha256": "768744bad986a5c02525cc6475971fea15d9ddf805c29cb8510257ef786c3187",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/20/BID_candles_min_1.bi5",
+    "sha256": "d8888ca95fa0a37ee0a98c3413f026b1139b5ee224f5986672d77cf0a8964108",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/20/ASK_candles_min_1.bi5",
+    "sha256": "55e6bd32460cd9b401f704b7ea9d3402713e3228ee25c2bbeeac030f5c2f7991",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/25/BID_candles_min_1.bi5",
+    "sha256": "9f4c5ea5bf6c0cc7a1882053f691d21caff824932fa70d806353f9a1bb481b3e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/25/ASK_candles_min_1.bi5",
+    "sha256": "997b84332e86282f64689e53dae9e3d90975d170640e705fac5df3ab2caa273e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/28/BID_candles_min_1.bi5",
+    "sha256": "87cff4af86a3f1e5049ac611ef2dd079a7bba0c785a8b86a2dff7a693351b91a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/28/ASK_candles_min_1.bi5",
+    "sha256": "805119f2d2cb66f7b1b6a42d7547bd82afb90de03e9aaa931f3958e6e00edd57",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/29/BID_candles_min_1.bi5",
+    "sha256": "a2ade55669ccb36aed052b4184f4bdc9bc0c3124394aef4b4d6e43f0dc45c8fe",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/29/ASK_candles_min_1.bi5",
+    "sha256": "3f51045e27774116e28114a84fe7ba00ce0b659e79c78c91f381921a58ed5151",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/30/BID_candles_min_1.bi5",
+    "sha256": "c7cae4da8cde6b7bd300ceab6b97b93a32bf359a57bf4dc366d03992221ea864",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/30/ASK_candles_min_1.bi5",
+    "sha256": "3acd7b395bb25940048def61053b97c6bf6f7f99ab602179ace7fe977b28c975",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/01/BID_candles_min_1.bi5",
+    "sha256": "38e7e1df9e369ac2766f2510fca3f90cd61a10c04c3eaa205fcfff5640af94d5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/01/ASK_candles_min_1.bi5",
+    "sha256": "791fa5182f81670ef4571702cfcbd7386a1032210301d2f3d1bc2c1870695bd5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/02/BID_candles_min_1.bi5",
+    "sha256": "2160429501e7631231ba46f91608f92327530d0205ed80300180c908bfd7f8d1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/02/ASK_candles_min_1.bi5",
+    "sha256": "3ea8aa1a4e7068185d5fa47a9191644b5b5ade6532ac5f07ee13ccd2f82ced85",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/30/BID_candles_min_1.bi5",
+    "sha256": "1fdbd255a0601b8feb018d982ddde2ed48bdb8416a82493567e25ccea2b1d5d8",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/30/ASK_candles_min_1.bi5",
+    "sha256": "f25fd8966ee5c5c271f69b091735afa5b6f0d64926c198872f6dce4eaf4c51a2",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/05/BID_candles_min_1.bi5",
+    "sha256": "85e1f54b3d5b0783d82409e6b9ce8a29c07cb32029474c7aa720b20769901b7e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/05/ASK_candles_min_1.bi5",
+    "sha256": "86ad820de949074c7d7c2c4a52bc8b0db95f5ee646c6a696c0e138c60b0203bf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/06/BID_candles_min_1.bi5",
+    "sha256": "537652b2222f93d80b4d89dcbd9d0bbd446d0e4c6db2521a0a91b6a2b42e8878",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/06/ASK_candles_min_1.bi5",
+    "sha256": "3f74ffbf63c5e3cbabb77fa71363134301a6d5dd1dcbfa54d09b09e4d03893a6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/07/BID_candles_min_1.bi5",
+    "sha256": "0dc0f3942ee6e8eed3134da004a2f4a2ccc72489ba1e81a18738842144eb4a20",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/07/ASK_candles_min_1.bi5",
+    "sha256": "1ece4f0e131b9a208a4ab315166e82b92d1f95189ff7ff6670073f4baeb01591",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/08/BID_candles_min_1.bi5",
+    "sha256": "032f757c3e7e321401bdc7acce8642734a3c19dfb03e969db8556c88f56a012c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/08/ASK_candles_min_1.bi5",
+    "sha256": "2e3b62700b288e4554c7b39243294222a541bc05dfdd2340cd65471eb00f6b2e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/09/BID_candles_min_1.bi5",
+    "sha256": "6f59073ae8830e2171f28e5eb6e0bb703ba99cfa7ae666b073ba70f24cfb7f71",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/09/ASK_candles_min_1.bi5",
+    "sha256": "756ac5637b286672cbf279e2a834ef42ff1d4a44e3b0e6d32a94c4f8c28051f6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/13/BID_candles_min_1.bi5",
+    "sha256": "1156295dcb520f0a84b2ded29a74299b722739971af8b1664c392536489cb278",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/13/ASK_candles_min_1.bi5",
+    "sha256": "2ac499089ea2eecc4511ccfa1d06be1293eeebe2e34972449946a9ff4bccb5e1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/12/BID_candles_min_1.bi5",
+    "sha256": "bf14ec18c5c712f7edf1fab9501228c1b835b91295c412c25125738ca7acf6a1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/12/ASK_candles_min_1.bi5",
+    "sha256": "f72ee7575f58cc6417697fe0065053a5d7acbbdaff4b6de1dd287b6000f3f0be",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/13/BID_candles_min_1.bi5",
+    "sha256": "994f9a53823b29296933792fbad6c448c5cc3502e4e25894bd7e9fffd5e4de2e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/13/ASK_candles_min_1.bi5",
+    "sha256": "9f6e0d370bdc2eea6c877fd5f861f50d44ebbee791d55b10db0ed77ff021de67",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/14/BID_candles_min_1.bi5",
+    "sha256": "03eafd754f3d2e04b1f16d9f2f34e0c2c894d3cdda9afeaa7eff42046953e0c3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/14/ASK_candles_min_1.bi5",
+    "sha256": "ff702ff6e6e5d8994436416a1c745f30373dce172fa24bc77b302362a50d295c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/15/BID_candles_min_1.bi5",
+    "sha256": "04fd1df102d22aba7213db32201b40a29daa3e43c4bfb9ca48f6859d8d043094",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/15/ASK_candles_min_1.bi5",
+    "sha256": "fc96fc3493fc81ab5965cfd52bcbfcfa40018d73406381045c023fee77bbc4e4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/16/BID_candles_min_1.bi5",
+    "sha256": "16a7f4113c0029024d763697dd9422bf56e8beba74080e20f2f9b814bdbfb510",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/16/ASK_candles_min_1.bi5",
+    "sha256": "2d97b462d9c551cac22ea21ece0180f42f95376ec4277f870452216847681b4a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/04/BID_candles_min_1.bi5",
+    "sha256": "b79d34a25746f85f7506cb4c8522fc980dfef7f716d73fc2c31d52ceb2370311",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/04/ASK_candles_min_1.bi5",
+    "sha256": "17512175b302b51b16c653a28f28b4014f5e5ac35cff6614d32a96ef039aeb99",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/19/BID_candles_min_1.bi5",
+    "sha256": "381c376905a5d262c94a45cd4bba8f629f7cc61265b2622f13cc94d2579a53f2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/19/ASK_candles_min_1.bi5",
+    "sha256": "74752f501b287c7f1fc4963415280620c42bcee633d6ab513bd047379300b8b9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/20/BID_candles_min_1.bi5",
+    "sha256": "49c3872b92a996afeca28024d803eb58c8db9ace86281c47eae9aecc3405309c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/20/ASK_candles_min_1.bi5",
+    "sha256": "785ce6da5ad8aea3093373723632e4408e1be93d82d13ec7430da9a496d2ab57",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/21/BID_candles_min_1.bi5",
+    "sha256": "c2654543e78a5446de75408ed4d1d8e5d4b5dcf5c927e5b9ca2dbee18db6aae6",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/21/ASK_candles_min_1.bi5",
+    "sha256": "0dc212c41374330e93864d08c21b3c1ef19832942c2b11bfa6ff91fcab52d75a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/22/BID_candles_min_1.bi5",
+    "sha256": "e6048500948288cdecd345d9ea1019f2e49c3c8b217bc75251a5331ab0d32a19",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/22/ASK_candles_min_1.bi5",
+    "sha256": "051cd3612150338c29f1e11800fa8229f05f9bcdd8a0450f5d178eca4a19e162",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/23/BID_candles_min_1.bi5",
+    "sha256": "ddc122cdfe1668794c258d1948b59591a15a2475dcb1c5c94ce42646c6ab839e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/23/ASK_candles_min_1.bi5",
+    "sha256": "9409acf55c1cf32b39eabd0637e32aa507032465785b03d8d758049730bdfb43",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/11/BID_candles_min_1.bi5",
+    "sha256": "e5fd669de676540e138a57710653c716fadebcb9cbec021ede9720d0f6836d91",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/11/ASK_candles_min_1.bi5",
+    "sha256": "c5ecec921cf2d07b061bd5c4cfef7c662f84c3bfe41660a8e9e6a0c60fa0c131",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/26/BID_candles_min_1.bi5",
+    "sha256": "82b857c22d5a9b89450be1db7ca2c744f1b87518fa2e391dab91354182676bb3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/26/ASK_candles_min_1.bi5",
+    "sha256": "5c71e82b006d9bf7d6bf675c607128d823854d4e4bdd78254e0c95d87631b37e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/27/BID_candles_min_1.bi5",
+    "sha256": "594fbc5eb23983df4f686bbcca829de9cbc04a268108ace139309de3859b4c75",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/27/ASK_candles_min_1.bi5",
+    "sha256": "d6b282582c34b8ae844f09b9b7af7210e5559765ab96e9b973373007c12b9919",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/28/BID_candles_min_1.bi5",
+    "sha256": "d4204613f391466b8bd15173251d05980e954a689a1ea6a2b62b5ea6df870172",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/28/ASK_candles_min_1.bi5",
+    "sha256": "716f3fc5f3cfb5385254b05dbfd3780edb9f50ecd53115fb9174a7d6799935f3",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/29/BID_candles_min_1.bi5",
+    "sha256": "5c23d4c66e257aca90a219a3a7bf805308cb8cfbeeb998f43aa0518a0e6dceb3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/29/ASK_candles_min_1.bi5",
+    "sha256": "9e342a37ea35a81325ffe95ff1cae5ee5d2aee6c84a4cefd7717b40d6af07c34",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/30/BID_candles_min_1.bi5",
+    "sha256": "63e8c7ffe9ea6ca42ce9c5651d18079d2131c10bdd83096afb068b5d9f6de06a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/30/ASK_candles_min_1.bi5",
+    "sha256": "70c2830b49242e6333204433f0edd02ddac5cfb555e78a21154d05376372ce5a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/18/BID_candles_min_1.bi5",
+    "sha256": "aaee4d8df7d954b93b6e2c18de83bf5e3e33e59c0fca8742917bdad6d1c99a9e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/18/ASK_candles_min_1.bi5",
+    "sha256": "cf6bb4136626b9bdb324ee952740b36a72b775e3d33fc0209d6f4f69a61056a3",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/03/BID_candles_min_1.bi5",
+    "sha256": "974be6ec0e07676b894aa18755814ffc88cbd9ddb09b3114080b2df55dd4bdd5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/03/ASK_candles_min_1.bi5",
+    "sha256": "a22db3d800a295acaad2237aebb22d17cf4bcb7bccbee8481b0253bfd07f5b33",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/04/BID_candles_min_1.bi5",
+    "sha256": "e075f25f8615c9cba8a57a5ef5d3c8b07e35363ee61d78bef389120cc490644c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/04/ASK_candles_min_1.bi5",
+    "sha256": "6105e666b3226cec7f07515a19c5e6b52195587e54bfc4d94cfe107066ba1049",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/05/BID_candles_min_1.bi5",
+    "sha256": "9f3d555f06c0383ad3a79fce86c312615f24d925544468799b5d7416ef3d10f9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/05/ASK_candles_min_1.bi5",
+    "sha256": "b397e2c56896e7dd842deb7fd256e7af788814f297b7d556ed70ff1e58dda317",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/06/BID_candles_min_1.bi5",
+    "sha256": "b50fb8b148a9f991871102a641ebaed65b780c17b6d9d62bd7296b54b2c01205",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/06/ASK_candles_min_1.bi5",
+    "sha256": "b59c632d4c578eec3bcbcdc3fc17058c41615ade7608160d59c7842cdd9dcedd",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/07/BID_candles_min_1.bi5",
+    "sha256": "3004d938f38760e312622d3a54aa0659346f4c1e68f6fc367f24215a073c44c4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/07/ASK_candles_min_1.bi5",
+    "sha256": "2201ff8bb1dbde8ffcd2e266194635cd6b91d0b820830a6c0fdaa4d30814fd82",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/27/BID_candles_min_1.bi5",
+    "sha256": "7417ffc7016aff4a3c6734678c4f2744e78c4fe8b1fbfac6ecf3e874398d1fae",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/27/ASK_candles_min_1.bi5",
+    "sha256": "c7f59595cde1876e90cadd54e26cad16385c28b0c34bd41d6ffe0422420bb7c5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/10/BID_candles_min_1.bi5",
+    "sha256": "5fb073528beab8f0976101110387697cd743b431039d12856f5c0c927bf4141a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/10/ASK_candles_min_1.bi5",
+    "sha256": "b5b64ee1dc988b1894ee064aa4ed63168f42921e35ddca643e0c6cd7e1dcd579",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/11/BID_candles_min_1.bi5",
+    "sha256": "0f12150081ceb4bd9654022fac1f1660bbd8ec1f64cfb4f3d79e545c022544b9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/11/ASK_candles_min_1.bi5",
+    "sha256": "7a5a314776314fb0290be2885235af095dce29e6ebea9a2b4274f3c0e312ca3c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/12/BID_candles_min_1.bi5",
+    "sha256": "188444287a14bcda3a9e8deb7f806ea5de6a2b757a172163a19c5c99c2d4c78b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/12/ASK_candles_min_1.bi5",
+    "sha256": "f010bcc07bf00c2a20a7066c10a1dc2b6bc01453681d1e6a05139678ce947c58",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/13/BID_candles_min_1.bi5",
+    "sha256": "df7fa7dee3b991f62f1ffa641bb5b111daf5de64e5427cebbb86b4c67016627d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/13/ASK_candles_min_1.bi5",
+    "sha256": "7bfb6da4143a8887354705ada6608f3b9342d15fd1a4793cdb13abea6321e6be",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/14/BID_candles_min_1.bi5",
+    "sha256": "2638839cea37c1c2d805e9262cbce854050269137750bee17e769042ad903006",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/14/ASK_candles_min_1.bi5",
+    "sha256": "7aabc0652a3f37245580da6e4b9d7b0c30965e8d90c54b80205efc7608271e55",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/09/BID_candles_min_1.bi5",
+    "sha256": "3c972300d579d3d77d67572cd9a94f5b64343e05c6a85922bcc1400f87c53565",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/09/ASK_candles_min_1.bi5",
+    "sha256": "a641f51164f54aab40e695ebcc4dcee576a449b25e444e9e4a6a54c55cb1f0d9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/02/BID_candles_min_1.bi5",
+    "sha256": "9def614b30e8ee4cfde22ffd1e4f9069bebde5c015b6ff06b2ba0f0eef283e9e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/02/ASK_candles_min_1.bi5",
+    "sha256": "4c140265a8eb9beb998e018cc9aca8e8accfa30b55c68b94c1867a4d9511d249",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/17/BID_candles_min_1.bi5",
+    "sha256": "7fbc60ac8725cb7c1343bf5059b49c13eb0ef28d99a8cdce58d03366bfa564ad",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/17/ASK_candles_min_1.bi5",
+    "sha256": "2287715b2ab112c9f9447a7875e46fa35729d2949377c9752cf45a2a1029a4fa",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/18/BID_candles_min_1.bi5",
+    "sha256": "c043f8db53966565adfc2ab66831eda0a6fc20e9fe55803e3c09e3474a632b41",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/18/ASK_candles_min_1.bi5",
+    "sha256": "5aaafd8684e2772b36c40e61eab009aa7af333b144ae254ecc1bca7965ab9459",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/19/BID_candles_min_1.bi5",
+    "sha256": "268e6558788cd4ebf998672cfe06d48e334ddd8b4215bd760ea224f885025517",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/19/ASK_candles_min_1.bi5",
+    "sha256": "0711d8897475ae325e2d39a418ed7900ffefc51c41dc0ed451cd24b4ed4dafad",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/21/BID_candles_min_1.bi5",
+    "sha256": "7941621c913aed493896cfbf8b999a5e979364cb367ad62878ab834ec4cbe929",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/21/ASK_candles_min_1.bi5",
+    "sha256": "fb928e5ef43fb149469f2ac91927bba01b6682e70a8d654bdea8fda210858848",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/20/BID_candles_min_1.bi5",
+    "sha256": "5fa4220347a96b37de8af80d569eab44a18c795e2aa2998661e84fd25617224d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/20/ASK_candles_min_1.bi5",
+    "sha256": "1a6e6179326a89e7a3e24a1e0b4eca985159ffe5136abb09e5666e6fd3faddfa",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/24/BID_candles_min_1.bi5",
+    "sha256": "f2de69f80e8648013f653a5ccb02483c0cd7ce66c01292af9a1a0085a70f3fb2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/24/ASK_candles_min_1.bi5",
+    "sha256": "8b295e47f4f1cd9afe07fdd3ed63c5a35b17de5915ceefb3a99fe00ae6003274",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/25/BID_candles_min_1.bi5",
+    "sha256": "2737e6d70ae45eb3bcf3b2b803b89c12e0f130f04a7ec060cbb99aac8ec23b79",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/25/ASK_candles_min_1.bi5",
+    "sha256": "497777e69e54d2dfaed860b6b6c20169f677cc93f1ed18434c81366ef90d158d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/26/BID_candles_min_1.bi5",
+    "sha256": "1f74f1a068998364ac726c4f6bd5b6ab812fbae422931c54746c4dedb2be6a74",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/26/ASK_candles_min_1.bi5",
+    "sha256": "5194d02381657c67a7421cd41576f7eeeec5faa555b7665863f0609221626129",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/27/BID_candles_min_1.bi5",
+    "sha256": "1b3f4a0a4703d7eac71d068e1102f10bbb573ce35191a3522667173a507b0ea9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/27/ASK_candles_min_1.bi5",
+    "sha256": "f7f87b4f10454e2e60dbcc0ae69fa32f32edfd237c839ee2c0a74699d617205f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/28/BID_candles_min_1.bi5",
+    "sha256": "2341a69fded5db1e1f5e2036fcec6e4b749160ed5b88f53aa039523a493cc19c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/28/ASK_candles_min_1.bi5",
+    "sha256": "fcc50fecc431548c436cbf23d744736b64a99ca19517f2fa16aabe72d1c8b431",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/25/BID_candles_min_1.bi5",
+    "sha256": "2f402e36134d6f5035ae64fa05e7ee45349dcfed8349f312041cf3d9c05d816f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/25/ASK_candles_min_1.bi5",
+    "sha256": "5289a286f2e59e1bfad9c1254df4a095fe9a628f88c4c4b259597c4a6c252035",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/31/BID_candles_min_1.bi5",
+    "sha256": "8aaffddb24fbac22b75f3bb1227bf5e77933bc4d80655bda84f088edab82a560",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/31/ASK_candles_min_1.bi5",
+    "sha256": "9acc56260e48cc6d092f853dd9408b0686e543df1ca8712dc0f0afd939b955c7",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/16/BID_candles_min_1.bi5",
+    "sha256": "2e2bfa9a43db9a9ad14b9bc497ad098f913906177df93eff5fb5ef04ae717acc",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/16/ASK_candles_min_1.bi5",
+    "sha256": "ba79fea3515b5779a8e990fda84543c4ab2933aa6517c890b87eb594fb04ed5d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/01/BID_candles_min_1.bi5",
+    "sha256": "4bfd806650933f15992f2c8d925673f54e4b0e7771e9480c12545142a97afd3d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/01/ASK_candles_min_1.bi5",
+    "sha256": "bbcdfc179c266d1f7f128210a21c8cd7b2edd113137b17c84801a34a61f28f93",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/02/BID_candles_min_1.bi5",
+    "sha256": "92d0299bc21f5eeaea13cfa6e6b1be00d098b16bcca0e107e9ed0e04a451e964",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/02/ASK_candles_min_1.bi5",
+    "sha256": "d21e02a0dbe5cb6d6a4246901565907dc5b2ca0470e92eb653233c90f58bb4f9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/03/BID_candles_min_1.bi5",
+    "sha256": "584b50ddebec6ef60aad805d0bad0d2daa7c4e165dd9634629e5eaacec7d498f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/03/ASK_candles_min_1.bi5",
+    "sha256": "bbff46e9c6803fb91037c886e88d58249ae46800a71601d61984bd71f0f081fa",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/04/BID_candles_min_1.bi5",
+    "sha256": "7e0875e9e3fa7041dcac1313dc2ade63645fa90f3febcb062a7bd6e241a877df",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/04/ASK_candles_min_1.bi5",
+    "sha256": "8e7ed0154dae447c239173e4a698087ccf15daac749f62e0ce81ed7a5ed0bb00",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/07/BID_candles_min_1.bi5",
+    "sha256": "1018fade9da7e0ff9333b7652377b6520b0eda8f786a96daed896a9453788c5c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/07/ASK_candles_min_1.bi5",
+    "sha256": "0a95af55516a61b0362ceac18c423c329e2b61a16a064212edb33c88cee43dbc",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/08/BID_candles_min_1.bi5",
+    "sha256": "24cb539ab17a8590dce6cdb2762b5d3fda085b1289667bc9094718d62f596e67",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/08/ASK_candles_min_1.bi5",
+    "sha256": "2765cb940e6798fac3143a509a50c71b832586e6dd23485eedfd0357169dbf46",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/09/BID_candles_min_1.bi5",
+    "sha256": "0cc8d410bad4de33f7a358bfbea50a9412d243b1a43eb1071980e96c83b7f6d3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/09/ASK_candles_min_1.bi5",
+    "sha256": "f68b0ed7e033fb8823c88d3fe3127e3a5df708e3e4b216b32b5a425b9733fbf6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/10/BID_candles_min_1.bi5",
+    "sha256": "350fee6cd9c942ba4db65457eb49776b4d14962c6b9a8d1504c1b2d282865887",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/10/ASK_candles_min_1.bi5",
+    "sha256": "ff3ff14f304128089746cb50bab9bd69273ac6f3889d02423adfb3383b866539",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/11/BID_candles_min_1.bi5",
+    "sha256": "0556c1153fc7d688e057fd89418237b4efa4162f1ab9e72b8c25ebf5aac4dae4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/11/ASK_candles_min_1.bi5",
+    "sha256": "d16cd35d64be096dbb68d6aa95af94362a43f9730ab9bda4dfc108159667ca08",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/13/BID_candles_min_1.bi5",
+    "sha256": "1c12b584fac98227c5ae45a74b8cc35b4b817750a101e78ce890461ab01379e4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/13/ASK_candles_min_1.bi5",
+    "sha256": "2b73f83df69f8acd44aad8fe9155fc4c6925ce3609ba5a0ff03b0e4d75dfc90d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/14/BID_candles_min_1.bi5",
+    "sha256": "dc0148d79b4278fb911b7d7eed4e6b47c7e718ad9f453a406b9ef516dddea578",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/14/ASK_candles_min_1.bi5",
+    "sha256": "c792cf5a1b4275a01b272f1cb5258eb9328988154ba6afd1615d78670187a1ab",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/15/BID_candles_min_1.bi5",
+    "sha256": "8434ae2dc09f6b87e5cc4fe9c9c03087da2f5f9cb6d27815655f8c34c0f42858",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/15/ASK_candles_min_1.bi5",
+    "sha256": "d655712c57ae82d98016e4fd7db3ab50175effdf4ec081ab3d5ae970ce4a2fd1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/06/BID_candles_min_1.bi5",
+    "sha256": "7e22dc3017ad0e9c0731f8ee0e5cc9d485bc089ddf18d4482a0e66b404f8de7c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/06/ASK_candles_min_1.bi5",
+    "sha256": "97daf65959506a5a80687709cc58fa3ed256451c9581fa957ae73f234765681c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/16/BID_candles_min_1.bi5",
+    "sha256": "a44b7623797ff08c33a6cd351e82a38789bee60c973c9a3aa972038acd4f223f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/16/ASK_candles_min_1.bi5",
+    "sha256": "5bbaaf65f78a8244c4e18c5d42af62941da4a327d07b866cd44e3c841518ef86",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/17/BID_candles_min_1.bi5",
+    "sha256": "cbe1d6044a4f18935e8b763962fc05adbe371b455ce92e1c92dd22519fa83223",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/17/ASK_candles_min_1.bi5",
+    "sha256": "96240864c4e729d1dae557762e284b11e707865f5b02d3cdccc8f8e1fde8c1e5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/18/BID_candles_min_1.bi5",
+    "sha256": "6b529b050cf52065c90741bc45404d26aec067a6a28279b1b87d6800e8ffefb3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/18/ASK_candles_min_1.bi5",
+    "sha256": "7ca63b3887661b32e3cb85130daeca7f99630e8ec6cb1d5ca2cc7b2b12225fe7",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/21/BID_candles_min_1.bi5",
+    "sha256": "2e5a9e1f0c088b9fe29cbeaf34b64a8c29ee0c7f928525f824a90da386995a0a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/21/ASK_candles_min_1.bi5",
+    "sha256": "7d6e3dc31aa55c936d30f2edf6d19fdf406b689792013a27d9188b7f7d66e540",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/22/BID_candles_min_1.bi5",
+    "sha256": "3de3c536dba56955a94b98be879e71fd4411443eaf5940967736553d89c2383a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/22/ASK_candles_min_1.bi5",
+    "sha256": "3f63796213657dac0e3c78a32659c0cb6de7bde35e2b680e78101bd9de506efe",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/23/BID_candles_min_1.bi5",
+    "sha256": "d49c9f6ba0916db65e305fd0f4de724e7559f40ba19cba97f4af32ca6f0cc48b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/23/ASK_candles_min_1.bi5",
+    "sha256": "cd80537ae2f53dbe0f07ee317b718135acdbd545bbad884b4805e4622a851779",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/24/BID_candles_min_1.bi5",
+    "sha256": "93fa5881d4c2fc5165fad1eb8d2fee281b21e0dba0d28b75de3a08fd6805207e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/24/ASK_candles_min_1.bi5",
+    "sha256": "bb6ab83758620c09afe30d9580ea39172db2cd40ef2494db4858f1c1d03097f0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/25/BID_candles_min_1.bi5",
+    "sha256": "bc504aac28a97d7bdd64745429d9765938af76ea59e448126751c6c297418084",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/25/ASK_candles_min_1.bi5",
+    "sha256": "1102d5a13332dc7ca422ca40c3aec3da1ad05469829f5e0f11b8af048417d360",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/30/BID_candles_min_1.bi5",
+    "sha256": "525fd2688969399c7fa09dfcb3928905914d1060336a359ce18e2b96519dacc7",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/30/ASK_candles_min_1.bi5",
+    "sha256": "ff24a02e9d03c22a74027219edbcf84084cd1ee63d6a28df1936a980fe1dea5b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/28/BID_candles_min_1.bi5",
+    "sha256": "2d2c40d08d0be63efa202f00381ba3d95cb6fcc2fc31863700c7000619d18c38",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/28/ASK_candles_min_1.bi5",
+    "sha256": "be8d3d01c6838406624f552f50acf37e901321c2185e9fa20e8f181297e36f69",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/29/BID_candles_min_1.bi5",
+    "sha256": "55adebc1f83f5fb2e1cb8e79116c3af5496725705a82bcf60b5d26059b4ece92",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/29/ASK_candles_min_1.bi5",
+    "sha256": "d65edb98dce74c2470636cee251373bf4f2efe4c7ddea73974736ec753584ae7",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/23/BID_candles_min_1.bi5",
+    "sha256": "0cd42088cce63257ce4e4fb4a51c2ceb8e74444dc72c7564d651579816ebd696",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/23/ASK_candles_min_1.bi5",
+    "sha256": "be8ffe04c7686d482c4b187b6d82b23a8b34320d81daba7b2d5358ffaee77d91",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/30/BID_candles_min_1.bi5",
+    "sha256": "bc2a1a78bfabf99d6f1b4b9865a4291d6f240afc51b9fc922f67e75ed3566ce4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/30/ASK_candles_min_1.bi5",
+    "sha256": "ac8026f54974e64b0ff253ac35dfa37bd32b5b2c9a29af977a9e37989df44816",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/01/BID_candles_min_1.bi5",
+    "sha256": "6743be80706488e8621a8e65c2975d61a432dc6a830187b169576d8e08f10e50",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/01/ASK_candles_min_1.bi5",
+    "sha256": "6a22888549f8223a1b6c4bf1b9dd327bc7b2ffd9bb4265dd3ef43bafda06fa4a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/02/BID_candles_min_1.bi5",
+    "sha256": "0e023396a37b7b1e1c33faac2ed5920ce5dfd83644415128a3d42bdbe0f484fe",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/02/ASK_candles_min_1.bi5",
+    "sha256": "3deaef1fa6ff8656576101069727871caef6f703db84953f268b6ad9b08a0485",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/05/BID_candles_min_1.bi5",
+    "sha256": "37103e4de2dd2b6afd29e323215597cc706b7f8e27c6137b4049422017b0c725",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/05/ASK_candles_min_1.bi5",
+    "sha256": "e39b1057d5f8bc38771055dd80049ad02eeb703c8481645eec0181706eda1b64",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/06/BID_candles_min_1.bi5",
+    "sha256": "3d3b7e8eea672f74620e1a855acf2c4126ec61718777c613b72b43bce7042fb2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/06/ASK_candles_min_1.bi5",
+    "sha256": "8f425bf8a56529646ebf445f326a794f5f2e4dfac179eed6c0f28997843157e7",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/07/BID_candles_min_1.bi5",
+    "sha256": "30c5b174a1b3c7036f4b8f6c41f6c94320bc10fa3db78780c944afce2eb7184a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/07/ASK_candles_min_1.bi5",
+    "sha256": "55743e419fb06133f19023f4361b70f3c38ebdf9c08a4f7eef536b62da92ab2d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/08/BID_candles_min_1.bi5",
+    "sha256": "1ef950a4fa543005d2198cb2041db21f28e4acb54a98de0847cfcf13c5390420",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/08/ASK_candles_min_1.bi5",
+    "sha256": "06ed228ac7310da3bb2720dee212a30763601932e83042ddd1b35c7e3c75b781",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/09/BID_candles_min_1.bi5",
+    "sha256": "0a4306002c73b80f1cd62f1977a035344114bf8a2bdd4c75a57e4a25179d655d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/09/ASK_candles_min_1.bi5",
+    "sha256": "49a21dfc9e241b37879d072f3bcdc7d8ec37fd5fa10e9ac89efda1871bef82ff",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/20/BID_candles_min_1.bi5",
+    "sha256": "a57a3e4a1e8e6ae78dbc1e32edf4e444bef299494290c84f60953955c2827a7b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/20/ASK_candles_min_1.bi5",
+    "sha256": "56a1ae75ee7648ad7c4b7684f4a2e6544dcdd52b5c888a38f50a5a155e8bddb1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/12/BID_candles_min_1.bi5",
+    "sha256": "15129502b22f48b70c13d6d591335e836ea85f60a13a44808814f7308f79a503",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/12/ASK_candles_min_1.bi5",
+    "sha256": "857210f5bb9fe865adc6405c6a74bdf5dfe02e711319567c8f31c12f186d44fe",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/13/BID_candles_min_1.bi5",
+    "sha256": "305b2ff62a1cf4628b1d75add88f9707f105da8b764e0a6d922476d321024758",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/13/ASK_candles_min_1.bi5",
+    "sha256": "c27e8fec5986d4024a18047aba47d5a51485053b5f08c425bd75e90a8e97de38",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/04/BID_candles_min_1.bi5",
+    "sha256": "af48bd08ed6addef3a1e208fbf354a57d6fe5e7167e1f18c19b6d6dc98350f0b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/04/ASK_candles_min_1.bi5",
+    "sha256": "33dd80ea306b4d227c115bc097ed8da15f1472108cd4f0b01462c06c20c7e266",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/14/BID_candles_min_1.bi5",
+    "sha256": "3d9102425cf7c2b4686e75f74266639d5314ca2a3913295d1b201364c2cd543d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/14/ASK_candles_min_1.bi5",
+    "sha256": "1eb971e45a6468a1f01f3957303e53e54321884be73bd49dbac30272524f97ed",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/15/BID_candles_min_1.bi5",
+    "sha256": "4a50289156e6864a79032e534c084e07c29ef40ac9a3416804c6f779b3cecfb5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/15/ASK_candles_min_1.bi5",
+    "sha256": "32d1f8fad382ad7b6fc3bec45b00287012cef2561aefe2ff3538d86318034549",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/16/BID_candles_min_1.bi5",
+    "sha256": "381b6e27139832901e6c06308e1bbd019610469dd1bf2f55d82decf2e2a429f3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/16/ASK_candles_min_1.bi5",
+    "sha256": "a54914cdb69b28b05c6aa472ad8c87b5158da43b60eb327703bdc64903e5b574",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/19/BID_candles_min_1.bi5",
+    "sha256": "8fb7f98ab463ca88ab0530c36848f91a59c0115ac2d944d807faac34e1721305",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/19/ASK_candles_min_1.bi5",
+    "sha256": "d52844829ebff358ee858971818b95e9e03060c567e0ce988a9a8a6dc7ed3b16",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/20/BID_candles_min_1.bi5",
+    "sha256": "e85b7f45514059a76a62e689845170e581bda09bad44b6df7f231a4023db4626",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/20/ASK_candles_min_1.bi5",
+    "sha256": "6a94d7cb8f37ad5181bad7e47ba3d01a9bdd7a0bdbafc15a3cb395cc891b5b6d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/21/BID_candles_min_1.bi5",
+    "sha256": "8124c9031255f3a8ef7ef0c776c12ce6d2e67e1f0c0ec1fa8991d3463619ba21",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/21/ASK_candles_min_1.bi5",
+    "sha256": "7ccf51a6e612d13bae90d75dca65747f524ed86369431df76b7a30c1aec3e864",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/22/BID_candles_min_1.bi5",
+    "sha256": "34c720b3eb3be606f3935e8278e15fb2da33671d9b893a5252532ddaed316e74",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/22/ASK_candles_min_1.bi5",
+    "sha256": "1b773448c6d4d8d542eec4ad8e6592e65a92d775f272640a46c31045cece32f0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/23/BID_candles_min_1.bi5",
+    "sha256": "5eec186de28b7191b8db7ba29ecba56ac653dd4aac06af714238d05fa3eba6c1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/23/ASK_candles_min_1.bi5",
+    "sha256": "e92a5f942eb4e494ec3ec0ac3c34bf8fa0aa70226a7248d53beee93d1c5ca4dc",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/11/BID_candles_min_1.bi5",
+    "sha256": "6397ce245a32a3f06b8dcaf5bca5cb00283e1944cbe5a21e2de396610cb071ee",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/11/ASK_candles_min_1.bi5",
+    "sha256": "bf792dd302684503eb5cce4be1569c520745715859db757316255ab81a5a8968",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/26/BID_candles_min_1.bi5",
+    "sha256": "09051068c97bb6cf0040de741fae727abbf70d14be57fcb8dc533494925952b4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/26/ASK_candles_min_1.bi5",
+    "sha256": "c1eb35b0b8e506a8016b57c6dadaa356291a121a4d5695ec8dc322599d822ca8",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/27/BID_candles_min_1.bi5",
+    "sha256": "6ef5ea3e25a4cfc270f2254de3c36f7cf915349999549cd29296bee2cbb7e2d2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/27/ASK_candles_min_1.bi5",
+    "sha256": "59decba7c9e5539c12b2607de8c6a1ca1dbaa83fe5cce94b4ac564dbf4cc426f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/27/BID_candles_min_1.bi5",
+    "sha256": "c9c13b08e22fdbfa15a78576aefbfd31ed39eb9e65362b79330e02d749ba247e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/27/ASK_candles_min_1.bi5",
+    "sha256": "eaf81f9632415cac464534ab9ad5d581f105fed40b30f46e2f59f95b06d5e81e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/28/BID_candles_min_1.bi5",
+    "sha256": "ba965f0df166719124e49481c5e5140e242b94c9938ee94cd75e6249c5804a73",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/28/ASK_candles_min_1.bi5",
+    "sha256": "a18401a12cfbd9bc5045d45b9fb46ef9eab7634fef9cfb552caf0f27c50b70be",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/29/BID_candles_min_1.bi5",
+    "sha256": "b921c462950d2225c3298dddee696788ef82b1cdd31bdac035dbf5004d444ffd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/29/ASK_candles_min_1.bi5",
+    "sha256": "080b19105a0a27e9d44b4b7933deb1755aeffea5b0939b7a264918c0faf82b6e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/30/BID_candles_min_1.bi5",
+    "sha256": "e345a13d45742f737108f988b8a0d4d41fd5d275228ba77247c97d81a7f8c0ff",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/30/ASK_candles_min_1.bi5",
+    "sha256": "73c68ea9ca927711bdb4e879865451e0d244ebb3dcdbb5ed09193933b0d124d9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/18/BID_candles_min_1.bi5",
+    "sha256": "68cc89e97584daa5ec7caf565464b93d0ea31a02cdde4867db809d594f0ef3f4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/18/ASK_candles_min_1.bi5",
+    "sha256": "3366907b892c63c306dfa765e258bf64eb69bd2e5d51b227e1aeffdf1c4126b1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/25/BID_candles_min_1.bi5",
+    "sha256": "8fce022b9aec84bd4c6944fdd4c1ddf8b447d967d05d7e19b5b90107213a13b6",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/25/ASK_candles_min_1.bi5",
+    "sha256": "8f73a3dea1179121dc68a24a22c690420e712ff871ab6d198db738178c920cad",
+    "vendorChecksum": false,
+    "side": "ASK"
+  }
+]

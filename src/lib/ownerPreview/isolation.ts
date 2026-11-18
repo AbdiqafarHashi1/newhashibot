@@ -4,9 +4,13 @@ import { previewStore } from './adapter';
 export const blockedPreviewRequests: string[] = [];
 export function permitsPreviewRequest(input: string, method: string, origin: string) {
   const url = new URL(input, origin);
-  // Only application assets. Same-origin API endpoints are not a loophole.
+  // Only application assets and published immutable research files. No API access.
   return method.toUpperCase() === 'GET' && url.origin === origin
     && (/^\/(assets|src|node_modules)\//.test(url.pathname)
+      || url.pathname === '/research/prop-ftmo-swing-20261113.summary.json'
+      || url.pathname === '/research/prop-payout-20261113.summary.json'
+      || url.pathname === '/research/prop-objectives-20261113.summary.json'
+      || /^\/research\/mission2-[a-zA-Z0-9-]+\.json$/.test(url.pathname)
       || /^\/(?:@vite\/client|@react-refresh|favicon\.ico)$/.test(url.pathname));
 }
 

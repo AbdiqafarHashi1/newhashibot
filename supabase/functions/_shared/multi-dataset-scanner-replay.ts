@@ -11,10 +11,11 @@ import {replayScannerChronologically,type ReplayEvent,type ReplayResumeState,typ
 import type {StrategyCandle} from './professional-strategies.ts';
 export interface ReplayDatasetInput{id:string;hash:string;configurationHash:string;source:string;symbol:string;market:'crypto'|'forex';timeframe:string;candles:StrategyCandle[]}
 const width=(tf:string)=>{const m=/^(\d+)(m|h|d)$/.exec(tf);if(!m)throw new Error('UNSUPPORTED_TIMEFRAME');return Number(m[1])*(m[2]==='m'?60000:m[2]==='h'?3600000:86400000)};
-/** Exact production admission/indicators/registry/qualification/arbitration/selection, isolated evidence only. */
+/** Legacy research replay. It cannot qualify or replay the Mission 1 entry policy. */
 export async function runMultiDatasetScannerReplay(input:{runId:string;datasets:readonly ReplayDatasetInput[];configuration:ApprovedReplayConfiguration;configurationHash:string;start:string;end:string;cooldownMs:number;maxCycles:number;lifecycleAssumptions?:ReplayFillAssumptions;shouldCancel?:()=>Promise<boolean>|boolean;resume?:ReplayResumeState;onEvidence?:(row:{event:ReplayEvent;selection:ScannerSelection},state:ReplayResumeState)=>Promise<void>}){
  if(!input.datasets.length)throw new Error('REPLAY_DATASETS_REQUIRED');
  if(input.datasets.some(d=>d.configurationHash!==input.configurationHash))throw new Error('REPLAY_CONFIGURATION_LINEAGE_CONFLICT');
+ if(input.configuration.strategies.some(s=>s.enabled&&s.parameters.entry_engine_version===1))throw Error('CANONICAL_ENTRY_POLICY_REPLAY_REQUIRED');
  validateCoordinatedDatasets(input.configuration,input.datasets);
  const alt=needsBtcReference(input.configuration),windowSize=requiredReplayBars(input.configuration),events:ReplayEvent[]=[],contexts=new Map<string,{dataset:ReplayDatasetInput;candles:StrategyCandle[]}>();
  const admitted=input.datasets.map(dataset=>({dataset,rows:admitHistoricalCandles(dataset.candles,dataset.timeframe,input.end,dataset.market==='crypto'?'24x7':'FOREX_24x5').candles}));

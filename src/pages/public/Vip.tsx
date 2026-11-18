@@ -19,7 +19,7 @@ export default function Vip() {
       </div>
     </section>
 
-    <div role="status" className="mx-auto max-w-3xl px-4 py-5 text-sm text-amber-200">Release 1 launch verification is in progress. Paid signal publication requires a certified strategy; checkout stays paused until launch approval. Historical research is not a guarantee of profitability.</div>
+    <div role="status" className="mx-auto max-w-3xl px-4 py-5 text-sm text-amber-200">Each setup includes context, conditions and follow-ups. Current checkout availability appears with your payment method. Historical research does not guarantee future returns.</div>
     <SignalDemo />
 
     <section id="vip-purchase" className="border-b border-zinc-800 bg-zinc-900/30 px-4 py-10 sm:px-6"><div className="mx-auto max-w-5xl"><div className="text-center"><p className="text-xs font-black uppercase tracking-widest text-emerald-400">Choose your VIP term</p><h2 className="mt-2 text-3xl font-black text-white">Kenya or international</h2><p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-zinc-400">Kenya: KES 3,500 for 30 days through M-Pesa. International: USD 29 per month through Whop. M-Pesa renewal requires a new verified payment.</p></div><div className="mt-7 grid gap-4 lg:grid-cols-2"><MpesaCheckout termDays={30}/><WhopCheckout product="HASHIBOT_VIP_SIGNALS"/></div></div></section>
@@ -28,7 +28,7 @@ export default function Vip() {
 
     <section className="mx-auto max-w-5xl px-4 py-9 sm:px-6"><div className="grid overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 md:grid-cols-[1.15fr_.85fr]"><div className="p-5 sm:p-7"><p className="text-[11px] font-bold uppercase tracking-[.16em] text-blue-400">Everything you need to act</p><h2 className="mt-2 text-2xl font-extrabold text-white">The complete setup, at a glance.</h2><div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3">{benefits.map(item => <div key={item} className="flex gap-2 text-sm text-zinc-300"><CheckCircle className="mt-0.5 shrink-0 text-emerald-400" size={15}/>{item}</div>)}</div></div><div className="border-t border-zinc-800 bg-zinc-950/60 p-5 md:border-l md:border-t-0 sm:p-7"><ShieldCheck className="text-blue-400" size={22}/><h2 className="mt-3 text-xl font-extrabold text-white">Qualified, not crowded</h2><p className="mt-3 text-sm leading-6 text-zinc-400">HashiBot filters structure, liquidity, volatility, timing and risk. You receive the setups that pass — formatted to scan quickly and manage responsibly.</p><p className="mt-4 text-xs text-zinc-600">Signals are informational and never guarantee a result.</p></div></div></section>
 
-    <section className="mx-auto max-w-4xl px-4 py-9 text-center sm:px-6"><h2 className="text-2xl font-extrabold text-white sm:text-3xl">Ready for the full signal stream?</h2><a href="#vip-purchase" className="mt-5 inline-flex rounded-xl bg-blue-600 px-7 py-3 text-sm font-bold text-white">Choose your VIP term</a><p className="mt-4 text-xs text-zinc-500">Not ready? <Link to="/free" className="text-zinc-300 underline">Join Free</Link></p></section>
+    <section className="mx-auto max-w-4xl px-4 py-9 text-center sm:px-6"><h2 className="text-2xl font-extrabold text-white sm:text-3xl">Ready for the full signal stream?</h2><a href="#vip-purchase" className="mt-5 inline-flex rounded-xl bg-blue-600 px-7 py-3 text-sm font-bold text-white">Choose your VIP term</a><p className="mt-4 text-xs text-zinc-500">Prefer to start with Free? <Link to="/free" className="text-zinc-300 underline">Join Free</Link></p></section>
   </CommerceLayout>;
 }
 

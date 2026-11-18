@@ -1,4 +1,4 @@
-import { enterOwnerPreview } from '../../lib/ownerPreview/state';
+import { enterAdminWorkspace } from '../../lib/ownerPreview/state';
 export function OwnerPreviewEntry() {
-  return <button type="button" onClick={()=>enterOwnerPreview()} className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-300">Owner Preview</button>;
+  return <button type="button" onClick={()=>enterAdminWorkspace()} className="rounded-lg border border-blue-400/40 bg-blue-400/10 px-3 py-2 text-xs font-bold text-blue-300">Admin workspace</button>;
 }

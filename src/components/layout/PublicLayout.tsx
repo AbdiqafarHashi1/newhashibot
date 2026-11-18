@@ -76,9 +76,9 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-[10px] uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Release 1 preview
+            Market intelligence
           </span>
-          <span>HashiBot Release 1: signals and market intelligence. Launch requires strategy certification and verified payment delivery.</span>
+          <span>Clear setup conditions, confirmed entries and ongoing updates.</span>
           <Link to="/pricing#pricing-plans" className="text-blue-400 hover:text-blue-300 underline font-medium ml-1">
             View Plans →
           </Link>
@@ -141,7 +141,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     >
                       <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
                         <span>AI Signals</span>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Explore</span>
                       </div>
                       <p className="text-[11px] text-zinc-400 mt-0.5">Structured signals with entry, SL, TP & outcome tracking</p>
                     </Link>
@@ -152,7 +152,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     >
                       <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
                         <span>Crypto Automation</span>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Explore</span>
                       </div>
                       <p className="text-[11px] text-zinc-400 mt-0.5">Direct Binance & Bybit execution for personal accounts</p>
                     </Link>
@@ -163,7 +163,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     >
                       <div className="text-xs font-bold text-white group-hover:text-blue-400 flex items-center justify-between">
                         <span>MT5 Automation</span>
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Live</span>
+                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">Explore</span>
                       </div>
                       <p className="text-[11px] text-zinc-400 mt-0.5">MetaTrader 5 bridge for Personal & Prop terminals</p>
                     </Link>
@@ -318,7 +318,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
                 >
                   <span>AI Signals</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Explore</span>
                 </Link>
                 <Link
                   to="/crypto-automation"
@@ -326,7 +326,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
                 >
                   <span>Crypto Automation</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Explore</span>
                 </Link>
                 <Link
                   to="/mt5-automation"
@@ -334,7 +334,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   className="block py-2 text-sm text-zinc-300 hover:text-blue-400 flex items-center justify-between"
                 >
                   <span>MT5 Automation</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Live</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">Explore</span>
                 </Link>
               </div>
 
@@ -504,7 +504,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     className="text-amber-400 hover:text-amber-300 font-mono text-[11px] flex items-center gap-1.5 transition-colors"
                   >
                     <KeyRound size={12} />
-                    <span>Owner Preview</span>
+                    <span>Admin workspace</span>
                   </button>
                 </li>
                 {isLoggedIn && (
@@ -555,10 +555,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                     enterOwnerPreview();
                   }}
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/20 text-xs font-mono transition-colors"
-                  title="Inspect simulated admin and customer journeys"
+                  title="Open the current admin workspace"
                 >
                   <KeyRound size={12} />
-                  <span>Owner Preview</span>
+                  <span>Admin workspace</span>
                 </button>
               </div>
 

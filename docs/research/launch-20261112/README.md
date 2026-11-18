@@ -1,0 +1,17 @@
+# Launch strategy research — 12 November 2026
+
+Original source: Binance USD-M perpetual monthly 5-minute archives, ten explicitly selected assets. The acquisition script verifies publisher SHA256 checksums and separately hashes decoded rows. Universe selection is not survivorship-neutral. Fees/filters/funding are documented scenario assumptions, not historical exchange contract certification.
+
+729 fixed development configurations cover Donchian breakouts, EMA cross, trend pullback, Bollinger reversion, RSI2, normalized momentum, VWAP reclaim, failed breakout and squeeze. Parameters are selected on January–February development; six candidates per family advance to March–April validation. Two positive candidates per family with at least twenty validation closes advance to May–August 2025 and August–October 2026. Those later periods are research evaluation periods; they have now been inspected and must not be reused as an untouched holdout. Every configuration and outcome is retained privately here.
+
+Five candidates have positive total equity return and closed-trade profit factor above one in both later periods at 0.5% risk. That is a useful screen result; the separate canonical scanner/account replay remains authoritative for deployed behavior. The first seven-day integration replay confirms signal frequency and real Brain decisions but contains losses; it is not a strategy promotion. Full-period replays compare individual candidates and the combined scanner.
+
+The risk matrix reruns sizing, fees, margin capacity and portfolio limits. It does not multiply a low-risk return by leverage. Increased risk may change which trades are taken, cause account failure or invalidate an earlier positive result. A monthly target is not a guaranteed result.
+
+`canonical-week-summary.json` records the exact source hash, metrics, assumptions and uncompressed report SHA256. `canonical-week.json.gz.b64` preserves the full report: base64-decode then gzip-decompress it. The genuine vendor manifests are embedded in the report.
+
+The new families are registered in the real watched-strategy catalog. Their own closed-bar trend rules are not overwritten by unrelated generic EMA filters. Abnormal-market, freshness, geometry, costs, arbitration, tenant permissions, expiry and account risk remain checked. Single full-position targets are deduplicated before arbitration; this fixes a real incompatibility with the watcher contract. Native futures feed routing uses the futures endpoint when these strategies are enabled.
+
+Broker archive access was attempted through original provider endpoints. A GitHub runner received HTTP 429 on its first EURUSD request, so no broker prices were invented or substituted. Current first-party export API health is recorded separately. MT5 customer/broker matching and funded survival require genuine broker histories and account rules; crypto simulations cannot stand in for those records.
+
+FTMO's current core 2-Step rules were checked at https://ftmo.com/en/trading-objectives/: 10% / 5% targets, four trading days per evaluation phase, 5% initial-capital daily allowance from midnight Prague balance, and 10% static initial-capital maximum loss. Payout and account-specific holding/news restrictions remain separate. The loss observer now distinguishes the daily reference balance from the allowance's initial-capital basis and includes floating equity in funded loss checks.

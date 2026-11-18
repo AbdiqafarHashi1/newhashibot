@@ -1,0 +1,270 @@
+{
+  "generatedAt": "2026-11-12",
+  "source": "Binance USD-M perpetual archives, ten symbols",
+  "initialCapital": 1000,
+  "riskPerTradePct": 0.5,
+  "maximumLeverage": 3,
+  "selection": "729 development variants; 54 validation candidates; 14 later-period candidates. These five configurations had positive total equity return and closed-trade profit factor above one in both later periods. Scanner replay and demo execution are measured separately.",
+  "strategies": [
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 240,
+        "lookback": 24,
+        "stopAtr": 3.0,
+        "rewardR": 1.5
+      },
+      "periods": [
+        {
+          "start": "2025-05-01",
+          "end": "2025-09-01",
+          "equityReturnPct": 3.7481374876999096,
+          "maximumDrawdownPct": 10.325236840623106,
+          "profitFactor": 1.1064348998193172,
+          "closedTrades": 121,
+          "entries": 123,
+          "blockedEntries": 98,
+          "accountFailed": false,
+          "costs": 23.18869512300002,
+          "openPositions": 2,
+          "monthly": {
+            "2025-05": -0.08475654919990472,
+            "2025-06": -1.7822758816345097,
+            "2025-07": 8.308351486942133,
+            "2025-08": -2.389453167321498
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        },
+        {
+          "start": "2026-08-01",
+          "end": "2026-11-01",
+          "equityReturnPct": 6.655608485799869,
+          "maximumDrawdownPct": 8.553184722182268,
+          "profitFactor": 1.2341415690983464,
+          "closedTrades": 95,
+          "entries": 99,
+          "blockedEntries": 92,
+          "accountFailed": false,
+          "costs": 23.056415141999985,
+          "openPositions": 4,
+          "monthly": {
+            "2026-08": 9.500756828200064,
+            "2026-09": -1.6814158010694635,
+            "2026-10": -0.9325553620977756
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "family": "ema_cross",
+        "timeframe": 240,
+        "lookback": 24,
+        "stopAtr": 1.5,
+        "rewardR": 3.0
+      },
+      "periods": [
+        {
+          "start": "2025-05-01",
+          "end": "2025-09-01",
+          "equityReturnPct": 4.271397234100016,
+          "maximumDrawdownPct": 11.5863592088724,
+          "profitFactor": 1.0553047092347068,
+          "closedTrades": 96,
+          "entries": 102,
+          "blockedEntries": 11,
+          "accountFailed": false,
+          "costs": 31.721397659000033,
+          "openPositions": 6,
+          "monthly": {
+            "2025-05": 3.4922061542999705,
+            "2025-06": -2.362616456890021,
+            "2025-07": 0.2451052958287736,
+            "2025-08": 2.9385956392235846
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        },
+        {
+          "start": "2026-08-01",
+          "end": "2026-11-01",
+          "equityReturnPct": 4.915483559700151,
+          "maximumDrawdownPct": 9.258961500512743,
+          "profitFactor": 1.1995132656185097,
+          "closedTrades": 67,
+          "entries": 68,
+          "blockedEntries": 2,
+          "accountFailed": false,
+          "costs": 24.267874403,
+          "openPositions": 1,
+          "monthly": {
+            "2026-08": 0.40174075220003047,
+            "2026-09": -0.8414608906882615,
+            "2026-10": 5.382433787511132
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "family": "squeeze",
+        "timeframe": 240,
+        "lookback": 24,
+        "stopAtr": 1.5,
+        "rewardR": 3.0
+      },
+      "periods": [
+        {
+          "start": "2025-05-01",
+          "end": "2025-09-01",
+          "equityReturnPct": 3.194944782199971,
+          "maximumDrawdownPct": 15.820124535172885,
+          "profitFactor": 1.0499131732130376,
+          "closedTrades": 167,
+          "entries": 168,
+          "blockedEntries": 58,
+          "accountFailed": false,
+          "costs": 50.54474217800006,
+          "openPositions": 1,
+          "monthly": {
+            "2025-05": 2.524569897300033,
+            "2025-06": -3.4006215722656163,
+            "2025-07": 8.224607189598988,
+            "2025-08": -3.721322338193922
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        },
+        {
+          "start": "2026-08-01",
+          "end": "2026-11-01",
+          "equityReturnPct": 6.227555760400394,
+          "maximumDrawdownPct": 19.701304105218455,
+          "profitFactor": 1.1004793258904577,
+          "closedTrades": 147,
+          "entries": 150,
+          "blockedEntries": 60,
+          "accountFailed": false,
+          "costs": 52.482962395999984,
+          "openPositions": 3,
+          "monthly": {
+            "2026-08": 21.227896506300013,
+            "2026-09": -5.918874766441984,
+            "2026-10": -6.860883037868093
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "family": "donchian",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 3.0
+      },
+      "periods": [
+        {
+          "start": "2025-05-01",
+          "end": "2025-09-01",
+          "equityReturnPct": 6.709191573699935,
+          "maximumDrawdownPct": 15.480873579155515,
+          "profitFactor": 1.1472307342618107,
+          "closedTrades": 119,
+          "entries": 120,
+          "blockedEntries": 61,
+          "accountFailed": false,
+          "costs": 35.53544426299995,
+          "openPositions": 1,
+          "monthly": {
+            "2025-05": 1.2033218732000694,
+            "2025-06": -1.6377068207075407,
+            "2025-07": 11.081784251615211,
+            "2025-08": -3.4981654346872837
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        },
+        {
+          "start": "2026-08-01",
+          "end": "2026-11-01",
+          "equityReturnPct": 10.41049540060004,
+          "maximumDrawdownPct": 17.499619758893452,
+          "profitFactor": 1.2754515152148223,
+          "closedTrades": 90,
+          "entries": 93,
+          "blockedEntries": 34,
+          "accountFailed": false,
+          "costs": 30.36808599399998,
+          "openPositions": 3,
+          "monthly": {
+            "2026-08": 23.7205745312,
+            "2026-09": 0.6947800270545423,
+            "2026-10": -11.373933802495806
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "family": "trend_pullback",
+        "timeframe": 240,
+        "lookback": 48,
+        "stopAtr": 1.5,
+        "rewardR": 5.0
+      },
+      "periods": [
+        {
+          "start": "2025-05-01",
+          "end": "2025-09-01",
+          "equityReturnPct": 10.971030065800225,
+          "maximumDrawdownPct": 12.92739121831709,
+          "profitFactor": 1.1947838862258875,
+          "closedTrades": 102,
+          "entries": 107,
+          "blockedEntries": 65,
+          "accountFailed": false,
+          "costs": 37.39116934200004,
+          "openPositions": 5,
+          "monthly": {
+            "2025-05": -4.140097482599947,
+            "2025-06": 2.874854493097212,
+            "2025-07": 8.051479482073077,
+            "2025-08": 4.143623120295259
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        },
+        {
+          "start": "2026-08-01",
+          "end": "2026-11-01",
+          "equityReturnPct": 6.761325495900095,
+          "maximumDrawdownPct": 11.59535160362995,
+          "profitFactor": 1.1001489090040273,
+          "closedTrades": 68,
+          "entries": 72,
+          "blockedEntries": 61,
+          "accountFailed": false,
+          "costs": 34.68419504100005,
+          "openPositions": 4,
+          "monthly": {
+            "2026-08": -6.556675923700062,
+            "2026-09": 11.289008623865527,
+            "2026-10": 2.662870738900014
+          },
+          "riskPct": 0.5,
+          "leverage": 3
+        }
+      ]
+    }
+  ]
+}

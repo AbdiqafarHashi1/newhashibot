@@ -63,5 +63,8 @@ test('illustrative research cannot be mistaken for venue-certified data', () => 
 test('network allowlist rejects all APIs, providers and mutations while permitting local assets', () => {
   const origin='https://hashibot.example';
   assert.ok(permitsPreviewRequest('/assets/app.js','GET',origin));
+  assert.ok(permitsPreviewRequest('/research/mission2-results.json','GET',origin));
+  assert.equal(permitsPreviewRequest('/research/mission2-results.json','POST',origin),false);
+  assert.equal(permitsPreviewRequest('https://example.com/research/mission2-results.json','GET',origin),false);
   for (const [path, method] of [['/api/ai','POST'],['/api/health','GET'],['/functions/v1/admin-operator-action','POST'],['https://api.binance.com/api/v3/order','POST'],['https://example.supabase.co/rest/v1/profiles','GET'],['/assets/app.js','POST']]) assert.equal(permitsPreviewRequest(path,method,origin),false);
 });

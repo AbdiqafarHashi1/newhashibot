@@ -1,4 +1,5 @@
-import {entryPriceAssessment,entryPolicyQualified} from './entry-decision.ts';
+import {GOLD_RSI_TRAILING,validateAtrTrailingPolicy,nextAtrTrailingStop,simpleClosedAtr,type AtrTrailingState} from './atr-trailing-policy.ts';
+import {entryPriceAssessment,entryPolicyEvaluable} from './entry-decision.ts';
 import type {EntryDecision} from './entry-decision.ts';
 import type {PaperLearningEvidence} from './paper-learning.ts';
 import {watchWidth,type WatchTimeframe,type WatchTrack} from './conditional-contract.ts';
@@ -19,6 +20,7 @@ export interface ConditionalSetup {
  strategy:string; variant:string; policy:string; sourceClose:string; source:string; trigger:number;
  stop:number; tp1:number; tp2:number; expiresAt:string; holdBars:number; score:number; reason:string;
  status:SetupStatus; version:number; lastBar:string; armedAt?:string; fill?:number; bars?:number;
+ trailingState?:AtrTrailingState;
  partial?:boolean; netR?:number; result?:string; exit?:number; fillAt?:string; observedAt?:string;
  validation?:{kind:'TREND_PULLBACK'|'RANGE_REJECTION'|'STRATEGY';boundary:number;higherMinutes:number;lookbackBars?:number;fastPeriod?:number;slowPeriod?:number};
  cost?:{price:number;label:string};
@@ -35,7 +37,7 @@ const width=watchWidth;
 export function validClosedBars(rows:readonly StrategyCandle[],symbol:string,tf:string,now:number):boolean {
  const w=width(tf);return rows.length>=100 && Number.isFinite(now) && rows.every((r,i)=>r.symbol===symbol&&r.timeframe===tf&&
  [r.open,r.high,r.low,r.close,r.volume].every(Number.isFinite)&&r.low>0&&r.volume>=0&&r.high>=Math.max(r.open,r.close)&&r.low<=Math.min(r.open,r.close)&&
- Boolean(r.source)&&r.source!=='UNKNOWN'&&r.source===rows[0].source&&Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(r.open_time),w)))&&
+ Boolean(r.source)&&r.source!=='UNKNOWN'&&r.source===rows[0].source&&Date.parse(r.open_time)%w===0&&Date.parse(r.open_time)+w<=now&&(!i||consecutiveMarketBars(symbol,Date.parse(rows[i-1].open_time),Date.parse(r.open_time),w,r.source)))&&
  now-Date.parse(rows.at(-1)!.open_time)-w<w;
 }
 /** Two broad tracks; trend continuation or balanced-range rejection is selected by observed context. */
@@ -80,7 +82,7 @@ export function conditionalCandidates(symbol:string,tf:WatchTimeframe,rows:reado
 }
 export function selectConditionalSetup(setups:readonly ConditionalSetup[],now:number):ConditionalSetup|undefined {
  const candidates:ArbitrationCandidate[]=setups.map(s=>({id:s.id,strategyId:s.strategy,strategyVersion:s.origin?.version??'1.0.0',market:s.market??conditionalMarket(s.symbol)??'crypto',symbol:s.symbol,timeframe:s.timeframe,
- side:s.side,confidence:s.score,grade:s.origin?.plan.diagnostics.grade??(s.score>=85?'A+':'A'),score:s.selectionScore??s.score,entry:s.trigger,stop:s.stop,targets:[s.tp1,s.tp2],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
+ side:s.side,confidence:s.score,grade:s.origin?.plan.diagnostics.grade??(s.score>=85?'A+':'A'),score:s.selectionScore??s.score,entry:s.trigger,stop:s.stop,targets:[...new Set([s.tp1,s.tp2])],riskReward:Math.abs(s.tp2-s.trigger)/Math.abs(s.trigger-s.stop),expiry:s.expiresAt,
  fresh:now-Date.parse(s.sourceClose)<width(s.timeframe),lifecycle:'ENABLED',publicationMode:'LIVE',eligible:true,
  evidence:{policy:CONDITIONAL_POLICY,score_is_probability:false,conditional_only:true},rejectionReasons:[]}));
  const opposing=new Set(setups.map(s=>s.side)).size>1;
@@ -103,23 +105,23 @@ export function enterConditionalAtOpen(old:ConditionalSetup,b:StrategyCandle,now
  if(now-Date.parse(b.open_time)>90000)return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Next open was not observed within the executable entry window; no retroactive fill.'};
  if(!Number.isFinite(Date.parse(b.open_time))||b.symbol!==old.symbol||b.timeframe!==old.timeframe||!Number.isFinite(b.open)||b.open<=0||b.source!==old.source)throw Error('INVALID_NEXT_OPEN');
  if(Date.parse(b.open_time)!==Date.parse(old.armedAt!)){
-  if(!consecutiveMarketBars(old.symbol,Date.parse(old.lastBar),Date.parse(b.open_time),width(old.timeframe)))return old;
+  if(!consecutiveMarketBars(old.symbol,Date.parse(old.lastBar),Date.parse(b.open_time),width(old.timeframe),b.source))return old;
   return {...old,version:old.version+1,status:'INVALIDATED',observedAt:new Date(now).toISOString(),result:'Confirmation led into a scheduled market closure; original next-open condition cancelled, no paper fill.'};
  }
  if(now>=Date.parse(old.expiresAt))return {...old,version:old.version+1,status:'EXPIRED',observedAt:new Date(now).toISOString(),result:'Entry deadline elapsed; no paper fill.'};
  const d=old.side==='buy'?1:-1,s={...old,version:old.version+1,observedAt:new Date(now).toISOString()};
  if(d*(b.open-old.stop)<=0||d*(b.open-old.trigger)>(old.management?.maximumChaseR??.25)*Math.abs(old.trigger-old.stop))return {...s,status:'INVALIDATED',result:'Next open crossed invalidation or exceeded chase limit; no paper fill.'};
- if(old.origin&&entryPolicyQualified(old.origin.configuration)){const checks=entryPriceAssessment(old,b.open,old.confirmationIntelligence?.spreadPrice);if(checks.reasons.length)return {...s,status:'INVALIDATED',result:checks.reasons.join('|')+'; no paper entry.'};}
+ if(old.origin&&entryPolicyEvaluable(old.origin.configuration)){const checks=entryPriceAssessment(old,b.open,old.confirmationIntelligence?.spreadPrice);if(checks.reasons.length)return {...s,status:'INVALIDATED',result:checks.reasons.join('|')+'; no paper entry.'};}
  return {...s,evaluationOutcome:undefined,status:'ACTIVE',fill:b.open,fillAt:b.open_time,bars:0,netR:0,result:'Paper entry at observed next open; outcomes await closed candles.'};
 }
 /** Confirmation at a completed candle close, paper fill at the NEXT bar open. Never retroactive entry. */
-export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):ConditionalSetup {
+export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle,history?:readonly StrategyCandle[]):ConditionalSetup {
  const s={...old},w=width(s.timeframe),t=Date.parse(b.open_time),previous=Date.parse(s.lastBar),d=s.side==='buy'?1:-1;
  if(t<=previous||['CLOSED','EXPIRED','INVALIDATED','DATA_GAP'].includes(s.status))return old;
  if(![b.open,b.high,b.low,b.close].every(Number.isFinite)||b.low<=0||b.low>Math.min(b.open,b.close)||b.high<Math.max(b.open,b.close)||b.symbol!==s.symbol||b.timeframe!==s.timeframe)throw Error('INVALID_OBSERVATION');
  s.version++;s.lastBar=b.open_time;
  if(!b.source||b.source!==s.source){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Price source changed; outcome unknown.';return s;}
- if(!consecutiveMarketBars(s.symbol,previous,t,w)){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
+ if(!consecutiveMarketBars(s.symbol,previous,t,w,b.source)){if(old.status==='WAITING'||old.status==='ARMED')return old;s.status='DATA_GAP';s.result='Missing candles; outcome unknown, manual review required.';return s;}
  if(s.status==='WAITING'){
   if(t+w>=Date.parse(s.expiresAt)){s.status='EXPIRED';s.result='Condition did not confirm before expiry.';}
   else if(d*((d===1?b.low:b.high)-s.stop)<=0){s.status='INVALIDATED';s.result='Original invalidation touched before entry.';}
@@ -133,29 +135,56 @@ export function advanceConditionalSetup(old:ConditionalSetup,b:StrategyCandle):C
   }
   s.status='ACTIVE';s.fill=b.open;s.bars=0;s.netR=0;s.result='Paper entry at next open, not a provider fill.';
  }
+ if(s.origin?.plan.management_intent?.trailing_policy){
+  validateAtrTrailingPolicy(s.origin.plan.management_intent?.trailing_policy);
+  if(s.strategy!==GOLD_RSI_TRAILING||s.tp1!==s.tp2)throw Error('TRAILING_SIGNAL_CONTRACT_MISMATCH');
+  const prefix=(history??[]).filter(r=>Date.parse(r.open_time)<=t),atr=simpleClosedAtr(prefix);
+  if(!atr)return old; // Retry missing ATR history; never invent an exit or skip its bar.
+  const initialDistance=old.trailingState?.initialDistance??Math.abs(s.fill!-s.stop),activeStop=old.trailingState?.stop??s.stop;
+  s.bars=(s.bars??0)+1;
+  const stopped=d*((d===1?b.low:b.high)-activeStop)<=0,final=d*((d===1?b.high:b.low)-s.tp2)>=0;
+  if(stopped||final||s.bars>=s.holdBars||t+w-Date.parse(s.fillAt??s.armedAt!)>=s.holdBars*w){
+   s.status='CLOSED';s.exit=stopped?(d===1?Math.min(b.open,activeStop):Math.max(b.open,activeStop)):final?s.tp2:b.close;
+   s.result=stopped?'TRAIL_OR_INITIAL_STOP':final?'TP2':'TIME_STOP';s.netR=(d*(s.exit-s.fill!)-(s.cost?.price??conditionalCost(s.symbol,s.fill!).price))/initialDistance;
+  }else{
+   const bestFavorable=Math.max(old.trailingState?.bestFavorable??0,d*((d===1?b.high:b.low)-s.fill!));
+   s.trailingState={initialDistance,bestFavorable,stop:nextAtrTrailingStop({side:d,entry:s.fill!,initialDistance,bestFavorable,currentStop:activeStop,atr,tick:.01})};
+   s.result='Closed-bar trailing reference; improved stop applies from the next bar. Provider fills are recorded separately.';
+  }
+  return s;
+ }
  const risk=Math.abs(s.fill!-s.stop);s.bars=(s.bars??0)+1;
- const stopped=d*((d===1?b.low:b.high)-s.stop)<=0;
+ const fraction=s.management?.partialFraction??.5;
+ if(!Number.isFinite(fraction)||fraction<0||fraction>1)throw Error('INVALID_PARTIAL_FRACTION');
+ // Keep the immutable original stop/risk; derive active BE protection from TP1 state.
+ const activeStop=s.partial&&s.management?.breakEvenAfterTp1?s.fill!:s.stop;
+ const stopped=d*((d===1?b.low:b.high)-activeStop)<=0;
  const first=d*((d===1?b.high:b.low)-s.tp1)>=0,final=d*((d===1?b.high:b.low)-s.tp2)>=0;
- const remaining=s.partial?.5:1;
- if(stopped){s.status='CLOSED';s.exit=d===1?Math.min(b.open,s.stop):Math.max(b.open,s.stop);
+ const remaining=s.partial?1-fraction:1;
+ if(stopped){s.status='CLOSED';s.exit=d===1?Math.min(b.open,activeStop):Math.max(b.open,activeStop);
   s.netR=(s.netR??0)+remaining*d*(s.exit-s.fill!)/risk;s.result=first?'STOP_FIRST_AMBIGUOUS_BAR':'STOP';}
+ else if(first&&!s.partial&&s.management?.breakEvenAfterTp1&&d*((d===1?b.low:b.high)-s.fill!)<=0){
+  // Unknown intrabar ordering: TP1 then BE wins over an optimistic same-bar TP2.
+  s.partial=true;s.netR=(s.netR??0)+fraction*d*(s.tp1-s.fill!)/risk;s.status='CLOSED';s.exit=s.fill!;s.result='TP1_THEN_BREAKEVEN_CONSERVATIVE';
+ }
  else if(final){s.status='CLOSED';s.exit=d===1?Math.max(b.open,s.tp2):Math.min(b.open,s.tp2);
-  s.netR=(s.netR??0)+(s.partial?.5*d*(s.exit-s.fill!)/risk:.5*d*(s.tp1-s.fill!)/risk+.5*d*(s.exit-s.fill!)/risk);s.partial=true;s.result='TP2';}
- else{if(first&&!s.partial){s.partial=true;s.netR=.5*d*(s.tp1-s.fill!)/risk;s.result='TP1; half paper position remains, original stop unchanged.';}
-  if(s.bars>=s.holdBars||t+w-Date.parse(s.fillAt??s.armedAt!)>=s.holdBars*w){s.status='CLOSED';s.exit=b.close;s.netR=(s.netR??0)+(s.partial?.5:1)*d*(b.close-s.fill!)/risk;s.result='TIME_STOP';}}
+  s.netR=(s.netR??0)+(s.partial?(1-fraction)*d*(s.exit-s.fill!)/risk:fraction*d*(s.tp1-s.fill!)/risk+(1-fraction)*d*(s.exit-s.fill!)/risk);s.partial=true;s.result='TP2';}
+ else{if(first&&!s.partial){s.partial=true;s.netR=(s.netR??0)+fraction*d*(s.tp1-s.fill!)/risk;s.result=s.management?.breakEvenAfterTp1?'TP1; remaining position protected at entry.':'TP1; partial position remains, original stop unchanged.';}
+  if(s.bars>=s.holdBars||t+w-Date.parse(s.fillAt??s.armedAt!)>=s.holdBars*w){s.status='CLOSED';s.exit=b.close;s.netR=(s.netR??0)+(s.partial?1-fraction:1)*d*(b.close-s.fill!)/risk;s.result='TIME_STOP';}}
  if(s.status==='CLOSED')s.netR=(s.netR??0)-(s.cost?.price??conditionalCost(s.symbol,s.fill!).price)/risk;
  return s;
 }
 export function conditionalMessage(s:ConditionalSetup):string {
  const price=(v:number)=>Number(v.toPrecision(8)).toString();
  const time=(iso:string)=>new Intl.DateTimeFormat('en-KE',{timeZone:'Africa/Nairobi',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(iso))+' EAT';
- const headline=s.status==='WAITING'?'SETUP WATCH':s.status==='ARMED'?'CONDITION CONFIRMED':s.status==='ACTIVE'?(s.partial?'TP1 REACHED · HALF REMAINS':'PAPER ENTRY TRACKED'):s.status==='CLOSED'?'SETUP CLOSED':s.status==='EXPIRED'?'WATCH EXPIRED':s.status==='INVALIDATED'?'SETUP CANCELLED':'TRACKING PAUSED';
+ const headline=s.status==='WAITING'?'SETUP WATCH':s.status==='ARMED'?'CONDITION CONFIRMED':s.status==='ACTIVE'?(s.partial?'TP1 REACHED · HALF REMAINS':'ENTRY TRACKED'):s.status==='CLOSED'?'SETUP CLOSED':s.status==='EXPIRED'?'WATCH EXPIRED':s.status==='INVALIDATED'?'SETUP CANCELLED':'TRACKING PAUSED';
  const rows=[`HASHIBOT · ${s.track} · ${s.symbol} · ${s.side==='buy'?'LONG':'SHORT'}`,headline];
- if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price((s.management?.maximumChaseR??.25)*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,s.tp1===s.tp2?`Target: ${price(s.tp2)} · full paper position`:`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.holdBars} ${s.timeframe} bars`,'Risk guide: 0.25%–0.5% of account at the stop.');
+ if(s.status==='WAITING')rows.push('',s.reason,`Confirmation: ${s.timeframe} candle close ${s.side==='buy'?'above':'below'} ${price(s.trigger)}. Entry tracked at the next open, within ${price((s.management?.maximumChaseR??.25)*Math.abs(s.trigger-s.stop))} of the trigger on the chase side.`,`Stop: ${price(s.stop)}`,s.tp1===s.tp2?`Target: ${price(s.tp2)} · full tracked position`:`TP1: ${price(s.tp1)} · take 50% | TP2: ${price(s.tp2)} · remainder`,`Valid until ${time(s.expiresAt)} · maximum hold ${s.holdBars} ${s.timeframe} bars`,'Risk guide: 0.25%–0.5% of account at the stop.');
  else if(s.status==='ARMED')rows.push(`Confirmed ${time(s.armedAt!)}. Next open must respect the original stop and chase limit.`);
- else if(s.status==='ACTIVE')rows.push(`Paper entry: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop stays ${price(s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
- else if(s.status==='CLOSED')rows.push(`Paper entry ${price(s.fill!)} → exit ${price(s.exit!)}.`,`${s.result==='TP2'?'TP2 reached':s.result==='TIME_STOP'?'Holding period completed':'Stop reached'} · net ${(s.netR??0).toFixed(3)}R.`,`Paper result includes ${s.cost?.label??conditionalCost(s.symbol,s.fill!).label}; not actual fills.${s.result==='STOP_FIRST_AMBIGUOUS_BAR'?' Stop used where candle order is ambiguous.':''}`);
+ else if(s.status==='ACTIVE')rows.push(`Signal entry reference: ${price(s.fill!)}.`,s.partial?`TP1 ${price(s.tp1)} reached. 50% remains toward ${price(s.tp2)}; stop ${s.management?.breakEvenAfterTp1?'at entry':'stays'} ${price(s.management?.breakEvenAfterTp1?s.fill!:s.stop)}.`:`Stop ${price(s.stop)} · TP1 ${price(s.tp1)} · TP2 ${price(s.tp2)}.`);
+ else if(s.status==='CLOSED')rows.push(`Signal entry reference ${price(s.fill!)} → exit ${price(s.exit!)}.`,`${s.result==='TP2'?'TP2 reached':s.result==='TIME_STOP'?'Holding period completed':'Stop reached'} · net ${(s.netR??0).toFixed(3)}R.`,`Reference result includes ${s.cost?.label??conditionalCost(s.symbol,s.fill!).label}; not actual fills.${s.result==='STOP_FIRST_AMBIGUOUS_BAR'?' Stop used where candle order is ambiguous.':''}`);
  else rows.push(s.status==='DATA_GAP'?'Outcome unknown.':s.status==='EXPIRED'?'The confirmation window closed without an entry.':'Original entry conditions no longer valid; no paper entry.');
  if(s.intelligence&&s.status==='WAITING')rows.push(`Context: ${s.intelligence.session} · higher timeframe ${s.intelligence.higherDirection>0?'up':s.intelligence.higherDirection<0?'down':'balanced'} · volume ${s.intelligence.volumeRatio.toFixed(2)}× recent average.`,s.intelligence.news==='SOURCE_AVAILABLE'?'News sources recorded alongside the setup.':s.intelligence.news==='HIGH_IMPACT_WINDOW'?'High-impact event window is being monitored.':'Price and market-structure evidence recorded.');
- rows.push('',`Strategy: ${s.strategy} · ${s.variant}`,`Ref: ${s.id}`);if(s.status!=='CLOSED')rows.push('Paper tracking');return rows.join('\n');
+ if(s.origin?.plan.management_intent?.trailing_policy)rows.push('Management: full 5R target; after 2R, trail by one closed M15 ATR, never loosen; maximum hold 24h.',...(s.trailingState?[`Tracked protection: ${price(s.trailingState.stop)}.`]:[]));
+ rows.push('',`Strategy: ${s.strategy} · ${s.variant}`,`Ref: ${s.id}`);if(s.status!=='CLOSED')rows.push('Signal tracking');return rows.join('\n');
 }

@@ -1,0 +1,332 @@
+name: Launch strategy verification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/launch-verification.yml'
+      - 'scripts/research/launch/search.py'
+      - 'scripts/research/launch/style_coverage_search.py'
+      - 'scripts/research/launch/campaign.py'
+      - 'scripts/research/launch/account_screen.cpp'
+      - 'supabase/functions/_shared/launch-strategy-families.ts'
+      - 'supabase/functions/_shared/crypto-short-families.ts'
+permissions:
+  contents: read
+concurrency:
+  group: launch-research-${{ github.ref }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+jobs:
+  research-request:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.request.outputs.run }}
+      participation: ${{ steps.request.outputs.participation }}
+      swing: ${{ steps.request.outputs.swing }}
+      short: ${{ steps.request.outputs.short }}
+      coverage: ${{ steps.request.outputs.coverage }}
+      ltc_later: ${{ steps.request.outputs.ltc_later }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: request
+        name: Preserve active crypto jobs during a separate broker validation checkpoint
+        run: |
+          subject="$(git log -1 --format=%s)"
+          requested=true
+          participation=false
+          swing=true
+          short=false
+          coverage=false
+          ltc_later=false
+          case "$subject" in '[ltc-final]'*) requested=false; ltc_later=true ;; '[coverage-final]'*) requested=false; coverage=true ;; '[short-canonical]'*) requested=false; short=true ;; '[scalp-research]'*) requested=false; participation=true; swing=false ;; '[broker-validation]'*) requested=false ;; '[participation-research]'*) requested=false; participation=true ;; esac
+          echo "run=$requested" >> "$GITHUB_OUTPUT"
+          echo "participation=$participation" >> "$GITHUB_OUTPUT"
+          echo "swing=$swing" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "coverage=$coverage" >> "$GITHUB_OUTPUT"
+          echo "ltc_later=$ltc_later" >> "$GITHUB_OUTPUT"
+  family-research:
+    needs: research-request
+    if: needs.research-request.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.2.6 pandas==2.2.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - name: Verify strategy integration
+        run: node --import tsx --test tests/mission2/launchFamilies.test.ts
+      - uses: actions/cache@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+      - name: Acquire native history
+        run: python3 scripts/research/launch/acquire_campaign.py
+      - name: Frozen nine-family development grid
+        run: python3 scripts/research/launch/search.py
+      - name: Validation, later periods and actual risk/leverage accounts
+        run: python3 scripts/research/launch/campaign.py
+      - name: Verify actual scanner and account Brain
+        run: |
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 months=2025-01,2025-02,2025-03,2025-04,2025-05 symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT start=2025-05-01T00:00:00Z end=2025-05-08T00:00:00Z strategyIds=crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5 entry=COMBINED risks=.25,.5,1 out=.tmp/launch-research/canonical.json > .tmp/launch-research/canonical.log 2>&1
+      - name: Preserve source and all outcomes
+        if: always()
+        run: git archive --format=tar.gz HEAD -o .tmp/launch-research/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-research-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-research
+          retention-days: 14
+
+  full-period-scanner:
+    needs: family-research
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        track: [squeeze, cross, pullback, ensemble]
+        period: [first, later]
+        include:
+          - track: squeeze
+            ids: crypto.launch-squeeze-24-3-1.5
+          - track: cross
+            ids: crypto.launch-ema-cross-24-1.5-3
+          - track: pullback
+            ids: crypto.launch-trend-pullback-48-1.5-5
+          - track: ensemble
+            ids: crypto.launch-squeeze-24-3-1.5,crypto.launch-ema-cross-24-1.5-3,crypto.launch-trend-pullback-48-1.5-5
+          - period: first
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08
+            start: '2025-05-01'
+            end: '2025-09-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Actual scanner and account Brain over complete periods
+        env:
+          SYMBOLS: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT
+          IDS: ${{ matrix.ids }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/launch-replay
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 "months=$MONTHS" "symbols=$SYMBOLS" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$IDS" entry=COMBINED risks=.5 out=.tmp/launch-replay/results.json > .tmp/launch-replay/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-scanner-${{ matrix.track }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/launch-replay
+          retention-days: 14
+
+  participation-expansion:
+    needs: research-request
+    if: needs.research-request.outputs.participation == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.2.6 pandas==2.2.3
+      - uses: actions/cache@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+      - run: python3 scripts/research/launch/acquire_campaign.py
+      - run: python3 scripts/research/launch/crypto_participation_search.py
+      - name: Independent scalp and swing searches, portfolio and customer-selected asset
+        run: |
+          python3 scripts/research/launch/style_coverage_search.py --market crypto
+          for symbol in BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT DOGEUSDT LINKUSDT AVAXUSDT LTCUSDT; do
+            python3 scripts/research/launch/style_coverage_search.py --market crypto --symbols "$symbol"
+            python3 scripts/research/launch/style_coverage_search.py --market crypto --symbols "$symbol" --scalp-only --expanded
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crypto-participation-${{ github.event.pull_request.head.sha }}
+          path: |
+            .tmp/launch-research/crypto-participation.json
+            .tmp/launch-research/styles/*.json
+            .tmp/launch-research/scalps/*.json
+          retention-days: 14
+
+  expanded-swing-scanner:
+    needs: research-request
+    if: needs.research-request.outputs.participation == 'true' && needs.research-request.outputs.swing == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        track: [pullback-swing, channel-swing, rsi-swing]
+        period: [first, later]
+        include:
+          - track: pullback-swing
+            id: crypto.launch-trend-pullback-48-2-3-h72
+          - track: channel-swing
+            id: crypto.launch-donchian-48-1.5-5-h24
+          - track: rsi-swing
+            id: crypto.launch-rsi2-48-3-3-h72
+          - period: first
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08
+            start: '2025-05-01'
+            end: '2025-09-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: node --import tsx --test tests/mission2/launchFamilies.test.ts tests/conditionalSignals/service.test.ts
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Expanded swing through actual scanner, arbitration and account Brain
+        env:
+          ID: ${{ matrix.id }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/expanded-swing
+          node --import tsx scripts/research/run-frequency-audit.ts data=.tmp/mission2/futures-data venue=usdm frames=5,240,1440 "months=$MONTHS" symbols=BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" entry=COMBINED risks=.5 checkpointEvery=1440 out=.tmp/expanded-swing/report.json > .tmp/expanded-swing/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-swing-${{ matrix.track }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/expanded-swing
+          retention-days: 14
+
+  native-short-scanner:
+    needs: research-request
+    if: needs.research-request.outputs.short == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        asset: [doge, ltc]
+        period: [early, later]
+        include:
+          - asset: doge
+            symbol: DOGEUSDT
+            id: crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006
+          - asset: ltc
+            symbol: LTCUSDT
+            id: crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006
+          - period: early
+            months: 2025-01,2025-02,2025-03,2025-04,2025-05
+            start: '2025-04-01'
+            end: '2025-06-01'
+          - period: later
+            months: 2026-07,2026-08,2026-09,2026-10
+            start: '2026-08-01'
+            end: '2026-11-01'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - run: node --import tsx --test tests/mission2/cryptoShortFamilies.test.ts tests/conditionalSignals/service.test.ts
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Cost-aware native scalp through actual scanner, arbitration and account Brain
+        env:
+          ID: ${{ matrix.id }}
+          SYMBOL: ${{ matrix.symbol }}
+          MONTHS: ${{ matrix.months }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+        run: |
+          mkdir -p .tmp/native-short
+          node --import tsx scripts/research/run-frequency-audit.ts venue=usdm data=.tmp/mission2/futures-data frames=5,15,60,240,1440 "months=$MONTHS" "symbols=$SYMBOL" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "strategyIds=$ID" entry=COMBINED risks=.5 balances=1000 checkpointEvery=1440 out=.tmp/native-short/report.json > .tmp/native-short/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-short-${{ matrix.asset }}-${{ matrix.period }}-${{ github.event.pull_request.head.sha }}
+          path: .tmp/native-short
+          retention-days: 14
+
+  native-ltc-extended-window:
+    needs: research-request
+    if: needs.research-request.outputs.coverage == 'true' || needs.research-request.outputs.ltc_later == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - uses: actions/cache/restore@v4
+        with:
+          path: .tmp/mission2/futures-data
+          key: launch-native-usdm-20261112-v1
+          fail-on-cache-miss: true
+      - name: Independent complete LTC account window with unchanged entry, costs and risk
+        env:
+          MONTHS: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-01,2025-02,2025-03,2025-04,2025-05,2025-06,2025-07,2025-08' || '2026-07,2026-08,2026-09,2026-10' }}
+          START: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-06-01' || '2026-07-15' }}
+          END: ${{ needs.research-request.outputs.ltc_later == 'true' && '2025-09-01' || '2026-11-01' }}
+        run: |
+          mkdir -p .tmp/ltc-extended
+          node --import tsx scripts/research/run-frequency-audit.ts venue=usdm data=.tmp/mission2/futures-data frames=5,15,60,240,1440 "months=$MONTHS" symbols=LTCUSDT "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" strategyIds=crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006 entry=COMBINED risks=.5 balances=1000 checkpointEvery=1440 out=.tmp/ltc-extended/report.json > .tmp/ltc-extended/engine.log 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ltc-extended-${{ github.event.pull_request.head.sha }}
+          path: .tmp/ltc-extended
+          retention-days: 14

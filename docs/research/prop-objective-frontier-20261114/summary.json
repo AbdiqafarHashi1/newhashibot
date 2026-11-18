@@ -1,0 +1,6671 @@
+{
+  "schema": "prop-objective-frontier-summary/v1",
+  "primaryScenarios": 364,
+  "baselineScenarios": 84,
+  "recurringCampaigns": 84,
+  "strategy": {
+    "family": "rsi_exhaustion",
+    "minutes": 15,
+    "n": 12,
+    "stop": 1.5,
+    "rr": 5,
+    "hold": 1440,
+    "style": 2
+  },
+  "capital": 25000,
+  "groups": [
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 1,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 1,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 3,
+      "failed": 1,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 3,
+      "failed": 1,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 1,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 1,
+      "fastestDays": 13.465730821759259,
+      "slowestSuccessfulDays": 29.562627048611112
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 1,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 1,
+      "fastestDays": 13.465730821759259,
+      "slowestSuccessfulDays": 29.562627048611112
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 1,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "censored": 2,
+      "everFunded": 5,
+      "failed": 1,
+      "fastestDays": 15.364641412037036,
+      "slowestSuccessfulDays": 27.91829130787037
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 1,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "censored": 2,
+      "everFunded": 5,
+      "failed": 1,
+      "fastestDays": 15.364641412037036,
+      "slowestSuccessfulDays": 27.91829130787037
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 0,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 4,
+      "failed": 0,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 3,
+      "failed": 0,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "within30Days": {
+        "hits": 0,
+        "starts": 13,
+        "pct": 0.0
+      },
+      "censored": 2,
+      "everFunded": 3,
+      "failed": 0,
+      "fastestDays": null,
+      "slowestSuccessfulDays": null
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 1,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "censored": 2,
+      "everFunded": 6,
+      "failed": 2,
+      "fastestDays": 13.465730821759259,
+      "slowestSuccessfulDays": 29.562627048611112
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 1,
+      "challengeTargetPct": 8,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "censored": 2,
+      "everFunded": 6,
+      "failed": 2,
+      "fastestDays": 13.465730821759259,
+      "slowestSuccessfulDays": 29.562627048611112
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 1,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "censored": 2,
+      "everFunded": 6,
+      "failed": 2,
+      "fastestDays": 15.364641412037036,
+      "slowestSuccessfulDays": 29.364641412037038
+    },
+    {
+      "initial": "CHALLENGE",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 1,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": true,
+      "within30Days": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "censored": 2,
+      "everFunded": 6,
+      "failed": 2,
+      "fastestDays": 15.364641412037036,
+      "slowestSuccessfulDays": 29.364641412037038
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.25,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 4.267924845873608
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.25,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 1,
+        "starts": 13,
+        "pct": 7.6923076923076925
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 1,
+        "starts": 13,
+        "pct": 7.6923076923076925
+      },
+      "everFinancialTarget": 6,
+      "everEarliestRequestEligible": 6,
+      "observedQuoteClockRequestEvents": 6,
+      "censored": 1,
+      "failed": 0,
+      "worstDrawdownPct": 4.28768077650531
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.4,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 7,
+        "starts": 13,
+        "pct": 53.84615384615385
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 6.896461781938321
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.4,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 7,
+        "starts": 13,
+        "pct": 53.84615384615385
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 6.91422670995164
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 9,
+        "starts": 13,
+        "pct": 69.23076923076923
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 7.9412894496233415
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "MATCHED_PRODUCT",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 9,
+        "starts": 13,
+        "pct": 69.23076923076923
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "everFinancialTarget": 10,
+      "everEarliestRequestEligible": 9,
+      "observedQuoteClockRequestEvents": 9,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 7.9412894496233415
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.25,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 5,
+        "starts": 13,
+        "pct": 38.46153846153847
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 4,
+        "starts": 13,
+        "pct": 30.76923076923077
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 4.267924845873608
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.25,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 1,
+        "starts": 13,
+        "pct": 7.6923076923076925
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 1,
+        "starts": 13,
+        "pct": 7.6923076923076925
+      },
+      "everFinancialTarget": 6,
+      "everEarliestRequestEligible": 6,
+      "observedQuoteClockRequestEvents": 6,
+      "censored": 1,
+      "failed": 0,
+      "worstDrawdownPct": 4.28768077650531
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.4,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 7,
+        "starts": 13,
+        "pct": 53.84615384615385
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 6.896461781938321
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.4,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 7,
+        "starts": 13,
+        "pct": 53.84615384615385
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 6.91422670995164
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 2,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 9,
+        "starts": 13,
+        "pct": 69.23076923076923
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "everFinancialTarget": 13,
+      "everEarliestRequestEligible": 12,
+      "observedQuoteClockRequestEvents": 12,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 8.711444055093878
+    },
+    {
+      "initial": "FUNDED",
+      "guard": "STATIC_9_DAILY_4_5",
+      "riskPct": 0.5,
+      "challengeTargetPct": 10,
+      "fundedTargetPct": 5,
+      "aboveProductionRisk": false,
+      "financialTargetWithinHorizon": {
+        "hits": 9,
+        "starts": 13,
+        "pct": 69.23076923076923
+      },
+      "earliestRequestEligibleWithinHorizon": {
+        "hits": 8,
+        "starts": 13,
+        "pct": 61.53846153846154
+      },
+      "everFinancialTarget": 12,
+      "everEarliestRequestEligible": 11,
+      "observedQuoteClockRequestEvents": 11,
+      "censored": 0,
+      "failed": 0,
+      "worstDrawdownPct": 8.793701511288868
+    }
+  ],
+  "recurring": [
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 7,
+      "withdrawnProfit": 3507.1823999500484,
+      "hypotheticalCustomerRewards": 2805.7459199600385,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.224852631936192,
+      "closedTrades": 260,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779372912348.0,
+          "accountProfit": 500.17318875001,
+          "customerReward": 400.138551000008
+        },
+        {
+          "at": 1780674303494.0,
+          "accountProfit": 501.2546868999998,
+          "customerReward": 401.0037495199999
+        },
+        {
+          "at": 1782126004214.0,
+          "accountProfit": 500.01329680000345,
+          "customerReward": 400.01063744000277
+        },
+        {
+          "at": 1783434603898.0,
+          "accountProfit": 502.6607331499981,
+          "customerReward": 402.1285865199985
+        },
+        {
+          "at": 1784742303656.0,
+          "accountProfit": 501.7321431499986,
+          "customerReward": 401.3857145199989
+        },
+        {
+          "at": 1786042803270.0,
+          "accountProfit": 500.5364500000178,
+          "customerReward": 400.42916000001424
+        },
+        {
+          "at": 1794313911326.0,
+          "accountProfit": 500.81190120002066,
+          "customerReward": 400.64952096001656
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.138551000008,
+          "after100USDFeeSensitivity": 300.138551000008
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 801.0143869600026,
+          "after100USDFeeSensitivity": 701.0143869600026
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 803.5143010399975,
+          "after100USDFeeSensitivity": 703.5143010399975
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.42916000001424,
+          "after100USDFeeSensitivity": 300.42916000001424
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.64952096001656,
+          "after100USDFeeSensitivity": 300.64952096001656
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2509.699992550024,
+      "hypotheticalCustomerRewards": 2007.7599940400191,
+      "failed": false,
+      "balance": 26074.06151905005,
+      "openPositionCosts": 0.105,
+      "equity": 26059.91651905005,
+      "worstPeakDrawdownPct": 4.507296319951905,
+      "closedTrades": 340,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781129793890.0,
+          "accountProfit": 1256.7574644500019,
+          "customerReward": 1005.4059715600015
+        },
+        {
+          "at": 1784811707274.0,
+          "accountProfit": 1252.9425281000222,
+          "customerReward": 1002.3540224800178
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1005.4059715600015,
+          "after100USDFeeSensitivity": 905.4059715600015
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.3540224800178,
+          "after100USDFeeSensitivity": 902.3540224800178
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 7,
+      "withdrawnProfit": 3568.492790550201,
+      "hypotheticalCustomerRewards": 2854.794232440161,
+      "failed": false,
+      "balance": 25500.86,
+      "openPositionCosts": 0.0,
+      "equity": 25500.86,
+      "worstPeakDrawdownPct": 6.884434301169266,
+      "closedTrades": 273,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779109203190.0,
+          "accountProfit": 512.2327869500077,
+          "customerReward": 409.7862295600062
+        },
+        {
+          "at": 1780416903940.0,
+          "accountProfit": 500.6390231000041,
+          "customerReward": 400.5112184800033
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 512.8191050000241,
+          "customerReward": 410.25528400001934
+        },
+        {
+          "at": 1783060204147.0,
+          "accountProfit": 500.24254760000986,
+          "customerReward": 400.1940380800079
+        },
+        {
+          "at": 1784604400400.0,
+          "accountProfit": 509.2775402500083,
+          "customerReward": 407.4220322000067
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 500.37220225001147,
+          "customerReward": 400.2977618000092
+        },
+        {
+          "at": 1794301204847.0,
+          "accountProfit": 532.9095854001353,
+          "customerReward": 426.3276683201082
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 409.7862295600062,
+          "after100USDFeeSensitivity": 309.7862295600062
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 810.7665024800226,
+          "after100USDFeeSensitivity": 710.7665024800226
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 807.6160702800146,
+          "after100USDFeeSensitivity": 707.6160702800146
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.2977618000092,
+          "after100USDFeeSensitivity": 300.2977618000092
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 426.3276683201082,
+          "after100USDFeeSensitivity": 326.3276683201082
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 4,
+      "withdrawnProfit": 5012.281952500227,
+      "hypotheticalCustomerRewards": 4009.825562000182,
+      "failed": false,
+      "balance": 25728.35,
+      "openPositionCosts": 0.21,
+      "equity": 25700.059999999998,
+      "worstPeakDrawdownPct": 6.8466942519719725,
+      "closedTrades": 295,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779878914153.0,
+          "accountProfit": 1251.8021942500309,
+          "customerReward": 1001.4417554000247
+        },
+        {
+          "at": 1782299752632.0,
+          "accountProfit": 1252.4205735000542,
+          "customerReward": 1001.9364588000434
+        },
+        {
+          "at": 1785145881821.0,
+          "accountProfit": 1250.9321677000262,
+          "customerReward": 1000.745734160021
+        },
+        {
+          "at": 1794317428434.0,
+          "accountProfit": 1257.1270170501157,
+          "customerReward": 1005.7016136400925
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.4417554000247,
+          "after100USDFeeSensitivity": 901.4417554000247
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.9364588000434,
+          "after100USDFeeSensitivity": 901.9364588000434
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.745734160021,
+          "after100USDFeeSensitivity": 900.745734160021
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1005.7016136400925,
+          "after100USDFeeSensitivity": 905.7016136400925
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 6,
+      "withdrawnProfit": 3016.8167027000018,
+      "hypotheticalCustomerRewards": 2413.4533621600017,
+      "failed": false,
+      "balance": 23462.486613050023,
+      "openPositionCosts": 0.0,
+      "equity": 23462.486613050023,
+      "worstPeakDrawdownPct": 7.83323466856186,
+      "closedTrades": 196,
+      "blocked": 105,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779109203190.0,
+          "accountProfit": 501.0472917499974,
+          "customerReward": 400.8378333999979
+        },
+        {
+          "at": 1780416903940.0,
+          "accountProfit": 500.1527923499925,
+          "customerReward": 400.12223387999404
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 507.5499999999993,
+          "customerReward": 406.03999999999945
+        },
+        {
+          "at": 1783060204147.0,
+          "accountProfit": 503.44010720000733,
+          "customerReward": 402.7520857600059
+        },
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 503.6111692499944,
+          "customerReward": 402.88893539999555
+        },
+        {
+          "at": 1785951003332.0,
+          "accountProfit": 501.01534215001084,
+          "customerReward": 400.8122737200087
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.8378333999979,
+          "after100USDFeeSensitivity": 300.8378333999979
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 806.1622338799934,
+          "after100USDFeeSensitivity": 706.1622338799934
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.6410211600014,
+          "after100USDFeeSensitivity": 705.6410211600014
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.8122737200087,
+          "after100USDFeeSensitivity": 300.8122737200087
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 3767.5955688000286,
+      "hypotheticalCustomerRewards": 3014.076455040023,
+      "failed": false,
+      "balance": 23697.21267290001,
+      "openPositionCosts": 0.0,
+      "equity": 23697.21267290001,
+      "worstPeakDrawdownPct": 7.77111138294686,
+      "closedTrades": 193,
+      "blocked": 105,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779257707235.0,
+          "accountProfit": 1251.7047812499986,
+          "customerReward": 1001.363824999999
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 1253.339618300015,
+          "customerReward": 1002.671694640012
+        },
+        {
+          "at": 1784811691258.0,
+          "accountProfit": 1262.551169250015,
+          "customerReward": 1010.040935400012
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.363824999999,
+          "after100USDFeeSensitivity": 901.363824999999
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.671694640012,
+          "after100USDFeeSensitivity": 902.671694640012
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1010.040935400012,
+          "after100USDFeeSensitivity": 910.040935400012
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 7,
+      "withdrawnProfit": 3507.1823999500484,
+      "hypotheticalCustomerRewards": 2805.7459199600385,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.224852631936192,
+      "closedTrades": 260,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779372912348.0,
+          "accountProfit": 500.17318875001,
+          "customerReward": 400.138551000008
+        },
+        {
+          "at": 1780674303494.0,
+          "accountProfit": 501.2546868999998,
+          "customerReward": 401.0037495199999
+        },
+        {
+          "at": 1782126004214.0,
+          "accountProfit": 500.01329680000345,
+          "customerReward": 400.01063744000277
+        },
+        {
+          "at": 1783434603898.0,
+          "accountProfit": 502.6607331499981,
+          "customerReward": 402.1285865199985
+        },
+        {
+          "at": 1784742303656.0,
+          "accountProfit": 501.7321431499986,
+          "customerReward": 401.3857145199989
+        },
+        {
+          "at": 1786042803270.0,
+          "accountProfit": 500.5364500000178,
+          "customerReward": 400.42916000001424
+        },
+        {
+          "at": 1794313911326.0,
+          "accountProfit": 500.81190120002066,
+          "customerReward": 400.64952096001656
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.138551000008,
+          "after100USDFeeSensitivity": 300.138551000008
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 801.0143869600026,
+          "after100USDFeeSensitivity": 701.0143869600026
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 803.5143010399975,
+          "after100USDFeeSensitivity": 703.5143010399975
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.42916000001424,
+          "after100USDFeeSensitivity": 300.42916000001424
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.64952096001656,
+          "after100USDFeeSensitivity": 300.64952096001656
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2509.699992550024,
+      "hypotheticalCustomerRewards": 2007.7599940400191,
+      "failed": false,
+      "balance": 26074.06151905005,
+      "openPositionCosts": 0.105,
+      "equity": 26059.91651905005,
+      "worstPeakDrawdownPct": 4.507296319951905,
+      "closedTrades": 340,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781129793890.0,
+          "accountProfit": 1256.7574644500019,
+          "customerReward": 1005.4059715600015
+        },
+        {
+          "at": 1784811707274.0,
+          "accountProfit": 1252.9425281000222,
+          "customerReward": 1002.3540224800178
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1005.4059715600015,
+          "after100USDFeeSensitivity": 905.4059715600015
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.3540224800178,
+          "after100USDFeeSensitivity": 902.3540224800178
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 7,
+      "withdrawnProfit": 3568.492790550201,
+      "hypotheticalCustomerRewards": 2854.794232440161,
+      "failed": false,
+      "balance": 25500.86,
+      "openPositionCosts": 0.0,
+      "equity": 25500.86,
+      "worstPeakDrawdownPct": 6.884434301169266,
+      "closedTrades": 273,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779109203190.0,
+          "accountProfit": 512.2327869500077,
+          "customerReward": 409.7862295600062
+        },
+        {
+          "at": 1780416903940.0,
+          "accountProfit": 500.6390231000041,
+          "customerReward": 400.5112184800033
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 512.8191050000241,
+          "customerReward": 410.25528400001934
+        },
+        {
+          "at": 1783060204147.0,
+          "accountProfit": 500.24254760000986,
+          "customerReward": 400.1940380800079
+        },
+        {
+          "at": 1784604400400.0,
+          "accountProfit": 509.2775402500083,
+          "customerReward": 407.4220322000067
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 500.37220225001147,
+          "customerReward": 400.2977618000092
+        },
+        {
+          "at": 1794301204847.0,
+          "accountProfit": 532.9095854001353,
+          "customerReward": 426.3276683201082
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 409.7862295600062,
+          "after100USDFeeSensitivity": 309.7862295600062
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 810.7665024800226,
+          "after100USDFeeSensitivity": 710.7665024800226
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 807.6160702800146,
+          "after100USDFeeSensitivity": 707.6160702800146
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.2977618000092,
+          "after100USDFeeSensitivity": 300.2977618000092
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 426.3276683201082,
+          "after100USDFeeSensitivity": 326.3276683201082
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 4,
+      "withdrawnProfit": 5012.281952500227,
+      "hypotheticalCustomerRewards": 4009.825562000182,
+      "failed": false,
+      "balance": 25728.35,
+      "openPositionCosts": 0.21,
+      "equity": 25700.059999999998,
+      "worstPeakDrawdownPct": 6.8466942519719725,
+      "closedTrades": 295,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779878914153.0,
+          "accountProfit": 1251.8021942500309,
+          "customerReward": 1001.4417554000247
+        },
+        {
+          "at": 1782299752632.0,
+          "accountProfit": 1252.4205735000542,
+          "customerReward": 1001.9364588000434
+        },
+        {
+          "at": 1785145881821.0,
+          "accountProfit": 1250.9321677000262,
+          "customerReward": 1000.745734160021
+        },
+        {
+          "at": 1794317428434.0,
+          "accountProfit": 1257.1270170501157,
+          "customerReward": 1005.7016136400925
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.4417554000247,
+          "after100USDFeeSensitivity": 901.4417554000247
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.9364588000434,
+          "after100USDFeeSensitivity": 901.9364588000434
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.745734160021,
+          "after100USDFeeSensitivity": 900.745734160021
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1005.7016136400925,
+          "after100USDFeeSensitivity": 905.7016136400925
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 7,
+      "withdrawnProfit": 3533.0257689000246,
+      "hypotheticalCustomerRewards": 2826.42061512002,
+      "failed": false,
+      "balance": 25509.12000000001,
+      "openPositionCosts": 0.0,
+      "equity": 25509.12000000001,
+      "worstPeakDrawdownPct": 8.71921459880899,
+      "closedTrades": 257,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779109203190.0,
+          "accountProfit": 501.0472917499974,
+          "customerReward": 400.8378333999979
+        },
+        {
+          "at": 1780416903940.0,
+          "accountProfit": 500.1527923499925,
+          "customerReward": 400.12223387999404
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 507.5499999999993,
+          "customerReward": 406.03999999999945
+        },
+        {
+          "at": 1783060204147.0,
+          "accountProfit": 503.44010720000733,
+          "customerReward": 402.7520857600059
+        },
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 503.6111692499944,
+          "customerReward": 402.88893539999555
+        },
+        {
+          "at": 1785951003332.0,
+          "accountProfit": 501.01534215001084,
+          "customerReward": 400.8122737200087
+        },
+        {
+          "at": 1794253111985.0,
+          "accountProfit": 516.2090662000228,
+          "customerReward": 412.96725296001824
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.8378333999979,
+          "after100USDFeeSensitivity": 300.8378333999979
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 806.1622338799934,
+          "after100USDFeeSensitivity": 706.1622338799934
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.6410211600014,
+          "after100USDFeeSensitivity": 705.6410211600014
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.8122737200087,
+          "after100USDFeeSensitivity": 300.8122737200087
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 412.96725296001824,
+          "after100USDFeeSensitivity": 312.96725296001824
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-05-01",
+        "start": 1777593600000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 4,
+      "withdrawnProfit": 5052.130694850028,
+      "hypotheticalCustomerRewards": 4041.704555880023,
+      "failed": false,
+      "balance": 25866.952500000003,
+      "openPositionCosts": 0.2625,
+      "equity": 25831.590000000004,
+      "worstPeakDrawdownPct": 8.772846600686151,
+      "closedTrades": 254,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1779257707235.0,
+          "accountProfit": 1251.7047812499986,
+          "customerReward": 1001.363824999999
+        },
+        {
+          "at": 1781724603757.0,
+          "accountProfit": 1253.339618300015,
+          "customerReward": 1002.671694640012
+        },
+        {
+          "at": 1784811691258.0,
+          "accountProfit": 1262.551169250015,
+          "customerReward": 1010.040935400012
+        },
+        {
+          "at": 1794317407657.0,
+          "accountProfit": 1284.5351260499992,
+          "customerReward": 1027.6281008399994
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-05",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.363824999999,
+          "after100USDFeeSensitivity": 901.363824999999
+        },
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.671694640012,
+          "after100USDFeeSensitivity": 902.671694640012
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1010.040935400012,
+          "after100USDFeeSensitivity": 910.040935400012
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1027.6281008399994,
+          "after100USDFeeSensitivity": 927.6281008399994
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 5,
+      "withdrawnProfit": 2526.312837550042,
+      "hypotheticalCustomerRewards": 2021.0502700400336,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.0952686640008125,
+      "closedTrades": 267,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 501.4585847999988,
+          "customerReward": 401.16686783999904
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 504.47411675000694,
+          "customerReward": 403.57929340000555
+        },
+        {
+          "at": 1784601395288.0,
+          "accountProfit": 516.9184113499905,
+          "customerReward": 413.5347290799924
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 503.41472140002224,
+          "customerReward": 402.7317771200178
+        },
+        {
+          "at": 1794339622946.0,
+          "accountProfit": 500.0470032500234,
+          "customerReward": 400.0376026000188
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 804.7461612400045,
+          "after100USDFeeSensitivity": 704.7461612400045
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 413.5347290799924,
+          "after100USDFeeSensitivity": 313.5347290799924
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 402.7317771200178,
+          "after100USDFeeSensitivity": 302.7317771200178
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.0376026000188,
+          "after100USDFeeSensitivity": 300.0376026000188
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1263.6540766500002,
+      "hypotheticalCustomerRewards": 1010.9232613200002,
+      "failed": false,
+      "balance": 26084.748247650063,
+      "openPositionCosts": 0.105,
+      "equity": 26070.603247650062,
+      "worstPeakDrawdownPct": 4.505417191903051,
+      "closedTrades": 302,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784601395753.0,
+          "accountProfit": 1263.6540766500002,
+          "customerReward": 1010.9232613200002
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1010.9232613200002,
+          "after100USDFeeSensitivity": 910.9232613200002
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 5,
+      "withdrawnProfit": 2514.2974070001765,
+      "hypotheticalCustomerRewards": 2011.4379256001412,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 236,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 500.11203315002786,
+          "customerReward": 400.0896265200223
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 502.45463850001033,
+          "customerReward": 401.9637108000083
+        },
+        {
+          "at": 1784132103406.0,
+          "accountProfit": 505.49545199999557,
+          "customerReward": 404.39636159999645
+        },
+        {
+          "at": 1785477603339.0,
+          "accountProfit": 501.4926319000151,
+          "customerReward": 401.1941055200121
+        },
+        {
+          "at": 1794228643040.0,
+          "accountProfit": 504.7426514501276,
+          "customerReward": 403.7941211601021
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 802.0533373200306,
+          "after100USDFeeSensitivity": 702.0533373200306
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.5904671200085,
+          "after100USDFeeSensitivity": 705.5904671200085
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.7941211601021,
+          "after100USDFeeSensitivity": 303.7941211601021
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 3763.421579150214,
+      "hypotheticalCustomerRewards": 3010.737263320171,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 6.951403617181468,
+      "closedTrades": 278,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1782754277807.0,
+          "accountProfit": 1250.6595140000718,
+          "customerReward": 1000.5276112000574
+        },
+        {
+          "at": 1784727107653.0,
+          "accountProfit": 1258.0928889499955,
+          "customerReward": 1006.4743111599964
+        },
+        {
+          "at": 1794491107348.0,
+          "accountProfit": 1254.6691762001465,
+          "customerReward": 1003.7353409601172
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.5276112000574,
+          "after100USDFeeSensitivity": 900.5276112000574
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1006.4743111599964,
+          "after100USDFeeSensitivity": 906.4743111599964
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1003.7353409601172,
+          "after100USDFeeSensitivity": 903.7353409601172
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 6,
+      "withdrawnProfit": 3021.793022600061,
+      "hypotheticalCustomerRewards": 2417.4344180800485,
+      "failed": false,
+      "balance": 25509.12000000001,
+      "openPositionCosts": 0.0,
+      "equity": 25509.12000000001,
+      "worstPeakDrawdownPct": 6.9872121091432415,
+      "closedTrades": 225,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 500.48620880001545,
+          "customerReward": 400.3889670400124
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 500.0424968000152,
+          "customerReward": 400.0339974400122
+        },
+        {
+          "at": 1784132103406.0,
+          "accountProfit": 505.8765424000085,
+          "customerReward": 404.7012339200068
+        },
+        {
+          "at": 1785477603339.0,
+          "accountProfit": 510.02303830000164,
+          "customerReward": 408.0184306400013
+        },
+        {
+          "at": 1789664443189.0,
+          "accountProfit": 504.8599423500091,
+          "customerReward": 403.8879538800073
+        },
+        {
+          "at": 1794290434662.0,
+          "accountProfit": 500.50479395001094,
+          "customerReward": 400.4038351600088
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 800.4229644800246,
+          "after100USDFeeSensitivity": 700.4229644800246
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 812.7196645600081,
+          "after100USDFeeSensitivity": 712.7196645600081
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.8879538800073,
+          "after100USDFeeSensitivity": 303.8879538800073
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.4038351600088,
+          "after100USDFeeSensitivity": 300.4038351600088
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2506.6759765000243,
+      "hypotheticalCustomerRewards": 2005.3407812000196,
+      "failed": true,
+      "balance": 23277.09036860003,
+      "openPositionCosts": 0.0,
+      "equity": 23277.09036860003,
+      "worstPeakDrawdownPct": 7.914431469632809,
+      "closedTrades": 209,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1782324208349.0,
+          "accountProfit": 1254.1887056000414,
+          "customerReward": 1003.3509644800332
+        },
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 1252.4872708999828,
+          "customerReward": 1001.9898167199863
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1003.3509644800332,
+          "after100USDFeeSensitivity": 903.3509644800332
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.9898167199863,
+          "after100USDFeeSensitivity": 901.9898167199863
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 5,
+      "withdrawnProfit": 2526.312837550042,
+      "hypotheticalCustomerRewards": 2021.0502700400336,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.0952686640008125,
+      "closedTrades": 267,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 501.4585847999988,
+          "customerReward": 401.16686783999904
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 504.47411675000694,
+          "customerReward": 403.57929340000555
+        },
+        {
+          "at": 1784601395288.0,
+          "accountProfit": 516.9184113499905,
+          "customerReward": 413.5347290799924
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 503.41472140002224,
+          "customerReward": 402.7317771200178
+        },
+        {
+          "at": 1794339622946.0,
+          "accountProfit": 500.0470032500234,
+          "customerReward": 400.0376026000188
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 804.7461612400045,
+          "after100USDFeeSensitivity": 704.7461612400045
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 413.5347290799924,
+          "after100USDFeeSensitivity": 313.5347290799924
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 402.7317771200178,
+          "after100USDFeeSensitivity": 302.7317771200178
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.0376026000188,
+          "after100USDFeeSensitivity": 300.0376026000188
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1263.6540766500002,
+      "hypotheticalCustomerRewards": 1010.9232613200002,
+      "failed": false,
+      "balance": 26084.748247650063,
+      "openPositionCosts": 0.105,
+      "equity": 26070.603247650062,
+      "worstPeakDrawdownPct": 4.505417191903051,
+      "closedTrades": 302,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784601395753.0,
+          "accountProfit": 1263.6540766500002,
+          "customerReward": 1010.9232613200002
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1010.9232613200002,
+          "after100USDFeeSensitivity": 910.9232613200002
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 5,
+      "withdrawnProfit": 2514.2974070001765,
+      "hypotheticalCustomerRewards": 2011.4379256001412,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 236,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 500.11203315002786,
+          "customerReward": 400.0896265200223
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 502.45463850001033,
+          "customerReward": 401.9637108000083
+        },
+        {
+          "at": 1784132103406.0,
+          "accountProfit": 505.49545199999557,
+          "customerReward": 404.39636159999645
+        },
+        {
+          "at": 1785477603339.0,
+          "accountProfit": 501.4926319000151,
+          "customerReward": 401.1941055200121
+        },
+        {
+          "at": 1794228643040.0,
+          "accountProfit": 504.7426514501276,
+          "customerReward": 403.7941211601021
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 802.0533373200306,
+          "after100USDFeeSensitivity": 702.0533373200306
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.5904671200085,
+          "after100USDFeeSensitivity": 705.5904671200085
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.7941211601021,
+          "after100USDFeeSensitivity": 303.7941211601021
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 3763.421579150214,
+      "hypotheticalCustomerRewards": 3010.737263320171,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 6.951403617181468,
+      "closedTrades": 278,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1782754277807.0,
+          "accountProfit": 1250.6595140000718,
+          "customerReward": 1000.5276112000574
+        },
+        {
+          "at": 1784727107653.0,
+          "accountProfit": 1258.0928889499955,
+          "customerReward": 1006.4743111599964
+        },
+        {
+          "at": 1794491107348.0,
+          "accountProfit": 1254.6691762001465,
+          "customerReward": 1003.7353409601172
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.5276112000574,
+          "after100USDFeeSensitivity": 900.5276112000574
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1006.4743111599964,
+          "after100USDFeeSensitivity": 906.4743111599964
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1003.7353409601172,
+          "after100USDFeeSensitivity": 903.7353409601172
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 6,
+      "withdrawnProfit": 3021.793022600061,
+      "hypotheticalCustomerRewards": 2417.4344180800485,
+      "failed": false,
+      "balance": 25509.12000000001,
+      "openPositionCosts": 0.0,
+      "equity": 25509.12000000001,
+      "worstPeakDrawdownPct": 6.9872121091432415,
+      "closedTrades": 225,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1781521203345.0,
+          "accountProfit": 500.48620880001545,
+          "customerReward": 400.3889670400124
+        },
+        {
+          "at": 1782820804068.0,
+          "accountProfit": 500.0424968000152,
+          "customerReward": 400.0339974400122
+        },
+        {
+          "at": 1784132103406.0,
+          "accountProfit": 505.8765424000085,
+          "customerReward": 404.7012339200068
+        },
+        {
+          "at": 1785477603339.0,
+          "accountProfit": 510.02303830000164,
+          "customerReward": 408.0184306400013
+        },
+        {
+          "at": 1789664443189.0,
+          "accountProfit": 504.8599423500091,
+          "customerReward": 403.8879538800073
+        },
+        {
+          "at": 1794290434662.0,
+          "accountProfit": 500.50479395001094,
+          "customerReward": 400.4038351600088
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 800.4229644800246,
+          "after100USDFeeSensitivity": 700.4229644800246
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 812.7196645600081,
+          "after100USDFeeSensitivity": 712.7196645600081
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.8879538800073,
+          "after100USDFeeSensitivity": 303.8879538800073
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.4038351600088,
+          "after100USDFeeSensitivity": 300.4038351600088
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-06-01",
+        "start": 1780272000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 3764.310548750058,
+      "hypotheticalCustomerRewards": 3011.4484390000466,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 8.63870695336267,
+      "closedTrades": 273,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1782324208349.0,
+          "accountProfit": 1254.1887056000414,
+          "customerReward": 1003.3509644800332
+        },
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 1252.4872708999828,
+          "customerReward": 1001.9898167199863
+        },
+        {
+          "at": 1794489845123.0,
+          "accountProfit": 1257.6345722500337,
+          "customerReward": 1006.107657800027
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-06",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1003.3509644800332,
+          "after100USDFeeSensitivity": 903.3509644800332
+        },
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1001.9898167199863,
+          "after100USDFeeSensitivity": 901.9898167199863
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1006.107657800027,
+          "after100USDFeeSensitivity": 906.107657800027
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 1500.963063750034,
+      "hypotheticalCustomerRewards": 1200.7704510000274,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.158397102983194,
+      "closedTrades": 232,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 500.8384113499851,
+          "customerReward": 400.6707290799881
+        },
+        {
+          "at": 1785951003332.0,
+          "accountProfit": 500.05972140001904,
+          "customerReward": 400.04777712001527
+        },
+        {
+          "at": 1794337207539.0,
+          "accountProfit": 500.0649310000299,
+          "customerReward": 400.05194480002393
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.6707290799881,
+          "after100USDFeeSensitivity": 300.6707290799881
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.04777712001527,
+          "after100USDFeeSensitivity": 300.04777712001527
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.05194480002393,
+          "after100USDFeeSensitivity": 300.05194480002393
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1250.1490798500745,
+      "hypotheticalCustomerRewards": 1000.1192638800596,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.112259728731503,
+      "closedTrades": 250,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794313909876.0,
+          "accountProfit": 1250.1490798500745,
+          "customerReward": 1000.1192638800596
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.1192638800596,
+          "after100USDFeeSensitivity": 900.1192638800596
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 1537.343586200146,
+      "hypotheticalCustomerRewards": 1229.8748689601168,
+      "failed": false,
+      "balance": 25500.86,
+      "openPositionCosts": 0.0,
+      "equity": 25500.86,
+      "worstPeakDrawdownPct": 6.884434301169266,
+      "closedTrades": 229,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784594535311.0,
+          "accountProfit": 504.06179854999937,
+          "customerReward": 403.2494388399995
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 500.37220225001147,
+          "customerReward": 400.2977618000092
+        },
+        {
+          "at": 1794301204847.0,
+          "accountProfit": 532.9095854001353,
+          "customerReward": 426.3276683201082
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.2494388399995,
+          "after100USDFeeSensitivity": 303.2494388399995
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.2977618000092,
+          "after100USDFeeSensitivity": 300.2977618000092
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 426.3276683201082,
+          "after100USDFeeSensitivity": 326.3276683201082
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2503.6309554001564,
+      "hypotheticalCustomerRewards": 2002.9047643201252,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 6.89891077504079,
+      "closedTrades": 240,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784879114201.0,
+          "accountProfit": 1250.5167985500193,
+          "customerReward": 1000.4134388400155
+        },
+        {
+          "at": 1794488995479.0,
+          "accountProfit": 1253.114156850137,
+          "customerReward": 1002.4913254801097
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.4134388400155,
+          "after100USDFeeSensitivity": 900.4134388400155
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.4913254801097,
+          "after100USDFeeSensitivity": 902.4913254801097
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1005.1029155999931,
+      "hypotheticalCustomerRewards": 804.0823324799945,
+      "failed": false,
+      "balance": 23501.501812900024,
+      "openPositionCosts": 0.0,
+      "equity": 23501.501812900024,
+      "worstPeakDrawdownPct": 7.8217187609677055,
+      "closedTrades": 138,
+      "blocked": 105,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784103303281.0,
+          "accountProfit": 500.896542399998,
+          "customerReward": 400.7172339199984
+        },
+        {
+          "at": 1785403803699.0,
+          "accountProfit": 504.20637319999514,
+          "customerReward": 403.3650985599961
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 804.0823324799945,
+          "after100USDFeeSensitivity": 704.0823324799945
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1258.5472708999878,
+      "hypotheticalCustomerRewards": 1006.8378167199903,
+      "failed": false,
+      "balance": 23501.501812900024,
+      "openPositionCosts": 0.0,
+      "equity": 23501.501812900024,
+      "worstPeakDrawdownPct": 7.8217187609677055,
+      "closedTrades": 166,
+      "blocked": 105,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784646916501.0,
+          "accountProfit": 1258.5472708999878,
+          "customerReward": 1006.8378167199903
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1006.8378167199903,
+          "after100USDFeeSensitivity": 906.8378167199903
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 1500.963063750034,
+      "hypotheticalCustomerRewards": 1200.7704510000274,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.158397102983194,
+      "closedTrades": 232,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784642406603.0,
+          "accountProfit": 500.8384113499851,
+          "customerReward": 400.6707290799881
+        },
+        {
+          "at": 1785951003332.0,
+          "accountProfit": 500.05972140001904,
+          "customerReward": 400.04777712001527
+        },
+        {
+          "at": 1794337207539.0,
+          "accountProfit": 500.0649310000299,
+          "customerReward": 400.05194480002393
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.6707290799881,
+          "after100USDFeeSensitivity": 300.6707290799881
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.04777712001527,
+          "after100USDFeeSensitivity": 300.04777712001527
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.05194480002393,
+          "after100USDFeeSensitivity": 300.05194480002393
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1250.1490798500745,
+      "hypotheticalCustomerRewards": 1000.1192638800596,
+      "failed": false,
+      "balance": 25409.300000000003,
+      "openPositionCosts": 0.105,
+      "equity": 25395.155000000002,
+      "worstPeakDrawdownPct": 4.112259728731503,
+      "closedTrades": 250,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794313909876.0,
+          "accountProfit": 1250.1490798500745,
+          "customerReward": 1000.1192638800596
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.1192638800596,
+          "after100USDFeeSensitivity": 900.1192638800596
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 4
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 1537.343586200146,
+      "hypotheticalCustomerRewards": 1229.8748689601168,
+      "failed": false,
+      "balance": 25500.86,
+      "openPositionCosts": 0.0,
+      "equity": 25500.86,
+      "worstPeakDrawdownPct": 6.884434301169266,
+      "closedTrades": 229,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784594535311.0,
+          "accountProfit": 504.06179854999937,
+          "customerReward": 403.2494388399995
+        },
+        {
+          "at": 1785912304466.0,
+          "accountProfit": 500.37220225001147,
+          "customerReward": 400.2977618000092
+        },
+        {
+          "at": 1794301204847.0,
+          "accountProfit": 532.9095854001353,
+          "customerReward": 426.3276683201082
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.2494388399995,
+          "after100USDFeeSensitivity": 303.2494388399995
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.2977618000092,
+          "after100USDFeeSensitivity": 300.2977618000092
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 426.3276683201082,
+          "after100USDFeeSensitivity": 326.3276683201082
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2503.6309554001564,
+      "hypotheticalCustomerRewards": 2002.9047643201252,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 6.89891077504079,
+      "closedTrades": 240,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784879114201.0,
+          "accountProfit": 1250.5167985500193,
+          "customerReward": 1000.4134388400155
+        },
+        {
+          "at": 1794488995479.0,
+          "accountProfit": 1253.114156850137,
+          "customerReward": 1002.4913254801097
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.4134388400155,
+          "after100USDFeeSensitivity": 900.4134388400155
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.4913254801097,
+          "after100USDFeeSensitivity": 902.4913254801097
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 3,
+      "withdrawnProfit": 1505.3721816500074,
+      "hypotheticalCustomerRewards": 1204.297745320006,
+      "failed": false,
+      "balance": 25501.275,
+      "openPositionCosts": 0.0,
+      "equity": 25501.275,
+      "worstPeakDrawdownPct": 8.789607308791144,
+      "closedTrades": 200,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784103303281.0,
+          "accountProfit": 500.896542399998,
+          "customerReward": 400.7172339199984
+        },
+        {
+          "at": 1785403803699.0,
+          "accountProfit": 504.20637319999514,
+          "customerReward": 403.3650985599961
+        },
+        {
+          "at": 1794337207539.0,
+          "accountProfit": 500.26926605001427,
+          "customerReward": 400.2154128400114
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 804.0823324799945,
+          "after100USDFeeSensitivity": 704.0823324799945
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.2154128400114,
+          "after100USDFeeSensitivity": 300.2154128400114
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-07-01",
+        "start": 1782864000000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2509.4532874500183,
+      "hypotheticalCustomerRewards": 2007.5626299600149,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 8.789607308791144,
+      "closedTrades": 230,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1784646916501.0,
+          "accountProfit": 1258.5472708999878,
+          "customerReward": 1006.8378167199903
+        },
+        {
+          "at": 1794487195091.0,
+          "accountProfit": 1250.9060165500305,
+          "customerReward": 1000.7248132400244
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-07",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1006.8378167199903,
+          "after100USDFeeSensitivity": 906.8378167199903
+        },
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.7248132400244,
+          "after100USDFeeSensitivity": 900.7248132400244
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 511.50147370003106,
+      "hypotheticalCustomerRewards": 409.2011789600249,
+      "failed": false,
+      "balance": 25349.975000000002,
+      "openPositionCosts": 0.105,
+      "equity": 25335.83,
+      "worstPeakDrawdownPct": 4.156276492125648,
+      "closedTrades": 184,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794301265679.0,
+          "accountProfit": 511.50147370003106,
+          "customerReward": 409.2011789600249
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 409.2011789600249,
+          "after100USDFeeSensitivity": 309.2011789600249
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25809.703173900034,
+      "openPositionCosts": 0.105,
+      "equity": 25795.558173900034,
+      "worstPeakDrawdownPct": 4.156276492125648,
+      "closedTrades": 187,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 504.7426514501276,
+      "hypotheticalCustomerRewards": 403.7941211601021,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 184,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794228643040.0,
+          "accountProfit": 504.7426514501276,
+          "customerReward": 403.7941211601021
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.7941211601021,
+          "after100USDFeeSensitivity": 303.7941211601021
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26249.366051850135,
+      "openPositionCosts": 0.0,
+      "equity": 26249.366051850135,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 189,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1005.36473630002,
+      "hypotheticalCustomerRewards": 804.291789040016,
+      "failed": false,
+      "balance": 25509.12000000001,
+      "openPositionCosts": 0.0,
+      "equity": 25509.12000000001,
+      "worstPeakDrawdownPct": 6.9872121091432415,
+      "closedTrades": 183,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789664443189.0,
+          "accountProfit": 504.8599423500091,
+          "customerReward": 403.8879538800073
+        },
+        {
+          "at": 1794290434662.0,
+          "accountProfit": 500.50479395001094,
+          "customerReward": 400.4038351600088
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.8879538800073,
+          "after100USDFeeSensitivity": 303.8879538800073
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.4038351600088,
+          "after100USDFeeSensitivity": 300.4038351600088
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 23514.16767290003,
+      "openPositionCosts": 0.0,
+      "equity": 23514.16767290003,
+      "worstPeakDrawdownPct": 7.817834984975365,
+      "closedTrades": 123,
+      "blocked": 105,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 511.50147370003106,
+      "hypotheticalCustomerRewards": 409.2011789600249,
+      "failed": false,
+      "balance": 25349.975000000002,
+      "openPositionCosts": 0.105,
+      "equity": 25335.83,
+      "worstPeakDrawdownPct": 4.156276492125648,
+      "closedTrades": 184,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794301265679.0,
+          "accountProfit": 511.50147370003106,
+          "customerReward": 409.2011789600249
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 409.2011789600249,
+          "after100USDFeeSensitivity": 309.2011789600249
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25809.703173900034,
+      "openPositionCosts": 0.105,
+      "equity": 25795.558173900034,
+      "worstPeakDrawdownPct": 4.156276492125648,
+      "closedTrades": 187,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 504.7426514501276,
+      "hypotheticalCustomerRewards": 403.7941211601021,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 184,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794228643040.0,
+          "accountProfit": 504.7426514501276,
+          "customerReward": 403.7941211601021
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.7941211601021,
+          "after100USDFeeSensitivity": 303.7941211601021
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26249.366051850135,
+      "openPositionCosts": 0.0,
+      "equity": 26249.366051850135,
+      "worstPeakDrawdownPct": 6.896461781938321,
+      "closedTrades": 189,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1005.36473630002,
+      "hypotheticalCustomerRewards": 804.291789040016,
+      "failed": false,
+      "balance": 25509.12000000001,
+      "openPositionCosts": 0.0,
+      "equity": 25509.12000000001,
+      "worstPeakDrawdownPct": 6.9872121091432415,
+      "closedTrades": 183,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789664443189.0,
+          "accountProfit": 504.8599423500091,
+          "customerReward": 403.8879538800073
+        },
+        {
+          "at": 1794290434662.0,
+          "accountProfit": 500.50479395001094,
+          "customerReward": 400.4038351600088
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.8879538800073,
+          "after100USDFeeSensitivity": 303.8879538800073
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.4038351600088,
+          "after100USDFeeSensitivity": 300.4038351600088
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-08-01",
+        "start": 1785542400000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1252.726876550034,
+      "hypotheticalCustomerRewards": 1002.1815012400272,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 8.785242939923993,
+      "closedTrades": 188,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794501020919.0,
+          "accountProfit": 1252.726876550034,
+          "customerReward": 1002.1815012400272
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-08",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.1815012400272,
+          "after100USDFeeSensitivity": 902.1815012400272
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 3
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1001.4765979500298,
+      "hypotheticalCustomerRewards": 801.181278360024,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 4.049800333072374,
+      "closedTrades": 109,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 500.1913472499982,
+          "customerReward": 400.1530777999986
+        },
+        {
+          "at": 1794464458944.0,
+          "accountProfit": 501.2852507000316,
+          "customerReward": 401.0282005600253
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.1530777999986,
+          "after100USDFeeSensitivity": 300.1530777999986
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.0282005600253,
+          "after100USDFeeSensitivity": 301.0282005600253
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1250.1138214000202,
+      "hypotheticalCustomerRewards": 1000.0910571200162,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 4.265752797920531,
+      "closedTrades": 133,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794501008317.0,
+          "accountProfit": 1250.1138214000202,
+          "customerReward": 1000.0910571200162
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.0910571200162,
+          "after100USDFeeSensitivity": 900.0910571200162
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1005.8687442000737,
+      "hypotheticalCustomerRewards": 804.694995360059,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.911549868792247,
+      "closedTrades": 106,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 501.9750000000058,
+          "customerReward": 401.5800000000047
+        },
+        {
+          "at": 1794230345737.0,
+          "accountProfit": 503.8937442000679,
+          "customerReward": 403.1149953600543
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.5800000000047,
+          "after100USDFeeSensitivity": 301.5800000000047
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.1149953600543,
+          "after100USDFeeSensitivity": 303.1149953600543
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1253.2224061000634,
+      "hypotheticalCustomerRewards": 1002.5779248800508,
+      "failed": false,
+      "balance": 25532.985,
+      "openPositionCosts": 0.21,
+      "equity": 25504.695,
+      "worstPeakDrawdownPct": 6.91422670995164,
+      "closedTrades": 130,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794290468911.0,
+          "accountProfit": 1253.2224061000634,
+          "customerReward": 1002.5779248800508
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.5779248800508,
+          "after100USDFeeSensitivity": 902.5779248800508
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 4,
+      "withdrawnProfit": 2010.1703392999661,
+      "hypotheticalCustomerRewards": 1608.136271439973,
+      "failed": false,
+      "balance": 25512.930000000004,
+      "openPositionCosts": 0.0,
+      "equity": 25512.930000000004,
+      "worstPeakDrawdownPct": 4.046157181404192,
+      "closedTrades": 68,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 502.3600000000006,
+          "customerReward": 401.8880000000005
+        },
+        {
+          "at": 1790757003367.0,
+          "accountProfit": 504.62999999999374,
+          "customerReward": 403.703999999995
+        },
+        {
+          "at": 1792062904520.0,
+          "accountProfit": 502.67480179998165,
+          "customerReward": 402.13984143998533
+        },
+        {
+          "at": 1793979039631.0,
+          "accountProfit": 500.50553749999017,
+          "customerReward": 400.40442999999215
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.5919999999956,
+          "after100USDFeeSensitivity": 705.5919999999956
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 402.13984143998533,
+          "after100USDFeeSensitivity": 302.13984143998533
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.40442999999215,
+          "after100USDFeeSensitivity": 300.40442999999215
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2519.8756686499764,
+      "hypotheticalCustomerRewards": 2015.900534919981,
+      "failed": false,
+      "balance": 25498.48007545001,
+      "openPositionCosts": 0.2625,
+      "equity": 25463.11757545001,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 80,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 1264.5926944999883,
+          "customerReward": 1011.6741555999906
+        },
+        {
+          "at": 1794234005565.0,
+          "accountProfit": 1255.2829741499881,
+          "customerReward": 1004.2263793199905
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1011.6741555999906,
+          "after100USDFeeSensitivity": 911.6741555999906
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1004.2263793199905,
+          "after100USDFeeSensitivity": 904.2263793199905
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1001.4765979500298,
+      "hypotheticalCustomerRewards": 801.181278360024,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 4.049800333072374,
+      "closedTrades": 109,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 500.1913472499982,
+          "customerReward": 400.1530777999986
+        },
+        {
+          "at": 1794464458944.0,
+          "accountProfit": 501.2852507000316,
+          "customerReward": 401.0282005600253
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.1530777999986,
+          "after100USDFeeSensitivity": 300.1530777999986
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.0282005600253,
+          "after100USDFeeSensitivity": 301.0282005600253
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1250.1138214000202,
+      "hypotheticalCustomerRewards": 1000.0910571200162,
+      "failed": false,
+      "balance": 25000.0,
+      "openPositionCosts": 0.0,
+      "equity": 25000.0,
+      "worstPeakDrawdownPct": 4.265752797920531,
+      "closedTrades": 133,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794501008317.0,
+          "accountProfit": 1250.1138214000202,
+          "customerReward": 1000.0910571200162
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1000.0910571200162,
+          "after100USDFeeSensitivity": 900.0910571200162
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1005.8687442000737,
+      "hypotheticalCustomerRewards": 804.694995360059,
+      "failed": false,
+      "balance": 25503.859225350006,
+      "openPositionCosts": 0.0,
+      "equity": 25503.859225350006,
+      "worstPeakDrawdownPct": 6.911549868792247,
+      "closedTrades": 106,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 501.9750000000058,
+          "customerReward": 401.5800000000047
+        },
+        {
+          "at": 1794230345737.0,
+          "accountProfit": 503.8937442000679,
+          "customerReward": 403.1149953600543
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.5800000000047,
+          "after100USDFeeSensitivity": 301.5800000000047
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 403.1149953600543,
+          "after100USDFeeSensitivity": 303.1149953600543
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1253.2224061000634,
+      "hypotheticalCustomerRewards": 1002.5779248800508,
+      "failed": false,
+      "balance": 25532.985,
+      "openPositionCosts": 0.21,
+      "equity": 25504.695,
+      "worstPeakDrawdownPct": 6.91422670995164,
+      "closedTrades": 130,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794290468911.0,
+          "accountProfit": 1253.2224061000634,
+          "customerReward": 1002.5779248800508
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.5779248800508,
+          "after100USDFeeSensitivity": 902.5779248800508
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 2
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 4,
+      "withdrawnProfit": 2010.1703392999661,
+      "hypotheticalCustomerRewards": 1608.136271439973,
+      "failed": false,
+      "balance": 25512.930000000004,
+      "openPositionCosts": 0.0,
+      "equity": 25512.930000000004,
+      "worstPeakDrawdownPct": 4.046157181404192,
+      "closedTrades": 68,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 502.3600000000006,
+          "customerReward": 401.8880000000005
+        },
+        {
+          "at": 1790757003367.0,
+          "accountProfit": 504.62999999999374,
+          "customerReward": 403.703999999995
+        },
+        {
+          "at": 1792062904520.0,
+          "accountProfit": 502.67480179998165,
+          "customerReward": 402.13984143998533
+        },
+        {
+          "at": 1793979039631.0,
+          "accountProfit": 500.50553749999017,
+          "customerReward": 400.40442999999215
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 2,
+          "hypotheticalCustomerReward": 805.5919999999956,
+          "after100USDFeeSensitivity": 705.5919999999956
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 402.13984143998533,
+          "after100USDFeeSensitivity": 302.13984143998533
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.40442999999215,
+          "after100USDFeeSensitivity": 300.40442999999215
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-09-01",
+        "start": 1788220800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 2519.8756686499764,
+      "hypotheticalCustomerRewards": 2015.900534919981,
+      "failed": false,
+      "balance": 25498.48007545001,
+      "openPositionCosts": 0.2625,
+      "equity": 25463.11757545001,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 80,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1789452003193.0,
+          "accountProfit": 1264.5926944999883,
+          "customerReward": 1011.6741555999906
+        },
+        {
+          "at": 1794234005565.0,
+          "accountProfit": 1255.2829741499881,
+          "customerReward": 1004.2263793199905
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-09",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1011.6741555999906,
+          "after100USDFeeSensitivity": 911.6741555999906
+        },
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1004.2263793199905,
+          "after100USDFeeSensitivity": 904.2263793199905
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 502.1302137500352,
+      "hypotheticalCustomerRewards": 401.70417100002817,
+      "failed": false,
+      "balance": 25501.8867002,
+      "openPositionCosts": 0.0,
+      "equity": 25501.8867002,
+      "worstPeakDrawdownPct": 2.010053593951418,
+      "closedTrades": 76,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1793979069619.0,
+          "accountProfit": 502.1302137500352,
+          "customerReward": 401.70417100002817
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.70417100002817,
+          "after100USDFeeSensitivity": 301.70417100002817
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26121.67108900004,
+      "openPositionCosts": 0.105,
+      "equity": 26107.52608900004,
+      "worstPeakDrawdownPct": 2.010053593951418,
+      "closedTrades": 77,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1000.4773140500329,
+      "hypotheticalCustomerRewards": 800.3818512400263,
+      "failed": false,
+      "balance": 25500.679999999997,
+      "openPositionCosts": 0.0,
+      "equity": 25500.679999999997,
+      "worstPeakDrawdownPct": 3.3705070666819417,
+      "closedTrades": 69,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1792482995779.0,
+          "accountProfit": 500.01743650002027,
+          "customerReward": 400.0139492000162
+        },
+        {
+          "at": 1793960530656.0,
+          "accountProfit": 500.4598775500126,
+          "customerReward": 400.3679020400101
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.0139492000162,
+          "after100USDFeeSensitivity": 300.0139492000162
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.3679020400101,
+          "after100USDFeeSensitivity": 300.3679020400101
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1253.2448805500535,
+      "hypotheticalCustomerRewards": 1002.5959044400429,
+      "failed": false,
+      "balance": 25626.649999999998,
+      "openPositionCosts": 0.21,
+      "equity": 25598.359999999997,
+      "worstPeakDrawdownPct": 3.3705070666819417,
+      "closedTrades": 74,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794301205381.0,
+          "accountProfit": 1253.2448805500535,
+          "customerReward": 1002.5959044400429
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.5959044400429,
+          "after100USDFeeSensitivity": 902.5959044400429
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1002.3123278999883,
+      "hypotheticalCustomerRewards": 801.8498623199907,
+      "failed": false,
+      "balance": 25584.843370599996,
+      "openPositionCosts": 0.0,
+      "equity": 25584.843370599996,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 68,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1792430389159.0,
+          "accountProfit": 500.40224824998586,
+          "customerReward": 400.3217985999887
+        },
+        {
+          "at": 1793795457635.0,
+          "accountProfit": 501.91007965000244,
+          "customerReward": 401.52806372000197
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.3217985999887,
+          "after100USDFeeSensitivity": 300.3217985999887
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.52806372000197,
+          "after100USDFeeSensitivity": 301.52806372000197
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1255.2829741499881,
+      "hypotheticalCustomerRewards": 1004.2263793199905,
+      "failed": false,
+      "balance": 25498.48007545001,
+      "openPositionCosts": 0.2625,
+      "equity": 25463.11757545001,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 74,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794234005565.0,
+          "accountProfit": 1255.2829741499881,
+          "customerReward": 1004.2263793199905
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1004.2263793199905,
+          "after100USDFeeSensitivity": 904.2263793199905
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 502.1302137500352,
+      "hypotheticalCustomerRewards": 401.70417100002817,
+      "failed": false,
+      "balance": 25501.8867002,
+      "openPositionCosts": 0.0,
+      "equity": 25501.8867002,
+      "worstPeakDrawdownPct": 2.010053593951418,
+      "closedTrades": 76,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1793979069619.0,
+          "accountProfit": 502.1302137500352,
+          "customerReward": 401.70417100002817
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.70417100002817,
+          "after100USDFeeSensitivity": 301.70417100002817
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26121.67108900004,
+      "openPositionCosts": 0.105,
+      "equity": 26107.52608900004,
+      "worstPeakDrawdownPct": 2.010053593951418,
+      "closedTrades": 77,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1000.4773140500329,
+      "hypotheticalCustomerRewards": 800.3818512400263,
+      "failed": false,
+      "balance": 25500.679999999997,
+      "openPositionCosts": 0.0,
+      "equity": 25500.679999999997,
+      "worstPeakDrawdownPct": 3.3705070666819417,
+      "closedTrades": 69,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1792482995779.0,
+          "accountProfit": 500.01743650002027,
+          "customerReward": 400.0139492000162
+        },
+        {
+          "at": 1793960530656.0,
+          "accountProfit": 500.4598775500126,
+          "customerReward": 400.3679020400101
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.0139492000162,
+          "after100USDFeeSensitivity": 300.0139492000162
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.3679020400101,
+          "after100USDFeeSensitivity": 300.3679020400101
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1253.2448805500535,
+      "hypotheticalCustomerRewards": 1002.5959044400429,
+      "failed": false,
+      "balance": 25626.649999999998,
+      "openPositionCosts": 0.21,
+      "equity": 25598.359999999997,
+      "worstPeakDrawdownPct": 3.3705070666819417,
+      "closedTrades": 74,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794301205381.0,
+          "accountProfit": 1253.2448805500535,
+          "customerReward": 1002.5959044400429
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1002.5959044400429,
+          "after100USDFeeSensitivity": 902.5959044400429
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 2,
+      "withdrawnProfit": 1002.3123278999883,
+      "hypotheticalCustomerRewards": 801.8498623199907,
+      "failed": false,
+      "balance": 25584.843370599996,
+      "openPositionCosts": 0.0,
+      "equity": 25584.843370599996,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 68,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1792430389159.0,
+          "accountProfit": 500.40224824998586,
+          "customerReward": 400.3217985999887
+        },
+        {
+          "at": 1793795457635.0,
+          "accountProfit": 501.91007965000244,
+          "customerReward": 401.52806372000197
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 400.3217985999887,
+          "after100USDFeeSensitivity": 300.3217985999887
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 401.52806372000197,
+          "after100USDFeeSensitivity": 301.52806372000197
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-10-01",
+        "start": 1790812800000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 1,
+      "withdrawnProfit": 1255.2829741499881,
+      "hypotheticalCustomerRewards": 1004.2263793199905,
+      "failed": false,
+      "balance": 25498.48007545001,
+      "openPositionCosts": 0.2625,
+      "equity": 25463.11757545001,
+      "worstPeakDrawdownPct": 4.1226494402357625,
+      "closedTrades": 74,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [
+        {
+          "at": 1794234005565.0,
+          "accountProfit": 1255.2829741499881,
+          "customerReward": 1004.2263793199905
+        }
+      ],
+      "monthlyRewards": [
+        {
+          "month": "2026-10",
+          "partial": false,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        },
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 1,
+          "hypotheticalCustomerReward": 1004.2263793199905,
+          "after100USDFeeSensitivity": 904.2263793199905
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 1
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25500.906884599994,
+      "openPositionCosts": 0.0,
+      "equity": 25500.906884599994,
+      "worstPeakDrawdownPct": 1.3146171400781086,
+      "closedTrades": 14,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25885.808584799997,
+      "openPositionCosts": 0.105,
+      "equity": 25871.663584799997,
+      "worstPeakDrawdownPct": 1.3146171400781086,
+      "closedTrades": 20,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25500.447443450008,
+      "openPositionCosts": 0.0,
+      "equity": 25500.447443450008,
+      "worstPeakDrawdownPct": 2.157577165697968,
+      "closedTrades": 12,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26250.485843850016,
+      "openPositionCosts": 0.0,
+      "equity": 26250.485843850016,
+      "worstPeakDrawdownPct": 2.157577165697968,
+      "closedTrades": 20,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25501.193769199996,
+      "openPositionCosts": 0.0,
+      "equity": 25501.193769199996,
+      "worstPeakDrawdownPct": 2.706523631739671,
+      "closedTrades": 10,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "MATCHED_PRODUCT",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26302.2037692,
+      "openPositionCosts": 0.0,
+      "equity": 26302.2037692,
+      "worstPeakDrawdownPct": 2.706523631739671,
+      "closedTrades": 15,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25500.906884599994,
+      "openPositionCosts": 0.0,
+      "equity": 25500.906884599994,
+      "worstPeakDrawdownPct": 1.3146171400781086,
+      "closedTrades": 14,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.25,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25885.808584799997,
+      "openPositionCosts": 0.105,
+      "equity": 25871.663584799997,
+      "worstPeakDrawdownPct": 1.3146171400781086,
+      "closedTrades": 20,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25500.447443450008,
+      "openPositionCosts": 0.0,
+      "equity": 25500.447443450008,
+      "worstPeakDrawdownPct": 2.157577165697968,
+      "closedTrades": 12,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.4,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26250.485843850016,
+      "openPositionCosts": 0.0,
+      "equity": 26250.485843850016,
+      "worstPeakDrawdownPct": 2.157577165697968,
+      "closedTrades": 20,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 2
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 25501.193769199996,
+      "openPositionCosts": 0.0,
+      "equity": 25501.193769199996,
+      "worstPeakDrawdownPct": 2.706523631739671,
+      "closedTrades": 10,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    },
+    {
+      "scenario": {
+        "date": "2026-11-01",
+        "start": 1793491200000,
+        "end": 1794528000000,
+        "guard": "STATIC_9_DAILY_4_5",
+        "risk": 0.5,
+        "goal": 5
+      },
+      "rewardCycles": 0,
+      "withdrawnProfit": 0.0,
+      "hypotheticalCustomerRewards": 0.0,
+      "failed": false,
+      "balance": 26302.2037692,
+      "openPositionCosts": 0.0,
+      "equity": 26302.2037692,
+      "worstPeakDrawdownPct": 2.706523631739671,
+      "closedTrades": 15,
+      "blocked": 0,
+      "observedUntil": 1794527996941.0,
+      "rewards": [],
+      "monthlyRewards": [
+        {
+          "month": "2026-11",
+          "partial": true,
+          "rewardCycles": 0,
+          "hypotheticalCustomerReward": 0,
+          "after100USDFeeSensitivity": -100
+        }
+      ],
+      "negativeOrZeroRewardFullMonths": 0
+    }
+  ],
+  "inventory": {
+    "schema": "reviewed-execution-inventory/v1",
+    "counts": {
+      "total": 13,
+      "crypto": 5,
+      "forex": 4,
+      "metals": 4
+    },
+    "meaning": "Exact configurations with positive recorded canonical review periods and compatible scanner/demo account choices; variants can share a family. Historical positives do not establish profitable months, each asset or live execution.",
+    "installation": "NOT_OBSERVED_IN_THIS_AUDIT",
+    "researchRsiTrailingIncluded": false,
+    "rows": [
+      {
+        "id": "crypto.launch-rsi2-48-3-3-h72",
+        "name": "Crypto RSI reversal \u00b7 3 ATR / 3R",
+        "market": "CRYPTO",
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT",
+          "SOLUSDT",
+          "BNBUSDT",
+          "XRPUSDT",
+          "ADAUSDT",
+          "DOGEUSDT",
+          "LINKUSDT",
+          "AVAXUSDT",
+          "LTCUSDT"
+        ],
+        "timeframes": [
+          "4h"
+        ],
+        "providers": [
+          "BINANCE",
+          "BYBIT"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 72,
+        "periods": [
+          {
+            "start": "2025-05-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 51,
+            "netReturnPct": 2.2999401522284186,
+            "profitFactor": 1.1174938521903413
+          },
+          {
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 35,
+            "netReturnPct": 3.925474734461659,
+            "profitFactor": 1.258063209559731
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "crypto.launch-trend-pullback-48-1.5-5",
+        "name": "Crypto trend pullback \u00b7 1.5 ATR / 5R",
+        "market": "CRYPTO",
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT",
+          "SOLUSDT",
+          "BNBUSDT",
+          "XRPUSDT",
+          "ADAUSDT",
+          "DOGEUSDT",
+          "LINKUSDT",
+          "AVAXUSDT",
+          "LTCUSDT"
+        ],
+        "timeframes": [
+          "4h"
+        ],
+        "providers": [
+          "BINANCE",
+          "BYBIT"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 192,
+        "periods": [
+          {
+            "start": "2025-05-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 61,
+            "netReturnPct": 15.037738679799054,
+            "profitFactor": 1.5726953862271726
+          },
+          {
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 48,
+            "netReturnPct": 6.920549228727419,
+            "profitFactor": 1.3024384523222083
+          }
+        ],
+        "limitations": [
+          "Historical native market account scenarios, not customer provider fills",
+          "Observed periods were used in research selection; not an untouched holdout certification",
+          "This review authorizes signal analysis and demo forward testing only"
+        ]
+      },
+      {
+        "id": "crypto.launch-trend-pullback-48-2-3-h72",
+        "name": "Crypto trend pullback \u00b7 2 ATR / 3R",
+        "market": "CRYPTO",
+        "symbols": [
+          "BTCUSDT",
+          "ETHUSDT",
+          "SOLUSDT",
+          "BNBUSDT",
+          "XRPUSDT",
+          "ADAUSDT",
+          "DOGEUSDT",
+          "LINKUSDT",
+          "AVAXUSDT",
+          "LTCUSDT"
+        ],
+        "timeframes": [
+          "4h"
+        ],
+        "providers": [
+          "BINANCE",
+          "BYBIT"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 72,
+        "periods": [
+          {
+            "start": "2025-05-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 69,
+            "netReturnPct": 4.631923845354914,
+            "profitFactor": 1.2147365929233123
+          },
+          {
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 47,
+            "netReturnPct": 2.6518706740924247,
+            "profitFactor": 1.1154135411183028
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+        "name": "LTC failed breakout \u00b7 15m \u00b7 1.5R",
+        "market": "CRYPTO",
+        "symbols": [
+          "LTCUSDT"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "BINANCE",
+          "BYBIT"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "minimum_atr_fraction": 0.006,
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 24,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 23,
+            "netReturnPct": 0.22857212209473798,
+            "profitFactor": 1.0655895491821727
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 25,
+            "netReturnPct": 2.0313650961337317,
+            "profitFactor": 1.5291594227185448
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+        "name": "DOGE VWAP reclaim \u00b7 5m \u00b7 1.5R",
+        "market": "CRYPTO",
+        "symbols": [
+          "DOGEUSDT"
+        ],
+        "timeframes": [
+          "5m"
+        ],
+        "providers": [
+          "BINANCE",
+          "BYBIT"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "minimum_atr_fraction": 0.006,
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 12,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 33,
+            "netReturnPct": 1.3302658175646682,
+            "profitFactor": 1.1963396196890994
+          },
+          {
+            "start": "2026-08-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "capital": 1000,
+            "riskPct": 0.5,
+            "closedTrades": 14,
+            "netReturnPct": 0.595949494565923,
+            "profitFactor": 1.289311629465028
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "forex.native-band-reentry-60-12-2-5",
+        "name": "USDJPY range re-entry \u00b7 1h \u00b7 5R",
+        "market": "FOREX",
+        "symbols": [
+          "USDJPY"
+        ],
+        "timeframes": [
+          "1h"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 48,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 17,
+            "netReturnPct": 2.780059171715111,
+            "profitFactor": 1.5404855631336125
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 26,
+            "netReturnPct": 2.0759287305655016,
+            "profitFactor": 1.2512497327717338
+          }
+        ],
+        "limitations": [
+          "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+        "name": "GBPUSD RSI reversal \u00b7 15m \u00b7 5R",
+        "market": "FOREX",
+        "symbols": [
+          "GBPUSD"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "minimum_atr_fraction": 0.0008,
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 24,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 22,
+            "netReturnPct": 5.738775310000074,
+            "profitFactor": 2.5782547391608013
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 15,
+            "netReturnPct": 0.34562634999982034,
+            "profitFactor": 1.109030255024396
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+        "name": "USDJPY compression breakout \u00b7 15m \u00b7 3R",
+        "market": "FOREX",
+        "symbols": [
+          "USDJPY"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 12,
+        "periods": [
+          {
+            "start": "2025-03-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 17,
+            "netReturnPct": 1.0772077326509861,
+            "profitFactor": 1.460550578520831
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 31,
+            "netReturnPct": 1.7919408563505201,
+            "profitFactor": 1.2786394149932365
+          }
+        ],
+        "limitations": [
+          "Costed canonical scanner, arbitration and account Brain; reference costs remain scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only",
+          "Early window expanded to March\u2013May after observing nine positive-period closed trades in April\u2013May; retrospective additional sample, not an untouched holdout"
+        ]
+      },
+      {
+        "id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+        "name": "USDJPY sweep & retest \u00b7 1h \u00b7 5R",
+        "market": "FOREX",
+        "symbols": [
+          "USDJPY"
+        ],
+        "timeframes": [
+          "1h"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 72,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 16,
+            "netReturnPct": 1.0006872251063943,
+            "profitFactor": 1.16049367605527
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 30,
+            "netReturnPct": 0.4566449904381807,
+            "profitFactor": 1.0397825624738872
+          }
+        ],
+        "limitations": [
+          "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "gold.frontier-compression-15-24-1.5-5-h96",
+        "name": "Gold compression \u00b7 15m \u00b7 5R \u00b7 up to 24h",
+        "market": "METALS",
+        "symbols": [
+          "XAUUSD"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": false,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 96,
+        "periods": [
+          {
+            "start": "2026-05-05T00:00:00.000Z",
+            "end": "2026-07-01T00:00:00.000Z",
+            "capital": 25000,
+            "riskPct": 0.5,
+            "closedTrades": 24,
+            "netReturnPct": 1.0644598234001024,
+            "profitFactor": 1.1374643717496788
+          },
+          {
+            "start": "2026-07-01T00:00:00.000Z",
+            "end": "2026-11-01T00:00:00.000Z",
+            "capital": 25000,
+            "riskPct": 0.5,
+            "closedTrades": 59,
+            "netReturnPct": 1.2743639899999544,
+            "profitFactor": 1.0581259518068074
+          }
+        ],
+        "limitations": [
+          "Signal and forward demo scope only. No live authorization.",
+          "Retrospective May\u2013June / July\u2013October partitions. A May\u2013July production-parity comparison lost 1.52%; it is retained in the research report.",
+          "The November 1\u201312 comparison has six closed trades and is a partial fresh observation, not a monthly return or independent success probability.",
+          "Native ordered-quote research and the shared OHLC account replay use different timing and lifecycle admission. Their returns are shown separately.",
+          "One full-position 5R target, up to 24-hour holding; commission, financing, slippage and contract rules remain scenarios.",
+          "New configuration is optional. The existing twelve-strategy bundle and seven-strategy Prop default are unchanged."
+        ]
+      },
+      {
+        "id": "gold.native-band-reentry-15-48-3-5",
+        "name": "Gold range re-entry \u00b7 15m \u00b7 5R",
+        "market": "METALS",
+        "symbols": [
+          "XAUUSD"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 192,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 16,
+            "netReturnPct": 0.27008159400003934,
+            "profitFactor": 1.0642815427253178
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 31,
+            "netReturnPct": 4.73328303100021,
+            "profitFactor": 1.4975509755313503
+          }
+        ],
+        "limitations": [
+          "Native reference broker bid/ask; commission, carry and slippage are scenarios",
+          "Research selection creates bias; no untouched holdout or customer-return claim",
+          "Positive separate account periods qualify for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "gold.native-momentum-15-48-2-5",
+        "name": "Gold momentum \u00b7 15m \u00b7 5R",
+        "market": "METALS",
+        "symbols": [
+          "XAUUSD"
+        ],
+        "timeframes": [
+          "15m"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 192,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 39,
+            "netReturnPct": 5.392430661000216,
+            "profitFactor": 1.358844466014434
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 62,
+            "netReturnPct": 10.94486353300017,
+            "profitFactor": 1.5065777649085275
+          }
+        ],
+        "limitations": [
+          "Exness native reference bid/ask, not JustMarkets fills",
+          "Fees, carry, contract and slippage remain explicit scenarios",
+          "Research selection creates bias; approval is for signals and demo forward testing only"
+        ]
+      },
+      {
+        "id": "gold.native-momentum-60-24-2-5",
+        "name": "Gold momentum \u00b7 1h \u00b7 5R",
+        "market": "METALS",
+        "symbols": [
+          "XAUUSD"
+        ],
+        "timeframes": [
+          "1h"
+        ],
+        "providers": [
+          "MT5_PERSONAL",
+          "MT5_PROP"
+        ],
+        "releaseScope": "SIGNALS_AND_FORWARD_DEMO",
+        "liveApproved": false,
+        "inDefaultPropBundle": true,
+        "parameters": {
+          "entry_engine_version": 1
+        },
+        "maximumHoldingBars": 96,
+        "periods": [
+          {
+            "start": "2025-04-01T00:00:00.000Z",
+            "end": "2025-06-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 13,
+            "netReturnPct": 4.01826626600001,
+            "profitFactor": 2.47122254456985
+          },
+          {
+            "start": "2025-06-01T00:00:00.000Z",
+            "end": "2025-09-01T00:00:00.000Z",
+            "capital": 10000,
+            "riskPct": 0.5,
+            "closedTrades": 24,
+            "netReturnPct": 2.5069676870000146,
+            "profitFactor": 1.4342183907309103
+          }
+        ],
+        "limitations": [
+          "Exness native reference bid/ask, not JustMarkets fills",
+          "Fees, carry, contract and slippage remain explicit scenarios",
+          "Research selection creates bias; approval is for signals and demo forward testing only"
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "Retrospective overlapping starts are correlated scenarios, not independent probabilities.",
+    "1% evaluation risk is research-only and above current 0.5% production cap. No customer risk limits changed.",
+    "RSI trailing remains a research model; these returns are not attributed to the thirteen wired configurations.",
+    "Earliest modeled request eligibility requires flat net target plus the 14-day wait and available follow-up. It is not an approved firm reward.",
+    "UTC daily accounting, news handling, contracts, swaps and execution delay are numerical assumptions.",
+    "Recurring withdrawals and 80% reward split are simulated. $100 fee is sensitivity, not actual billing.",
+    "November data ends 2026-11-12 and retains partial-history censoring."
+  ]
+}

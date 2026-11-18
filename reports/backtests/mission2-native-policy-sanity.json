@@ -1,0 +1,63 @@
+{
+  "schema": "mission2-policy-verification/v1",
+  "status": "COMPLETED",
+  "policy": "entry-decision/v1",
+  "lineage": "5b9c75a7f63fe5b7b93a629be8070dd63812faaa96980d5877e80054added69b",
+  "period": {
+    "start": "2025-01-01T10:00:00.000Z",
+    "end": "2025-01-01T10:01:00.000Z"
+  },
+  "workerTicks": 2,
+  "decisionCounts": {
+    "NO_TRADE": 50,
+    "INELIGIBLE": 4,
+    "DISABLED": 38
+  },
+  "reasonCounts": {
+    "candle_body_too_small": 2,
+    "volume_expansion_failed": 2,
+    "SYMBOL_OR_TIMEFRAME_NOT_ELIGIBLE": 4,
+    "RESEARCH_NOT_RELEASED": 38,
+    "STRATEGY_WATCH_HISTORY_INVALID": 46
+  },
+  "events": 0,
+  "confirmedEvents": 0,
+  "datasets": [
+    {
+      "id": "native-btc-5m",
+      "symbol": "BTCUSDT",
+      "timeframe": "5m",
+      "rows": 160,
+      "sha256": "0eaf2c6805fed8aa4ab9b5a35065b8c3bf7ffcd9fd2df8f99cd9252fa1be534a",
+      "provenance": {
+        "source": "BINANCE_SPOT_KLINES",
+        "instrument": "SPOT",
+        "limitations": [
+          "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=5m&startTime=1735689600000&limit=160",
+          "Raw SHA-256 be6bba57b2edf39f3c866f9aecb6c55eb81ab84794dc77bdc6806148651b1ce1",
+          "Bounded engineering sample only; not profitability research"
+        ]
+      }
+    },
+    {
+      "id": "native-btc-15m",
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "rows": 40,
+      "sha256": "092ae06144153174355b707e7a6ae225ba1b0b2ff962e600d16b5fa5df112151",
+      "provenance": {
+        "source": "BINANCE_SPOT_KLINES",
+        "instrument": "SPOT",
+        "limitations": [
+          "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=5m&startTime=1735689600000&limit=160",
+          "Raw SHA-256 be6bba57b2edf39f3c866f9aecb6c55eb81ab84794dc77bdc6806148651b1ce1",
+          "Bounded engineering sample only; not profitability research"
+        ]
+      }
+    }
+  ],
+  "profitability": "NOT_EVALUATED",
+  "providerFills": "NOT_SIMULATED",
+  "qualification": "NOT_GRANTED",
+  "productionMutations": false
+}

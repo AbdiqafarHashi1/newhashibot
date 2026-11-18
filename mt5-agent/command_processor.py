@@ -1,3 +1,5 @@
+from expiry_guard import expiry_management_allowed
+from prop_profit_guard import profit_cutoff_management_allowed
 from managed_positions import ManagedPositions
 """
 HashiBot MT5 Agent - Command Processor
@@ -70,7 +72,26 @@ class CommandProcessor:
                 self.cloud_client.ack_command(cmd_id, False, "DATA_ONLY_COMMAND_FORBIDDEN", "Dedicated scanner feed cannot execute trades", {})
                 processed_count += 1
                 continue
-            if not read_only:
+            profit_management=False
+            if cmd.get('profit_guard_authorization') and operation in ('close_position','cancel_order'):
+                try:
+                    self.mt5_client.assert_demo_execution_identity()
+                    profit_management=profit_cutoff_management_allowed(cmd,self.mt5_client.get_account_info(),self.mt5_client.get_terminal_info(),{'account_id':Config.ACCOUNT_ID,'owner_id':Config.OWNER_ID,'bridge_id':Config.BRIDGE_ID,'login':Config.ACCOUNT_NUMBER,'server':Config.SERVER})
+                except Exception:
+                    self.cloud_client.ack_command(cmd_id,False,'PROP_PROFIT_MANAGEMENT_CONTEXT_UNAVAILABLE','Profit close needs a verified terminal context',{})
+                    processed_count += 1
+                    continue
+            if cmd.get('expiry_authorization') and operation in ('close_position','cancel_order'):
+                try:
+                    self.mt5_client.assert_demo_execution_identity()
+                    profit_management = expiry_management_allowed(cmd,self.mt5_client.get_account_info(),self.mt5_client.get_terminal_info(),{'account_id':Config.ACCOUNT_ID,'owner_id':Config.OWNER_ID,'bridge_id':Config.BRIDGE_ID,'login':Config.ACCOUNT_NUMBER,'server':Config.SERVER})
+                except Exception:
+                    profit_management = False
+                if not profit_management:
+                    self.cloud_client.ack_command(cmd_id,False,'EXPIRY_MANAGEMENT_CONTEXT_REQUIRED','Expiry close needs current account-bound authorization',{})
+                    processed_count += 1
+                    continue
+            if not read_only and not profit_management:
                 gate = cmd.get("execution_context", {})
                 blockers = execution_blockers(ExecutionContext(**{
                     key: value for key, value in gate.items() if key in ExecutionContext.__dataclass_fields__

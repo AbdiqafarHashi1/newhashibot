@@ -51,11 +51,11 @@ class OrderNettingRouter:
         """
         Coordinates Netting Check -> Pre-Trade Risk Gateway -> Exchange Execution Dispatch.
         """
-        lock = self.redis.lock(self.NETTING_LOCK, timeout=1.0, blocking_timeout=1.5)
+        lock = self.redis.lock(f"{self.NETTING_LOCK}:{intent.provider}:{intent.account_id}", timeout=1.0, blocking_timeout=1.5)
 
         async with lock:
             # 1. Fetch current aggregate open delta for symbol across all strategies
-            current_delta_raw = await self.redis.hget(self.POSITIONS_HASH_KEY, intent.symbol)
+            current_delta_raw = await self.redis.hget(f'{self.POSITIONS_HASH_KEY}:{intent.provider}:{intent.account_id}', intent.symbol)
             current_delta = float(current_delta_raw or 0.0)  # Positive = Long, Negative = Short
 
             intent_delta = intent.size if intent.side == OrderSide.BUY else -intent.size
@@ -67,6 +67,10 @@ class OrderNettingRouter:
                     f"{intent.size} {intent.symbol}, which strictly opposes active portfolio delta "
                     f"({current_delta:+.2f}). Commission churn prevented."
                 )
+                return False, netting_result
+
+            # Opposing exposure requires a confirmed broker reduction; Redis netting cannot close a trade.
+            if netting_result.outbound_size != intent.size:
                 return False, netting_result
 
             # 2. Adjust intent size if partially netted internally
@@ -82,6 +86,8 @@ class OrderNettingRouter:
                     estimated_price=intent.estimated_price,
                     stop_loss_price=intent.stop_loss_price,
                     account_id=intent.account_id,
+                    provider=intent.provider,
+                    garman_klass_vol=intent.garman_klass_vol,
                 )
 
             # If completely absorbed internally, bypass exchange dispatch entirely
@@ -91,7 +97,7 @@ class OrderNettingRouter:
                     f"{intent.symbol} netted against opposing position. Zero exchange fees paid."
                 )
                 new_delta = current_delta + intent_delta
-                await self.redis.hset(self.POSITIONS_HASH_KEY, intent.symbol, str(new_delta))
+                await self.redis.hset(f'{self.POSITIONS_HASH_KEY}:{intent.provider}:{intent.account_id}', intent.symbol, str(new_delta))
                 return True, netting_result
 
             # 3. Synchronously pass through Pre-Trade Risk Gateway
@@ -100,11 +106,7 @@ class OrderNettingRouter:
                 logger.error(f"Order {intent.order_id} failed risk gateway: {risk_result.reason}")
                 return False, netting_result
 
-            # Update recorded global delta in Redis
-            new_delta = current_delta + (
-                adjusted_intent.size if adjusted_intent.side == OrderSide.BUY else -adjusted_intent.size
-            )
-            await self.redis.hset(self.POSITIONS_HASH_KEY, intent.symbol, str(new_delta))
+            # Confirmed provider fills, not accepted intents, own exposure updates.
 
             return True, netting_result
 

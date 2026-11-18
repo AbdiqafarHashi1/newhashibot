@@ -28,6 +28,7 @@ export async function bootstrapMissionDatabase(db:{exec:(sql:string)=>Promise<un
  await db.exec(watches.slice(0,watches.indexOf('-- Extend only')));
  await db.exec(await readFile('supabase/migrations/20261030055040_conditional_execution_bridge.sql','utf8'));
  await db.exec(await readFile('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8'));
+ await db.exec(await readFile('supabase/migrations/20261114054818_gold_trailing_state.sql','utf8'));
 
 
 }

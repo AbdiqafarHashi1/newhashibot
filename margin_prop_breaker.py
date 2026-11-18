@@ -47,13 +47,13 @@ class UltraLowLatencyPropBreaker:
     def __init__(
         self,
         zmq_push_endpoint: str = "tcp://127.0.0.1:5555",
-        hard_drawdown_limit_pct: Decimal = Decimal("4.50"),   # 4.50% Hard Breaker (Before 5.0% Broker Cap)
+        hard_drawdown_limit_pct: Decimal = Decimal("4.00"),   # 4.0% absolute daily circuit ceiling
         warning_threshold_pct: Decimal = Decimal("3.80"),     # 3.80% Throttle / Deadband zone
         recovery_deadband_pct: Decimal = Decimal("3.20"),     # 3.20% Recovery reset floor
         cooldown_period_seconds: float = 300.0,               # 5-minute freeze post-halt
     ):
         self.zmq_endpoint = zmq_push_endpoint
-        self.hard_limit_pct = hard_drawdown_limit_pct
+        self.hard_limit_pct = min(hard_drawdown_limit_pct, Decimal("4.00"))
         self.warning_pct = warning_threshold_pct
         self.recovery_pct = recovery_deadband_pct
         self.cooldown_period = cooldown_period_seconds
@@ -105,9 +105,12 @@ class UltraLowLatencyPropBreaker:
         async with self._lock:
             state_obj = self.accounts.get(account_id)
             if not state_obj:
-                return BreakerState.NORMAL, 0.0
+                return BreakerState.EMERGENCY_HALTED, 100.0
 
             cur_equity = Decimal(str(current_floating_equity))
+            if not cur_equity.is_finite() or cur_equity < 0:
+                state_obj.state = BreakerState.EMERGENCY_HALTED
+                return state_obj.state, 100.0
             state_obj.current_equity = cur_equity
             start_equity = state_obj.daily_starting_equity
             now = time.monotonic()
@@ -123,14 +126,7 @@ class UltraLowLatencyPropBreaker:
             # 1. State: EMERGENCY_HALTED (Tripped Circuit)
             # -----------------------------------------------------------------
             if state_obj.state == BreakerState.EMERGENCY_HALTED:
-                time_in_halt = now - state_obj.last_state_change
-                if time_in_halt >= self.cooldown_period and drawdown_pct <= self.recovery_pct:
-                    logger.info(
-                        f"HYSTERESIS RESET: Account {state_obj.broker_account_number} recovered to "
-                        f"{drawdown_pct:.2f}% DD after {time_in_halt:.1f}s cooldown. Restoring to NORMAL."
-                    )
-                    state_obj.state = BreakerState.NORMAL
-                    state_obj.last_state_change = now
+                # A recovered quote cannot reset a daily breach. Reconcile the next day's baseline explicitly.
                 return state_obj.state, float(drawdown_pct)
 
             # -----------------------------------------------------------------

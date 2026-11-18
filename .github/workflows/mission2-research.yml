@@ -1,0 +1,104 @@
+name: Mission 2 bounded historical policy research
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/mission2-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research-request:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.request.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: request
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          message="$(git log -1 --format=%s)"
+          requested=false
+          case "$message" in '[mission2-research]'*) requested=true ;; esac
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then requested=true; fi
+          echo "run=$requested" >> "$GITHUB_OUTPUT"
+  historical-policy:
+    concurrency:
+      group: mission2-research-${{ github.event.pull_request.number || github.ref }}-${{ matrix.period }}-${{ matrix.policy }}
+      cancel-in-progress: true
+    needs: research-request
+    if: needs.research-request.outputs.run == 'true'
+    name: Research ${{ matrix.period }} ${{ matrix.policy }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        period: [validation, confirmation, reserved-observed]
+        policy: [COMBINED, IMMEDIATE_ONLY, CONDITIONAL_ONLY]
+        include:
+          - period: validation
+            month: '2025-01,2025-02'
+            start: '2025-02-17'
+            end: '2025-02-24'
+          - period: confirmation
+            month: '2025-01,2025-02,2025-03'
+            start: '2025-03-17'
+            end: '2025-03-24'
+          - period: reserved-observed
+            month: '2026-09,2026-10'
+            start: '2026-10-20'
+            end: '2026-10-27'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit
+      - name: Acquire genuine native spot archives and verify decoding
+        env:
+          SYMBOLS: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT
+          MONTH: ${{ matrix.month }}
+        run: |
+          mkdir -p work/mission2
+          python scripts/research/acquire-canonical-history.py --symbols "$SYMBOLS" --months "$MONTH" --out work/mission2/data
+          python scripts/research/verify-canonical-history.py work/mission2/data > work/mission2/integrity.json
+      - name: Run the actual scanner, watcher and account Brain
+        env:
+          SYMBOLS: BTCUSDT,ETHUSDT,SOLUSDT,BNBUSDT,XRPUSDT,ADAUSDT,DOGEUSDT,LINKUSDT,AVAXUSDT,LTCUSDT
+          MONTH: ${{ matrix.month }}
+          START: ${{ matrix.start }}
+          END: ${{ matrix.end }}
+          POLICY: ${{ matrix.policy }}
+          PERIOD: ${{ matrix.period }}
+        run: |
+          node --import tsx scripts/research/run-frequency-audit.ts "symbols=$SYMBOLS" "months=$MONTH" "start=${START}T00:00:00Z" "end=${END}T00:00:00Z" "entry=$POLICY" "partition=$PERIOD" providers=BINANCE,BYBIT data=work/mission2/data "out=work/mission2/${PERIOD}-${POLICY}.json" > work/mission2/engine.log 2>&1
+      - name: Publish inspectable provisional evidence
+        env:
+          POLICY: ${{ matrix.policy }}
+          PERIOD: ${{ matrix.period }}
+        run: |
+          python scripts/research/publish-research-results.py "work/mission2/${PERIOD}-${POLICY}.json" --out work/mission2/public/mission2-results.json
+          python - <<'PY'
+          import json,pathlib,os
+          root=pathlib.Path('work/mission2')
+          run=json.loads((root/(os.environ['PERIOD']+'-'+os.environ['POLICY']+'.json')).read_text())
+          print('MISSION2_NUMERICAL_SUMMARY '+json.dumps({'period':run['funnel']['period'],'experiment':run['experiment'],'sourceHash':run['engineSourceSha256'],'signals':sum(r['confirmed'] for r in run['funnel']['rows']),'accounts':[{k:a[k] for k in ['provider','capital','riskPct','metrics']} for a in run['accounts']]}))
+          for file in sorted((root/'public').glob('*.json')):
+              print('MISSION2_PUBLIC_ARTIFACT '+json.dumps({'path':'public/research/'+file.name,'content':file.read_text()}))
+          PY
+      - name: Preserve results and restart checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission2-${{ matrix.period }}-${{ matrix.policy }}
+          path: |
+            work/mission2/*.json
+            work/mission2/engine.log
+            work/mission2/public
+          retention-days: 14
+          if-no-files-found: warn

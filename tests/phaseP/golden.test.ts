@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {PROP_PROFILES,simulateFullChallenge,simulateFullChallengeSteps,type HistoricalTradeEvidence,type PropAccountConfiguration} from '../../src/lib/prop/professionalPropEngine.ts';
 import {directionalPressure} from '../../supabase/functions/_shared/crypto-production-evaluators.ts';
 import {candles} from './fixtures.ts';
-test('professional Prop generator preserves full historical golden challenge results from current main',()=>{
+test('professional Prop generator preserves reviewed challenge results, including the FTMO initial-capital daily allowance',()=>{
  const golden=JSON.parse(readFileSync('tests/phaseP/prop-golden.json','utf8'));
  for(const c of golden.cases){const profile=PROP_PROFILES[c.profileId as keyof typeof PROP_PROFILES],trades=c.trades as HistoricalTradeEvidence[],config=c.config as PropAccountConfiguration;
  assert.deepEqual(simulateFullChallenge(profile,config,trades),c.result);
