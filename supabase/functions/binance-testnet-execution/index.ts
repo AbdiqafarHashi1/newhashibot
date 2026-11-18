@@ -1,3 +1,6 @@
+import {loadHouseMoneyFacts} from '../_shared/house-money-authority.ts';
+import {houseMoneyRisk,equityMode,topHourlyConfig} from '../_shared/house-money-risk.ts';
+import {rotationEntry} from '../_shared/conditional-market.ts';
 import {admitExecutionQuote} from '../_shared/execution-quote-guard.ts';
 import {ApprovedLiveAdoptionAdapter} from '../_shared/professional-execution-adapters.ts';
 import {currentAccountAdoptionTruth} from '../_shared/account-adoption-truth.ts';
@@ -3188,6 +3191,13 @@ async function adoptCertifiedExecutionPlan(db: SupabaseClient, raw: unknown, exp
   const {data:current,error:currentError}=await db.rpc('load_production_account_authorization_input',{p_customer_id:authorized.customer_id,p_account_id:authorized.execution_account_id,p_signal_id:authorized.signal_id});
   if(currentError||!current)return {success:false,blocker:'current_account_evidence_required'};
   await loadConfirmedEntry(db,current.signal,Date.now());
+  const freshNow=new Date().toISOString(),rotation=rotationEntry(current.signal.symbol,freshNow,String(current.account.provider).startsWith('MT5')&&current.account.policy_overrides?.policy_configuration?.allowedSymbols?.includes(current.signal.symbol));
+  if(!rotation.allowed)return {success:false,blocker:rotation.reason};
+  if(current.account.policy_overrides?.policy_configuration?.houseMoney==='house-money/v1'){
+   const facts=await loadHouseMoneyFacts(db,current,freshNow),risk=houseMoneyRisk(equityMode(current.account.account_mode,current.product),facts,freshNow,topHourlyConfig(current.signal.strategy_id,current.signal.timeframe),rotation.riskMultiplier);
+   if(risk.block_reason||Number(plan.risk_decision.authorized_envelope?.authorized_risk_percent)>risk.applied_risk_pct+1e-9)return {success:false,blocker:risk.block_reason??'HOUSE_MONEY_PLAN_REAUTHORIZATION_REQUIRED'};
+  }
+
   const {data:credentialAccount,error:credentialScopeError}=await db.from('connected_execution_accounts').select('account_id,execution_instance_id,credential_ref').eq('id',authorized.execution_account_id).eq('customer_id',authorized.customer_id).single();
   if(credentialScopeError||!credentialAccount)return {success:false,blocker:'current_credential_scope_required'};
   let executionScope='';

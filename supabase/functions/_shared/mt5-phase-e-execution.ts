@@ -1,3 +1,4 @@
+import {rotationEntry} from './conditional-market.ts';
 import {validateAtrTrailingPolicy,type AtrTrailingPolicy} from './atr-trailing-policy.ts';
 /**
  * Phase E boundary between the Phase-D account decision and the existing MT5
@@ -81,6 +82,7 @@ export function createMt5EntryCommand(input: { authorizedRiskAmount?:number;
   trailingPolicy?:AtrTrailingPolicy;
 }): Readonly<Mt5EntryCommand> {
   const { lineage, route } = input;
+  requireValue(rotationEntry(input.symbol,input.now,/^(BTC|ETH|SOL)USD(?:[._-].*)?$/.test(input.symbol)).allowed,'WEEKEND_FX_METALS_ENTRY_BLOCKED');
   requireValue(lineage.decision === "ALLOW" || lineage.decision === "REDUCE", "PHASE_D_DECISION_NOT_EXECUTABLE");
   requireValue(lineage.intentId.length > 0 && lineage.decisionId.length > 0, "PHASE_D_LINEAGE_MISSING");
   requireValue(lineage.customerId === route.customerId, "CUSTOMER_SCOPE_MISMATCH");

@@ -1797,7 +1797,7 @@ async function runScanPipeline(
     if (cryptoProviderRequests >= SCANNER_HARD_LIMITS.providerRequests) throw new Error("CRYPTO_PROVIDER_REQUEST_BUDGET_EXHAUSTED");
     cryptoProviderRequests++;
     const native=!conditionalEnabled&&cryptoTeamEnabled&&tf==='15m';
-    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now(),undefined,fetch,watchedHistoryBars(watchedDefinitions,symbol,tf),watchedCryptoInstrument(watchedDefinitions,symbol))).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
+    const value = conditionalEnabled&&['5m','15m','1h','4h','1d'].includes(tf)?[...(await conditionalWatchFeed(supabase,symbol,tf as WatchTimeframe,Date.now(),undefined,fetch,watchedHistoryBars(watchedDefinitions,symbol,tf),watchedCryptoInstrument(watchedDefinitions,symbol,tf))).candles]:native?await fetchCoordinatedCryptoHistory(symbol,Date.now()):await fetchBinanceCandles(symbol,tf,111);
     cryptoFetchCache.set(key, value);
     return value;
   }

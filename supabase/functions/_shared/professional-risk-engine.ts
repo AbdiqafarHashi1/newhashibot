@@ -1,3 +1,5 @@
+import {houseMoneyRisk,type HouseMoneyFacts,type EquityMode} from './house-money-risk.ts';
+export {houseMoneyRisk,type HouseMoneyFacts,type HouseMoneyDecision} from './house-money-risk.ts';
 import {
   deepFreeze,
   stableFingerprint,
@@ -32,6 +34,7 @@ export interface PositionRiskTruth {
 }
 
 export interface RiskEvaluationContext {
+  house_money?:{mode:EquityMode;facts:HouseMoneyFacts;topHourly:boolean;weekendMultiplier:1|0.75};
   schema_version: typeof RISK_CONTEXT_SCHEMA_VERSION;
   lineage: {
     evaluation_id: string;
@@ -313,6 +316,10 @@ export function evaluateRisk(approved: DeepReadonly<ApprovedStrategyPlan>, conte
   if (context.lineage.evaluation_id !== expectedCorrelation || context.lineage.correlation_id !== expectedCorrelation || approved?.correlation_id !== expectedCorrelation) reject("contract.correlation", "CONTRACT", context.lineage.correlation_id, expectedCorrelation, "id", "correlation_mismatch", "Plan, approval and risk context lineage must match."); else pass("contract.correlation", "CONTRACT", expectedCorrelation, expectedCorrelation, "id", "correlation_match", "Risk lineage matches the strategy evaluation.");
   if (context.lineage.provider !== context.lineage.account_mode || policy.domain !== context.lineage.account_mode || context.lineage.risk_policy_id !== policy.policy_id || context.lineage.risk_policy_version !== policy.version) reject("contract.domain", "CONTRACT", `${context.lineage.provider}/${context.lineage.account_mode}`, policy.domain, "domain", "provider_account_mode_mismatch", "Provider, account mode and resolved policy domain must match."); else pass("contract.domain", "CONTRACT", policy.domain, policy.domain, "domain", "risk_domain_match", "Provider-aware domain is consistent.");
 
+  if(context.house_money){
+   const h=context.house_money,f=h.facts,d=houseMoneyRisk(h.mode,f,context.lineage.evaluated_at,h.topHourly,h.weekendMultiplier);
+   if(f.accountId!==context.lineage.account_id||f.customerId!==context.lineage.customer_id||d.block_reason||context.request.risk_percent>d.applied_risk_pct+1e-9)reject('account.house_money','ACCOUNT',context.request.risk_percent,d.applied_risk_pct,'percent',d.block_reason??'HOUSE_MONEY_RISK_CEILING','Current account phase limits requested risk.');
+  }
   // 2. Account eligibility
   const accountEligible = context.account.exists && context.account.enabled && context.account.customer_authorized && context.account.execution_enabled && !context.account.manually_locked;
   if (!accountEligible) reject("account.eligibility", "ACCOUNT", { exists: context.account.exists, enabled: context.account.enabled, customer_authorized: context.account.customer_authorized, execution_enabled: context.account.execution_enabled, locked: context.account.manually_locked }, "all enabled and unlocked", "state", !context.account.exists ? "account_missing" : !context.account.enabled ? "account_disabled" : !context.account.customer_authorized ? "customer_unauthorized" : !context.account.execution_enabled ? "execution_disabled" : "account_locked", "Account must exist, be enabled and authorized, and remain unlocked."); else pass("account.eligibility", "ACCOUNT", "eligible", "eligible", "state", "account_eligible", "Account eligibility passed.");

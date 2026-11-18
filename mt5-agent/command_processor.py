@@ -1,3 +1,4 @@
+from weekend_guard import weekend_management_allowed, weekend_entry_allowed
 from expiry_guard import expiry_management_allowed
 from prop_profit_guard import profit_cutoff_management_allowed
 from managed_positions import ManagedPositions
@@ -72,6 +73,10 @@ class CommandProcessor:
                 self.cloud_client.ack_command(cmd_id, False, "DATA_ONLY_COMMAND_FORBIDDEN", "Dedicated scanner feed cannot execute trades", {})
                 processed_count += 1
                 continue
+            if operation in ('place_order','place_entry') and not weekend_entry_allowed(payload.get('symbol',''), payload.get('certified') is True):
+                self.cloud_client.ack_command(cmd_id,False,'WEEKEND_FX_METALS_ENTRY_BLOCKED','UTC rotation blocks new FX/Metals entries',{})
+                processed_count += 1
+                continue
             profit_management=False
             if cmd.get('profit_guard_authorization') and operation in ('close_position','cancel_order'):
                 try:
@@ -79,6 +84,16 @@ class CommandProcessor:
                     profit_management=profit_cutoff_management_allowed(cmd,self.mt5_client.get_account_info(),self.mt5_client.get_terminal_info(),{'account_id':Config.ACCOUNT_ID,'owner_id':Config.OWNER_ID,'bridge_id':Config.BRIDGE_ID,'login':Config.ACCOUNT_NUMBER,'server':Config.SERVER})
                 except Exception:
                     self.cloud_client.ack_command(cmd_id,False,'PROP_PROFIT_MANAGEMENT_CONTEXT_UNAVAILABLE','Profit close needs a verified terminal context',{})
+                    processed_count += 1
+                    continue
+            if cmd.get('weekend_authorization') and operation in ('close_position','cancel_order'):
+                try:
+                    self.mt5_client.assert_demo_execution_identity()
+                    profit_management=weekend_management_allowed(cmd,self.mt5_client.get_account_info(),self.mt5_client.get_terminal_info(),{'account_id':Config.ACCOUNT_ID,'owner_id':Config.OWNER_ID,'bridge_id':Config.BRIDGE_ID,'login':Config.ACCOUNT_NUMBER,'server':Config.SERVER})
+                except Exception:
+                    profit_management=False
+                if not profit_management:
+                    self.cloud_client.ack_command(cmd_id,False,'WEEKEND_MANAGEMENT_CONTEXT_REQUIRED','Weekend close needs fresh account-bound authorization',{})
                     processed_count += 1
                     continue
             if cmd.get('expiry_authorization') and operation in ('close_position','cancel_order'):

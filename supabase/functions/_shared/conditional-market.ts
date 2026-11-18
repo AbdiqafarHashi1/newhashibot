@@ -53,3 +53,13 @@ export function continuousDiscoveryHistory(rows:readonly StrategyCandle[],width:
  for(let i=rows.length-1;i>0;i--)if(!consecutiveMarketBars(rows[i].symbol,Date.parse(rows[i-1].open_time),Date.parse(rows[i].open_time),width,rows[i].source))return rows.slice(i);
  return rows;
 }
+
+/** Fixed UTC account rotation; independent of venue daylight-saving sessions. */
+export function weekendRotation(at:string|number){
+ const t=typeof at==='number'?at:Date.parse(at);if(!Number.isFinite(t))throw Error('INVALID_ROTATION_TIME');
+ const d=new Date(t),day=d.getUTCDay(),hour=d.getUTCHours();return day===5&&hour>=20||day===6||day===0&&hour<21;
+}
+export function rotationEntry(symbol:string,at:string|number,enabledMt5Crypto=false){
+ const weekend=weekendRotation(at),crypto=['BTCUSDT','ETHUSDT','SOLUSDT'].includes(symbol)||(enabledMt5Crypto&&/^(BTC|ETH|SOL)USD(?:[._-].*)?$/.test(symbol));
+ return {allowed:!weekend||crypto,weekend,riskMultiplier:weekend?.75:1,reason:weekend&&!crypto?'WEEKEND_FX_METALS_OR_INELIGIBLE_CRYPTO':null};
+}

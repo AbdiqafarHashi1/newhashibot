@@ -78,9 +78,13 @@ class UltraLowLatencyPropBreaker:
         account_id: str,
         broker_account_number: str,
         daily_starting_equity: float,
+        equity_mode: str = "PERSONAL",
     ) -> None:
         """Registers or refreshes an account baseline tracking state."""
         equity_dec = Decimal(str(daily_starting_equity))
+        if equity_mode not in ("PERSONAL", "PROP_CHALLENGE_PASS", "PROP_FUNDED_INCOME"):
+            raise ValueError("UNKNOWN_EQUITY_MODE")
+        daily_limit = min(self.hard_limit_pct, {"PERSONAL": Decimal("4"), "PROP_CHALLENGE_PASS": Decimal("3.25"), "PROP_FUNDED_INCOME": Decimal("2.25")}[equity_mode])
         self.accounts[account_id] = AccountHysteresisState(
             account_id=account_id,
             broker_account_number=str(broker_account_number),
@@ -90,6 +94,7 @@ class UltraLowLatencyPropBreaker:
             last_state_change=time.monotonic(),
             last_breach_pct=Decimal("0.0"),
         )
+        self.accounts[account_id].daily_limit_pct = daily_limit
         logger.info(
             f"Registered Prop Guardrail Account {broker_account_number} "
             f"(ID: {account_id}) | Starting Baseline: ${daily_starting_equity:,.2f}"
@@ -132,7 +137,7 @@ class UltraLowLatencyPropBreaker:
             # -----------------------------------------------------------------
             # 2. State: Hard Breach Evaluation (Instant Direct-to-Wire Dispatch)
             # -----------------------------------------------------------------
-            if drawdown_pct >= self.hard_limit_pct:
+            if drawdown_pct >= getattr(state_obj, "daily_limit_pct", self.hard_limit_pct):
                 state_obj.state = BreakerState.EMERGENCY_HALTED
                 state_obj.last_state_change = now
                 state_obj.tripped_count += 1
