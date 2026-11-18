@@ -16,6 +16,7 @@ export function mockSmokeDatabase(){
  const {x,at}=smokeFixture();let decision:any,plan:any;const receipts:any[]=[];
  const db={from(table:string){const q:any={select:()=>q,eq:()=>q,contains:()=>q,order:()=>q,range:()=>q,limit:()=>q,in:()=>q,update:(row:any)=>{receipts.push(row);return q;},then:(yes:any)=>Promise.resolve({data:[],error:null}).then(yes),maybeSingle:async()=>({data:table==='signal_updates'?{signal_id:x.signal.id,new_status:'active',price:x.signal.entry_low,reason:'candle_entry_trigger',created_at:at}:table==='certified_runtime_artifacts'?{execution_plan:plan}:null,error:null})};return q;},async rpc(name:string,args:any){
  if(name==='load_production_account_authorization_input')return{data:x};
+ if(name==='observe_personal_forward_history')return{data:{customerId:x.account.customer_id,accountId:x.account.id,provider:x.account.provider,observedAt:at,verifiedDays:30,closedTradeCount:1,historyComplete:true}};
  if(name==='observe_house_money_account')return {data:{customerId:x.account.customer_id,accountId:x.account.id,observedAt:at,monthlyPnlPct:0,dailyPnlPct:0,peakDrawdownPct:0,totalDrawdownPct:0,consecutiveLosses:0,phase:1}};
  if(name==='persist_house_money_decision')return{data:true};
  if(name==='commit_production_account_authorization'){decision=args.p_decision;plan=args.p_execution_plan;return{data:{...decision,id:decision.decisionId,decision:decision.decision}};}

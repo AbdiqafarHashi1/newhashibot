@@ -95,6 +95,6 @@ test('Phase-O retains known queued reasons so content cooldown does not exhaust 
 
 
 test('mock drives Growth and Aggressive through canonical account authorization and dispatch without network',async()=>{
- await assert.rejects(runSmoke('live',{SMOKE_PERSONAL_RISK_PROFILE:'GROWTH_2'}),/MOCK_ONLY_RISK_PROFILE_OVERRIDE/);
- for(const [profile,risk] of [['GROWTH_2',2],['AGGRESSIVE_5',5]] as const){const result=await runSmoke('mock',{SMOKE_PERSONAL_RISK_PROFILE:profile},async()=>{throw Error('NETWORK_MUST_NOT_RUN')});assert.equal(result.equity_phase,'PERSONAL_'+profile);assert.equal(result.applied_risk_pct,risk);assert.equal(result.dispatches[0].state,'SENT');}
+ await assert.rejects(runSmoke('live',{SMOKE_PERSONAL_RISK_PROFILE:'GROWTH_2PCT'}),/MOCK_ONLY_RISK_PROFILE_OVERRIDE/);
+ for(const [profile,risk] of [['SMART_GROWTH',1.5],['GROWTH_2PCT',2],['AGGRESSIVE_5PCT',5]] as const){const result=await runSmoke('mock',{SMOKE_PERSONAL_RISK_PROFILE:profile},async()=>{throw Error('NETWORK_MUST_NOT_RUN')});assert.equal(result.equity_phase,'PERSONAL_'+profile);assert.equal(result.applied_risk_pct,risk);assert.equal(result.dispatches[0].state,'SENT');}
 });

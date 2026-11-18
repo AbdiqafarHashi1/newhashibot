@@ -1,3 +1,4 @@
+import {PERSONAL_CAPITAL_NOTICE} from '../../../supabase/functions/_shared/capital-suitability';
 import {phaseHApi} from '../../lib/phaseHApi';
 import { Link } from 'react-router-dom';
 import { useEffect,useState,useRef } from 'react';
@@ -20,7 +21,7 @@ export default function OnboardingOperations({title='Execution account readiness
   supabase.from('phase_n_commands_safe').select('id,customer_id,execution_account_id,action,status,attempt,safe_error,created_at').order('created_at',{ascending:false}).limit(50),
   ...['customer_onboarding_sessions','phase_h_entitlements','provider_connections_safe','account_brain_assignments','risk_acknowledgements','founding_slot_reservations','assisted_setup_requests','additional_account_requests','campaign_attributions','phase_h_audit_events'].map(t=>supabase.from(t).select('*',{count:'exact',head:true}))
  ]).then(([readiness,commandRows,...related])=>{setRows((readiness.data||[]) as Row[]);setCommands((commandRows.data||[]) as CommandRow[]);setError(readiness.error?.message||commandRows.error?.message||'');setCounts(Object.fromEntries(Object.keys(empty).map((k,i)=>[k,related[i].error?undefined:related[i].count??undefined])) as unknown as Related)})},[]);
- return <AdminLayout><main className="p-4 text-zinc-100 sm:p-8"><h1 className="text-2xl font-bold">{title}</h1><p className="mt-2 text-zinc-400">{purpose} Safe support projections only. Raw provider secrets, passwords, tokens and pairing codes are unavailable.</p>
+ return <AdminLayout><main className="p-4 text-zinc-100 sm:p-8"><h1 className="text-2xl font-bold">{title}</h1><p className="mt-2 text-sm text-amber-200">{PERSONAL_CAPITAL_NOTICE}</p><p className="mt-2 text-zinc-400">{purpose} Safe support projections only. Raw provider secrets, passwords, tokens and pairing codes are unavailable.</p>
  <nav className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-300"><Link to="/admin/growth-goal">Customer goal</Link><Link to="/admin/commerce">Verified payments & access</Link><Link to="/admin/risk">Account risk policies</Link><Link to="/admin/telegram">Telegram fulfillment</Link></nav>
  <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-5">{Object.keys(empty).map(k=>[k,counts[k as keyof Related]] as const).map(([k,v])=><div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3" key={k}><small className="uppercase text-zinc-500">{k}</small><b className="block text-xl">{v??'—'}</b></div>)}</div>
  {notice&&<p role="status" className="mt-4 rounded-lg border border-amber-500/30 p-3 text-sm text-amber-200">{notice}</p>}

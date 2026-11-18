@@ -1,4 +1,4 @@
-import {PERSONAL_RISK_PROFILES,personalRiskProfile,validatePersonalGrowthScope,type PersonalRiskProfile} from './personal-growth-policy.ts';
+import {PERSONAL_RISK_PROFILES,personalRiskProfile,validatePersonalGrowthScope,concurrentCryptoRiskMultiplier,personalCryptoGuardEnabled,assertSmartGrowthHistory,type ForwardHistoryEvidence,type PersonalRiskProfile} from './personal-growth-policy.ts';
 import {houseMoneyRisk,equityMode,topHourlyConfig,type HouseMoneyFacts} from './house-money-risk.ts';
 import {rotationEntry} from './conditional-market.ts';
 import {portfolioRiskGate} from './portfolio-exposure.ts';
@@ -31,6 +31,7 @@ export interface OwnedExecutionAccount {
 }
 
 export interface PolicyConfiguration {
+  readonly concurrentCryptoGuard?:boolean;
   readonly personalRiskProfile?:PersonalRiskProfile;
   readonly houseMoney?: "house-money/v1";
   readonly historicalPropStudy?: "SIZING_AND_STATIC_20261113";
@@ -63,6 +64,7 @@ export interface AccountEvaluationInput {
   readonly evaluatedAt: string;
   /** Loaded by a trusted service from canonical account evidence, never from a customer request. */
   readonly houseMoneyFacts?: HouseMoneyFacts;
+  readonly forwardHistoryEvidence?:ForwardHistoryEvidence;
   readonly performanceEvidence?: AccountPerformanceEvidence;
   readonly duplicateSignalForAccount?: boolean;
   readonly activeSymbolConflict?: boolean;
@@ -143,6 +145,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   if (input.account.customerId !== input.context.user_id || input.account.id !== input.context.account_id || input.account.provider !== input.context.provider || input.account.accountType !== input.context.account_type) throw new Error("ACCOUNT_CONTEXT_OWNERSHIP_MISMATCH");
   const dynamic=input.configuration.houseMoney==='house-money/v1';
   const growth=personalRiskProfile(input.configuration.personalRiskProfile);validatePersonalGrowthScope(growth,input.account.accountType,input.context.environment);
+  if(growth==='SMART_GROWTH')assertSmartGrowthHistory(input.forwardHistoryEvidence,input.account.customerId,input.account.id,input.account.provider,input.evaluatedAt);
   const growthBounds=growth==='STANDARD'?null:PERSONAL_RISK_PROFILES[growth];
   const performance=accountPerformanceGate({policy:dynamic?undefined:input.configuration.lossResponse,evidence:input.performanceEvidence,customerId:input.account.customerId,accountId:input.account.id,provider:input.account.provider,evaluatedAt:input.evaluatedAt,dailyDrawdownPct:input.context.daily_drawdown.current_drawdown_pct});
   if(input.historicalResearch&&(input.account.customerId!=='isolated-research-customer'||!input.account.immutableIdentity.startsWith('historical:')||input.context.environment!=='DEMO'))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
@@ -155,6 +158,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
    const facts=input.houseMoneyFacts;
    if(!facts||facts.customerId!==input.account.customerId||facts.accountId!==input.account.id)throw Error('SCOPED_HOUSE_MONEY_EVIDENCE_REQUIRED');
    house=houseMoneyRisk(equityMode(input.account.accountType,input.product),facts,input.evaluatedAt,topHourlyConfig(input.signal.strategy_id,input.signal.timeframe),rotation.riskMultiplier,growth);
+   if(personalCryptoGuardEnabled(growth,input.configuration.concurrentCryptoGuard)&&input.account.accountType==='PERSONAL')house={...house,applied_risk_pct:house.applied_risk_pct*concurrentCryptoRiskMultiplier(input.signal.symbol,input.context.open_positions)};
    policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:(growthBounds?Math.min(house.applied_risk_pct,approvedPolicy.max_risk_per_trade_pct):house.applied_risk_pct)||.1,max_daily_drawdown_pct:growthBounds?Math.min(approvedPolicy.max_daily_drawdown_pct,growthBounds.daily):4,max_total_drawdown_pct:growthBounds?Math.min(approvedPolicy.max_total_drawdown_pct,growthBounds.peak):input.account.accountType==='PERSONAL'?18:input.account.accountType==='PROP_EVALUATION'?7.5:8});
    if(input.liveAuthorization)policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:Math.min(policy.max_risk_per_trade_pct,input.liveAuthorization.maximum_risk_pct)});
   }else if(rotation.weekend)policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:policy.max_risk_per_trade_pct*rotation.riskMultiplier});
@@ -183,7 +187,7 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   if (JSON.stringify(input.signal) !== signalBefore) throw new Error("CANONICAL_SIGNAL_MUTATED");
   let decision:AccountDecisionRecord['decision'] = brainDecision.decision === "LOCK_ACCOUNT" ? "LOCK" : gate.decision === "BLOCK" ? "BLOCK" : brainDecision.decision === "REDUCE_RISK" || performance.riskMultiplier<1 ? "REDUCE" : "ALLOW";
   let reasons = Object.freeze([...new Set([...preReasons, ...performance.reasonCodes, ...gate.reasonCodes, brainDecision.decision_code])]);
-  const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version,JSON.stringify(freezeConfig(input.configuration)),JSON.stringify(input.context),JSON.stringify(input.performanceEvidence??null),JSON.stringify(input.houseMoneyFacts??null),JSON.stringify(input.entitlement),input.evaluatedAt];
+  const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version,JSON.stringify(freezeConfig(input.configuration)),JSON.stringify(input.context),JSON.stringify(input.performanceEvidence??null),JSON.stringify(input.houseMoneyFacts??null),JSON.stringify(input.entitlement),...(input.forwardHistoryEvidence?[JSON.stringify(input.forwardHistoryEvidence)]:[]),input.evaluatedAt];
   const positionPlan = decision === "ALLOW" || decision === "REDUCE" ? brain.createPositionPlan(brainDecision, input.signal, brainContext, policy) : null;
   if(growthBounds&&positionPlan&&(!Number.isFinite(positionPlan.required_margin)||(positionPlan.required_margin+input.context.used_margin)>input.context.equity*.5)){decision='BLOCK';reasons=Object.freeze([...reasons,'PERSONAL_GROWTH_MARGIN_BUDGET']);}
   if((decision==="ALLOW"||decision==="REDUCE")&&(!positionPlan||!Number.isFinite(positionPlan.quantity)||positionPlan.quantity<=0)){decision='BLOCK';reasons=Object.freeze([...reasons,'APPROVED_POSITION_PLAN_UNAVAILABLE']);}

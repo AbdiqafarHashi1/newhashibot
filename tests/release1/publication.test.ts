@@ -13,6 +13,7 @@ assert.equal(assertPublishableSignal(...Object.values(qualifiedFixture(now)) as 
 for(const mutate of [(x:any)=>x.release=null,(x:any)=>x.release.state='RETIRED',(x:any)=>x.plan.provenance.evaluated_parameters.stopAtr=9,(x:any)=>x.signal.expires_at=new Date(now).toISOString(),(x:any)=>x.signal.entry_high=102,(x:any)=>x.plan.provenance.candle_boundary.closed_only=false,(x:any)=>x.signal.data_source='MOCK']) {
  const f=qualifiedFixture(now);mutate(f);assert.throws(()=>assertPublishableSignal(f.signal,f.plan,f.release,now));
 }
+assert.match(VIP_RISK_FOOTER,/Standard Account: Risk 0.5%–1.5%/);
 assert.equal(COST_POSITIVE_CONFIG_IDS.length,16);assert.equal(VIP_CONFIG_IDS.length,8);
 assert.deepEqual([...VIP_EXCLUDED_STRATEGIES].sort(),COST_POSITIVE_CONFIG_IDS.filter(id=>!VIP_CONFIG_IDS.includes(id)).sort());
 for(const strategy of [...VIP_EXCLUDED_STRATEGIES,'A_*[B]'])assert.throws(()=>renderCanonicalVipSignal({signal_id:'blocked',market:'forex',symbol:'XAUUSD',direction:'buy',occurred_at:new Date(now).toISOString(),entry_low:100,stop_loss:90,targets:[115,130],strategy}),/VIP_STRATEGY_NOT_ADMITTED/);
