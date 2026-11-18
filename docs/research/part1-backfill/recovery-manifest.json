@@ -1,0 +1,3516 @@
+{
+  "schema": "part1-original-report-recovery/v1",
+  "method": "Original GitHub Actions artifact recovery, byte-identical reviewed reports; no strategy rerun or changed-source substitution",
+  "reports": [
+    {
+      "path": "docs/research/part1-backfill/crypto.launch-trend-pullback-48-1.5-5-59d506aa5c52.json.gz",
+      "reportSha256": "59d506aa5c5285e648a877b7ed1c9cba4317c003496bca7f9131cee0237e7bda",
+      "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+      "artifactId": 13971820317,
+      "artifactArchiveSha256": "b029597ad64c208b9f3c59d667332c153943a757701ad4360a557916d5125e1e",
+      "artifactMember": "results.json",
+      "strategyId": "crypto.launch-trend-pullback-48-1.5-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 48
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "ec750f7aa69c8f842fa1464a90ad4aa92452cfa767df9e8d70dc484e466c8fc3",
+          "vendorChecksum": true,
+          "rowsSha256": "55eeeb7b1c4f71a0b746f96cfd6666a175fe6bd0ed9a1a173f89aa8b4eb87231",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "14fd408e5d2902665c66b701e861b173568b66399e3fa462b94c766d209567d1",
+          "vendorChecksum": true,
+          "rowsSha256": "1b70cbfe054826fa4bee760b9b0ae7a6092b2f80ec74b042e87099fcc1e3afbc",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "3a2d163a2bd28ca614fa0840a92ecbcde0d9c4962b278dd619d5bf81a9918e26",
+          "vendorChecksum": true,
+          "rowsSha256": "78fabfefdc9a73a1fd46a7c773eec6183982b37f449f8ae20b64e5bf16bf369b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "31dcc9c67516101f495ef9e290d271dd87b592d323dcb9aba50a5535c50d1d8d",
+          "vendorChecksum": true,
+          "rowsSha256": "ef2e3f78371c77f1f052d8fd9a4857b598da25dc872dcef13c462794f7203f80",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "2e9ba157f21fbcb97f108dd263d572cd0b4d6cc1db7cd54446f762f4ce3e6dda",
+          "vendorChecksum": true,
+          "rowsSha256": "0dec10be6640196470d89a4fabb45e545caa6a77eac4b86ca6ea006fffa05218",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "c7ac44cb1ac58dd231b1a94c9d68907e2b3a8079dbf2dd8a5e744a6234766d47",
+          "vendorChecksum": true,
+          "rowsSha256": "dd487247b741b52ffdf31f2eae0eae6e23db66ce4538b546dfd479f56ddb0c78",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "143312487ffcc01c174156343fbf05ea48cbfa4e4602937caafb3e0ad3dbca9a",
+          "vendorChecksum": true,
+          "rowsSha256": "cffa8b384db8bf96c0a076fc2b8a3fabd6b4690770e220a7d26102cfed38024c",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "10d747c6a14da77843520e78bbce65f9c2b685f6512cb8cea7fb2de5d3cc3908",
+          "vendorChecksum": true,
+          "rowsSha256": "e831536bbb390c075ea94f6dbb5edb02f2038b9737839ceb65991a93482331f7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "3e23ff1f6b8e99bfa5220b88b17d6397cec91d666a6bf50e5469080d4aedf11f",
+          "vendorChecksum": true,
+          "rowsSha256": "84d77a99bc91baa3756084d858d99c3830a7a4bb437ea0e6f2e9e473522d12af",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "45a0adfe5568c062a1f218b3e1761a9637f4d7801db70a6ec321dfb389b08d32",
+          "vendorChecksum": true,
+          "rowsSha256": "7302479298ec70b7410b1c2abedfef6d8120f3c8b257a93738d2e4453cf103a6",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "9b71841a30ba4e98cab7c3591240dcfccba0efde6889785b586f9af1e84079fe",
+          "vendorChecksum": true,
+          "rowsSha256": "3cfff7ec6c1ae06368b6fb4749c3f002e3400fce333aa77abee25ae5c2d1f57d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "013ec2a62ed6a6227e31a46626ef81199283e0e210a6c7c8a02d4c075f624d39",
+          "vendorChecksum": true,
+          "rowsSha256": "79c02220b342f85d47a4ac49db4264ffecd78d3da5d085ad3970edcad53a6063",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "8d1adb01e3f352cce6cb4d89ac7ffd38783817306b4f84e3ba5475e2fb22ce0f",
+          "vendorChecksum": true,
+          "rowsSha256": "825eac3e8af540caf7ec317bd1517a789fd8d9d29a24ac1cc2b5e964b9c82901",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "c9fa90c4b7572627338c05defbb8ac59ddf57dd63bdb8c588456498b54ad4dcf",
+          "vendorChecksum": true,
+          "rowsSha256": "0bf50b8d9bcce048267c8766b06577abdc162ba4615f0bc8d99a00d7f9480488",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "411a9b7027b663898e1eaf9f25251e41578100b9023faf8016e5d7b0b71d9ade",
+          "vendorChecksum": true,
+          "rowsSha256": "bd2e41a6a370d3a8beb1f852782a5220d7da9540d581dd29c792bff0aa166655",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "4a546fb43657e0e3e80918c7e18f268b24f17f86afc2639552c49a6a5f79c8fc",
+          "vendorChecksum": true,
+          "rowsSha256": "1c8ea2d5bbda116b0d71d92c6bf86c3f0ac2908077a41c313f9b373289dc1f79",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "86d57a59df3c9b6bf5fc4dd58a43c2350bdbec6c2ee7d9612b041486c62b53b7",
+          "vendorChecksum": true,
+          "rowsSha256": "f81d9232f32eff49aed8d8fad09db4bc1c30a7825cb2fd2a18e8590320f1266b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "30539f77458fa0214befcb739988ccf7c56acfcc3f561573a914315dd459f582",
+          "vendorChecksum": true,
+          "rowsSha256": "19d50e99f1e4009ebb545a81bc07034e62f9b15a53b9c34c3429427404f11c40",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "0feab324d90dc5a88c58e2e3c443101b517849d6fcfcc11e341da9ca84a71ec9",
+          "vendorChecksum": true,
+          "rowsSha256": "6157daffd775b7fd822476019542381d0541ce3159d7f7abe708b5ed6522f107",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "a8566c53b6dd370ec1d83afa5f2df7b098ac3a122730ed44beb8710f6a90237b",
+          "vendorChecksum": true,
+          "rowsSha256": "f646341dad2736849f23aae11c264ac71f669bfa709ff9a033a10c25295e02a2",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "ec1f3e17e4de39c4c9f728471e512b364ae46576460c5d6ed327a52613c25273",
+          "vendorChecksum": true,
+          "rowsSha256": "c26bfb11eb857576d7a146b2ffc90394fc133cdbda2235fe5633a37b78f35729",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "201241c3e3473e7265ca83be737264bdc9be63b08867162f7cdda364e899db04",
+          "vendorChecksum": true,
+          "rowsSha256": "0c613b195a8dfc77044979daf401ba64ca00db22c5ea31d79c5d11b9cdc806f6",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "7f79b8b4d355378e3c13863177455c853d416b2c4fba33b988ebdd694f4646cb",
+          "vendorChecksum": true,
+          "rowsSha256": "a74a3bdb27ba827a5839a9f812962c8b25c247e0199a08901b3f21d3200e75bc",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "b43937a4036695a034fd69e3315099d45759d42181205a527e73200dbeb6dcc4",
+          "vendorChecksum": true,
+          "rowsSha256": "d09d2b490586784646cd0d173eaa13f5c77ac2001302609e5904f26bddb96ad3",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "97df60ac95bf4db1eff03fcefde717bebccd87c9c151aba87beca5ec4603fbf9",
+          "vendorChecksum": true,
+          "rowsSha256": "dc6063fb122284a3adbf11bc317389989a15630f7c988bfa93c08ba24262f909",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "f3227a4d958cd14bd2fce0e968a6c8c8aebbf12b9f9bced5fd5cf81b0d1ab5ef",
+          "vendorChecksum": true,
+          "rowsSha256": "abc38936add8d470d7a124c9ba6ac7e3c4ca1fcb1989fbded6edf80ef26c2310",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "11f5c2d2ba7a505db6b3dbd6d271616eae55086c2cf6396364cd30343eceb626",
+          "vendorChecksum": true,
+          "rowsSha256": "14e51fa7b3d6a550fed256a767f7020a96ad85669b81538a8b386408e6194978",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "5c7e6f3d0b4342d9249640397dbc161130e13a3f4a47b3a303f4cdbc4ae38f8f",
+          "vendorChecksum": true,
+          "rowsSha256": "90d70e78b8577c94fdb25fb8a2f3f8a6b008c600d4d816e32d23ad358399bc90",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "ccf58557db3264763552fc4dfffe83e9de687ab3cbeb8d3442b1872adf24dabc",
+          "vendorChecksum": true,
+          "rowsSha256": "aa0d6a5d6eccbec4968f1168f5f82e1eba31afc18c83f22567eb3cf8b429b3c5",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "346ab6faa2bea53aba539484aa09f7feef889b323e9be3ade43fa78f509ec023",
+          "vendorChecksum": true,
+          "rowsSha256": "a5a88fb78a04b201b4ae4eb1e128b7b6ad43420cfb33956b31485c2b6ddb7848",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "69bf3e217716d7af3cbfe7c38258604bae18669a63ecc35444226b6f2cac8c08",
+          "vendorChecksum": true,
+          "rowsSha256": "ae1919873142abf8fd69e41a1e6d3906af189db176f4b789715a40779baf1178",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "a68816f2ef25dcf4f1f9f9bf667d4689170c99c08a185bda355d6085300f9ac4",
+          "vendorChecksum": true,
+          "rowsSha256": "1a4e561dd1bc447869c41c456df4bb885c30e7075834caaba39b0d0b787e290c",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "61ec0406a49a0eceb861eff6f8b0a94fd7311a9c0ff2e3cf75b75377fc01beed",
+          "vendorChecksum": true,
+          "rowsSha256": "a83f940aef79029e8da08a03195b7386f5e5751a640b5a300caffd66288c5005",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "65623ac10e3239e647dcd9096f7ccbff08c5d287f6edc6e66cc041f8dc9991f6",
+          "vendorChecksum": true,
+          "rowsSha256": "685108e486086724ad7de64f91ed291351c4b96253be97eebdf3152550dcc476",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "d9a01d98557f508d3d68157740653da3cf5e4cf93b518df222b0f5cf18861b83",
+          "vendorChecksum": true,
+          "rowsSha256": "d5e205ae46f2360450256b21d5df88f0d4dda1571e806f209c846ebcf9aa196b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "f93ce2f5f79fd2697c24c2ba295fc5010f0600cdf9bd9dc0361cd2e50ee9762b",
+          "vendorChecksum": true,
+          "rowsSha256": "24250a0cff3878acbe46b5c4aba642721f2d16c897e09080e5876044f0689d23",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-07.zip.CHECKSUM",
+          "sha256": "4b2b2d3fc6d9edc2fb47d934e035a2a5e19417c7a9fc9c5503223dca6f0e7f38",
+          "vendorChecksum": true,
+          "rowsSha256": "5155dd6e9d7d19bbefc53b98c9481eedbdba112f873868f02ef90ae42df84835",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2026-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-08.zip.CHECKSUM",
+          "sha256": "ee11d2fe893e06e112daee9b16f50168881fbe5a48614f2344b1dbda18ce947a",
+          "vendorChecksum": true,
+          "rowsSha256": "c60cf3f082fce1382f42be5149751ddcff599d65e43ca7f9ac07aeba10bd7b7e",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2026-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-09.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-09.zip.CHECKSUM",
+          "sha256": "744da25bd891e48e97c206152b2f78db0ae474beffbeb97ac488cb4ad00c5f8e",
+          "vendorChecksum": true,
+          "rowsSha256": "66c99e40d129b8ca05fbe46324992fafb2f0aba830010d74ea4cf9156985baec",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2026-09",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-10.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2026-10.zip.CHECKSUM",
+          "sha256": "09f2a8c0c7a460fe3371f04a02d716f91009a99b4ea7a05a214b079385f10161",
+          "vendorChecksum": true,
+          "rowsSha256": "ece14025b66fdc8a71f49a0de20bb5cb58ecc4bf60426d93788f8f498b3b62a1",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2026-10",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/crypto.launch-trend-pullback-48-1.5-5-67154760abab.json.gz",
+      "reportSha256": "67154760ababd0fd31f4bb2925ff4dc3959e27b707e29f41c0ba589964264a55",
+      "engineSourceSha256": "9c80d7843f73299e2ed52dc79179fa06f306f4d6e4b9810fc8d5993da0826f4a",
+      "artifactId": 13972317222,
+      "artifactArchiveSha256": "a59543b58e3128c75a3d32bce83caa7d632ca029563bd1dffac1cf64f457bab6",
+      "artifactMember": "results.json",
+      "strategyId": "crypto.launch-trend-pullback-48-1.5-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 1000,
+          "riskPct": 0.5,
+          "closedTrades": 61
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "0c99422d64fa3cc58564cf77969fc5a96d6f44783c79ecfcf94b103753bf7570",
+          "vendorChecksum": true,
+          "rowsSha256": "2ea5f0bdd82c2c8c498b36077b4c13a4e62bdbeea3e429fcd13f518456201999",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "fdd6fb92b75bae5c02dd583b5be44ca6673d1807ce4b0c08160d3c5cf7677a46",
+          "vendorChecksum": true,
+          "rowsSha256": "fa528b905b2ca34153cd60a4e7dbc345bb3a0e5e19ac6c1cb470a81cbc5912b1",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "46f83773b9cec38a09be429727a5a300ccca6d11c8e8ca5fa9545fad6eda131f",
+          "vendorChecksum": true,
+          "rowsSha256": "e196df8d3a9da76e77ac6664320f3d7fac7cda9edfaa0d71446b856cb0b0cfbc",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "9eda69fd858e9ced7e72cfbb75bffe34458763c37c8ee73910e572b4baba21ed",
+          "vendorChecksum": true,
+          "rowsSha256": "0f6fa969a5df45d6330db779e09005bc719d4fbe2238190f162fedd161a23bca",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "073da284f178e72777abbfbcf79faa99fcf77bd69c4a678938abbf6cd7d14f5b",
+          "vendorChecksum": true,
+          "rowsSha256": "afd2c88783b4472061a61b526610f2aab2c55cea74ecf4594eb023407a5759a9",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "da39c04e24a90c87406b9030e1aaf376655ad59d4bc0496f38e4162a9babf514",
+          "vendorChecksum": true,
+          "rowsSha256": "a9ee7ea6570efd580dae05c45a02e8c60f48448673dafee3c92b50ed988e9ddd",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "2cea4750d51d9c064d674ec8d0d8d1f39448960284272fdc74698562c873bf0f",
+          "vendorChecksum": true,
+          "rowsSha256": "3dbcfba8caa9c1801df9a0ea55adff84b678e89047c03437336e0b30db442645",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "7f78f6f88ae1946f8bd8312a37d1d74b24e24d6b13bc37d2909ad7c8c0c7e9ae",
+          "vendorChecksum": true,
+          "rowsSha256": "9ef26c72a05acfd12faa465fbb238b0382e6a52a9d3746a9182c127edebdb3fe",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BTCUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "eca9862b43bf3acaf341334d1b2297f800e62ba083ebdd063fc3e01d1c3416cf",
+          "vendorChecksum": true,
+          "rowsSha256": "df0ce3806b3d51d55b5fe5d1db788aaab41a3cca6794549fb7b5e217708b0a2b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "fd6d5b1919b937798227d73f96ee87c33f0181dd279df4652f2c626344ced507",
+          "vendorChecksum": true,
+          "rowsSha256": "77a40d1b280c9d19d6075252508a71f96434f09b700dc4663beeef9b9dfb613f",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "9f73747db3c7dd2e48574ddb8696dd2a7b685760ffc62a735d04b758afd09d8b",
+          "vendorChecksum": true,
+          "rowsSha256": "046209bfb5c13b7953a39d6d09de6b6ee8694400a42744715cc06c53bf8acb86",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "08402491b8db2e1e7dcb20cef48fb670706640f1ba5345b366de3522a57d3782",
+          "vendorChecksum": true,
+          "rowsSha256": "212fa032bead48d769d4309dffa3dfd6417ee0a8acbfb5528bb9799d3f519135",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "478f3a5333295e8a28864ed3561f5597acdc9d2017077d2e9850ea30e435d2a6",
+          "vendorChecksum": true,
+          "rowsSha256": "bb3ee670330d64fe5b2d16d94c4f30f27f5282cb0f4dd157251eee98e0fcfd68",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "a546295240e8786b3f48670ae5e24f79381b338af97ed904de02adc73c03ce83",
+          "vendorChecksum": true,
+          "rowsSha256": "6295f2d04515cc985ec00e03e2683a88e599f56073888171d04d0e9314cf11e9",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "fd2af89a8b6dfddd3a2769bb5bd0244454340487a513ba99c86bb7425979c4d6",
+          "vendorChecksum": true,
+          "rowsSha256": "5ce1abfb13b611575844ae5d974d79bddbb06a667bc51bf41c381b6729363701",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/5m/ETHUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "f2d7687eecda432ce840b1320f868f56ab9ea0c2304b5fc83cefc5684696b344",
+          "vendorChecksum": true,
+          "rowsSha256": "48967f8d34bc278963109cf2cf45d6ed102467b9fc2369eeb9e8284de56e08f9",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ETHUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "5e746585b0da377582ab9fd3d9926c00dd6bf9708e4ff0963ac69a467fc3ad01",
+          "vendorChecksum": true,
+          "rowsSha256": "c70083bd0bd56de9aaffa273b91dca5e14e626591be508b9f7621bebbc2db1a1",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "949401dc2bb45a2129724f76980ac7bf1b727dbd99c11ba2a00dbe5dd1e2d5d7",
+          "vendorChecksum": true,
+          "rowsSha256": "e64b1a7facd547b073d46f706d64db84e3acd977fc1970a7cfe13f266ecb4f3c",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "8cd26ec13a57b7c00b8d7b1841897b3a7cebdf5e3b8a3597eceedf6d2d4acf36",
+          "vendorChecksum": true,
+          "rowsSha256": "4fc031ccd018968af1964fd803dfd457e46a19e133650171f1aaea28757128bf",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "195ff9c242b05b31f57fa26deb539ced27bf073b18f64f46f42c7fc6ff5ada0a",
+          "vendorChecksum": true,
+          "rowsSha256": "525eb2d7051804872f89dbbed0a4888169fe73ee3dfc2a6d799cab9175cee02d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "7529a74ab947967b3e197b19bae8f2f8a44b5631e356613317e6e074e7b57770",
+          "vendorChecksum": true,
+          "rowsSha256": "2d18473cc74f223801577095900f19196b1734451410467ae19a8a24a74cfa00",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "556c4bf5500f8e38cadd89239cf1b8f7cf84c66846e17d783b7e7d3f691978f3",
+          "vendorChecksum": true,
+          "rowsSha256": "560c5625b737688769815e52c2ff3b1afdd6c4503fa08ceed86dbd48270e61ce",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "7c3e09670eaa371e8575989bab8c0e73552f44ff390743ab9bea85550f0643ed",
+          "vendorChecksum": true,
+          "rowsSha256": "8607b40ce3d8ae2509f5422ce9b8595c5f354b1d9df6cbbe819b4ba277d5c2f6",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/5m/SOLUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "e3e36ffade2e1919d2e07bbccaa291f9f00b1ad0c2059df167c7a42181dd7860",
+          "vendorChecksum": true,
+          "rowsSha256": "a69153e275866270b608ebf0c25508d86ef1bf0c1ad9bd1e5e62b8bae7981fa7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "SOLUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "b74f33eb86c083f7304d03635479502af5ca0f96eb3fc2ebb67b295e20b75b6e",
+          "vendorChecksum": true,
+          "rowsSha256": "7f691dd3b8f10a2dab6d05eda5e892107dd88f3ff18e2f5499692d430f6266d7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "11d76f5a67f7600741da753949d07a4e3f34f6876a9e85a0a8f108fd4b3f6b61",
+          "vendorChecksum": true,
+          "rowsSha256": "7e97600d076c21b18cea0fe6322c7162898927428478a8b22041b0d68850d88a",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "e295e714a074cb6f0761759d64a8065d53f392637697ef0f04450c4b12a08552",
+          "vendorChecksum": true,
+          "rowsSha256": "49ec18e686deea71b7a8eb77b24c97fb778ad934d68c4a02d913cdf48cae7cb0",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "7735dfca3dd690825a743f816be5c3039cd626867eeccf46a3f5e0fd2d8a7683",
+          "vendorChecksum": true,
+          "rowsSha256": "f63aff593b3bbca47c5da2dc9fbc062a43a6dd54cb8395a92ef6bd17f6c2a066",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "6ed5a2bb6143a1c09680b473408b6628663bc7ecad62322d8c1a34532e557941",
+          "vendorChecksum": true,
+          "rowsSha256": "4acbb4d387fb302b57b6229d2c1d72fdd3cab7027f90c5b26069430788ceeb21",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "e683588f2be6c2835a95cc9bfa60616f66e0dd227ebd32c515f677d4ad63e906",
+          "vendorChecksum": true,
+          "rowsSha256": "92cf2e4e93e6cfe496accf72bbd9c6a2264ece4039260d27605725633fd58ca7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "a2f6d98970824eed785fac826f4d4b817409685c601dc9e14bce9eb0aabf321a",
+          "vendorChecksum": true,
+          "rowsSha256": "d3888e7471e9164240e1047ebfc2ec3a1085714ad7e03418ab8b9b08c0bf56d7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/5m/BNBUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "78f8b628e7f22f8b31bad7b00cffeab2b5220dd1ee3fb7582ae4015020f455ca",
+          "vendorChecksum": true,
+          "rowsSha256": "49e67c289bb6375c161990f5f4b4291f7314e113309f8cb00dd35fe2b211ed90",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "BNBUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "2ef9a36345dc39f866342ac38d0a5ccf1ca5abc4bf9832b01ca7da6d7713c134",
+          "vendorChecksum": true,
+          "rowsSha256": "6ad62a9b033ed704fd787dcdef343e21bd60f15028bba54ca23c59403ff7d2be",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "be6168df3f10489a7fa4f5a027852a2143116a66e581ff78c800c9c93d65f0ab",
+          "vendorChecksum": true,
+          "rowsSha256": "3ac3a5a032b81d1c569d7f83734d8073916f980c1f9fc46680259fa4d4ab3d30",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "eb1664e591ef679f77866c86d507d9ae037f0b5c57e5c76065f06f3566c0cf85",
+          "vendorChecksum": true,
+          "rowsSha256": "a70b5f53d8fc1b673765f3affbc84c5c5d2ae7ec223f525d8389461a2d58a50b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "5ac75e26b0eca00ceb65fcd6ee9259166cbf46d0800f88064e06b588dee82824",
+          "vendorChecksum": true,
+          "rowsSha256": "59aeca0c63c70ea6facf1d0e264e26858e463908325ac7a2efbe9bb528b7eee3",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "d7d9a608b3871a762c43df0a210bbf0fe529f8a9d7a5a482ba0cf41c9f1caace",
+          "vendorChecksum": true,
+          "rowsSha256": "3cbcf843f564e223eadd986bc85f8c89f10659783ac3bd5a8d887e33874640f5",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "49804ab782f8245ac3d91b206aa06960bc5a6ebedca84f7a994bb4e582284e6a",
+          "vendorChecksum": true,
+          "rowsSha256": "c36e843bea5761a74e4ea5821022d7d42477dac2f165713d9a562baf2cf97cf3",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "5869b00e6f64a8fa848ebd80b0383d34b7ee72e3335ec47a0501c8b4251679f2",
+          "vendorChecksum": true,
+          "rowsSha256": "b61951cddfb9ee6920a9824e2caef6caefacfc29cb788f4be4cec99fb3b9701c",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/XRPUSDT/5m/XRPUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "85be15dac005103b9ad573633474cda084eecb93d6b6e5c0a959fa23b0a2ba72",
+          "vendorChecksum": true,
+          "rowsSha256": "cf90545cf302f43120d22b6d828f0ba202c6aa07bbb0e1eee6548c05a6bc15d8",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "XRPUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "9d6b07886c1a0dcb9ea956ee2ef86d52ecd3a5916e6a1f58883f22b88c7ef44c",
+          "vendorChecksum": true,
+          "rowsSha256": "8dbd8fdca51434082dedb5b17bf85856ee28aacca4984043b02f36d9ab3149f5",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "d332d2aa82ac0e702f8d22e498a0f21c1e08b1a98b305aa83aea612d19a753bf",
+          "vendorChecksum": true,
+          "rowsSha256": "f381ba925ea6bf7ef18d7e1728d210387d02ca39a6fb493290c500e00fef7b2f",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "353f7b94434fccb77f83efdc25d154ce1a2c829ca1b51dc86d9ffa1843c35c96",
+          "vendorChecksum": true,
+          "rowsSha256": "5b66095cddb25fec38d58998ec0b6f5d8d8dd74516fab02823ad1151c0132931",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "fc0286fef2fafa5654a4e2f1bbf40c22227d1bedd5d46ae4f96aac78338d3de2",
+          "vendorChecksum": true,
+          "rowsSha256": "4288b2df7199cea73269d8f480ef598f9e53bf9c14a297ad11b8d18445ccc4d5",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "bc80a9bc19896a254774c2df931fcae611600c135cb3f6023af097cf77fe6a19",
+          "vendorChecksum": true,
+          "rowsSha256": "d31564477e210190fdfce23a1ca8f79ee7cec091e1c2141abda8e0a237357e17",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "bddd3c4165dc2e6bc52b1dbb9e543c7ae4043b1567b2262d415bef6ae2118f84",
+          "vendorChecksum": true,
+          "rowsSha256": "1e475cbf00b3f40101d0c6d34c06f3e0bb0c24e4a6c8bfea5e5045bfdc1ca46a",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "a3809adae25f2b771c997f24c76f5a30392fe8ed77827baa48de552e72471604",
+          "vendorChecksum": true,
+          "rowsSha256": "1fcd62075efa4ceb8e0c85e32cb7499799a0a1e31c4ddffc094d87b147ea51c2",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/ADAUSDT/5m/ADAUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "133e24fd8f17cdbe1c06730ffa4bd022153652128dcc833fc05b7be704abebea",
+          "vendorChecksum": true,
+          "rowsSha256": "c9d09b64bfe544c1c699e9bf3c95a0fbd66db9156aae6b0e5f4a65c05bff8b45",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "ADAUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "f10783ae5456c2e3c4237608f718fc35c34275b6e78f2d7bd145d8b56da92977",
+          "vendorChecksum": true,
+          "rowsSha256": "0e8603d253b5f9d0a37d3e4a2ca374615dd9fc665bc64f7b2b3362d55c803718",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "1a8e8451cd534b5a11ac7b56f88bf472424fe4337df2739d78eb64bc668192c0",
+          "vendorChecksum": true,
+          "rowsSha256": "a1a8d69731ba6f8d0a8bc84757b1a8bec14987b3bafc9ed0246d617c5b072dd6",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "a02cd29a9261d47c43dfd784360bcb3c8fb31d545d4a6d07e1dcf5f1ea48c521",
+          "vendorChecksum": true,
+          "rowsSha256": "283d34103b4c101461b2ed07af2b8d4fdee47f6df216276d8f2afc8b855d37e7",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "b98b3f647035a6b3080e559860bc6bec52e53966d1cf4636e4641627deeab740",
+          "vendorChecksum": true,
+          "rowsSha256": "3fd520d7fc4c2e6e6d3ae421906309b7cbf7c0cfb2d94c7e7059be99ef6607cd",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "f413a4e1ea8effef2b293bed352297c36b4c879549bd0d41792f18a63549c0e4",
+          "vendorChecksum": true,
+          "rowsSha256": "3c71a2ec304d485386a4550df1c0f506d3cb6053ae7283fd2ca4547ec1b1baf5",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "aca45d60a675c1bd0ca53009470c89899f07fa262431bd184ae6e6592507f4d1",
+          "vendorChecksum": true,
+          "rowsSha256": "2388a771747f2b443a7617b0c99955588bcc2d77c8f47aad881352a20290c3c1",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "62528cb8c169ad1780acf0d0efb4fc40d046020900f5b667092fbee19d12fdf7",
+          "vendorChecksum": true,
+          "rowsSha256": "89bdb3a06f2fc3051e23f2ef1dd3d71f2abd08c704946863bff3eb1ec2b5b900",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/DOGEUSDT/5m/DOGEUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "9d41f89b683ef8bcdca3fe4625858b9cb068451ca78a1b5e75195b4274175314",
+          "vendorChecksum": true,
+          "rowsSha256": "ff8aa3f009f48e4dd77b2a3be9fa474af9ecac561928aa2b810a43d588a4f967",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "DOGEUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "0b924e0956f36522216f311984a1263420fa488994fd7a257c8ca31f9e5fce79",
+          "vendorChecksum": true,
+          "rowsSha256": "a8c523d53b7cbbdd9d14fb801a85dbbbf44a2762a815dee4df191476b9d0aad4",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "fd45d546d29dbe9d416a83f3b060b75b2de6f5baf41f0952fbe4d339afbd965f",
+          "vendorChecksum": true,
+          "rowsSha256": "06e10601acb306187e58d49be325cf8697b6a789cd1f550a90e7dfd9a0afc13e",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "50fb58e2d1d82d7b04d4fbc06b7e8ee791ee40027320b671862ae667ed4b79b9",
+          "vendorChecksum": true,
+          "rowsSha256": "59aa068f1c2bc95c56e86670bfe8b2eb004bc524f4b60b9dfa42efada698a877",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "6ec5234b3bc5b9c74b42757179315e8515a13fab10a27ff3e42a6408b9652699",
+          "vendorChecksum": true,
+          "rowsSha256": "6a821e8ca188f21a5dbd7e37f9a1aadcc2ed807058c9b5f01428d436d45c346d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "df4b8b18811de77c95cc43447e04d8615afcd84218dae3f9d7f24e8270715197",
+          "vendorChecksum": true,
+          "rowsSha256": "b4272433e159740f38294881e62b0b6355622e5640892c45f057252ddf3ff8ae",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "cf790451682a1cd984ecad6fff48527bb88239823d83f978f224516f47e6d785",
+          "vendorChecksum": true,
+          "rowsSha256": "99d154b0af49bc8475308427344f00c2aa8525fca0dac7a00cb10977b9c7ba8d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "7dd71063033210b2b69c2a50867ac5f47b8907c7099917e18711be8dec123e1f",
+          "vendorChecksum": true,
+          "rowsSha256": "147b5c8366fbdb62975fdf8d751887cf164b7b83b0af2636e18656b89f07c48e",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LINKUSDT/5m/LINKUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "9e9cf4f36efbc2d0dadb824ac9b274e13f807865e877e6662575e1609abd3221",
+          "vendorChecksum": true,
+          "rowsSha256": "a3f46c45162cac29046437657a69f09db18e2b37a6782bebc8c54693d11041bd",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LINKUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "1dcac1a48d0a62ef219ca7bd562ce5908cc9c2c50b765e4875a6f129df69d843",
+          "vendorChecksum": true,
+          "rowsSha256": "a059174020636ba43f9cfe38e50ae81724af1ce5ccbf561de74ea522c888ffe2",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "6de3f7d70fc04db48ab89e5a593bd565592c14e2bc8442a59f9fd2186d181d58",
+          "vendorChecksum": true,
+          "rowsSha256": "fbb5153d61ca195c504944db13a547ec09f156cc5b1d5a036f5e805db3c6a867",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "2d07c6f204e3aa65bbb637d1b3e37044a7439a219359db64e1342a5525bac31c",
+          "vendorChecksum": true,
+          "rowsSha256": "3df88cd11721672c56bf2863be3c08038ef1d618017a8bc4cef3442d3147bc02",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "97eaeb98829ab5e74c8ef31d21e4c57b6f6e9af91688f5ddab63f97e17c69575",
+          "vendorChecksum": true,
+          "rowsSha256": "97889bf00f9861e6c907455668ec5d19d011b526c9041ea0714ff3dc09cfa3c3",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "0eaa63c555a0bb51ddcf7357bb1925b966820c16d3efc9e819ddcb47ae27cf47",
+          "vendorChecksum": true,
+          "rowsSha256": "9e467cb56d21a94348a83f29be0ee85e0835a18e4ccd236e61ca852cad4c3e8b",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "c8a2aa3364f40e34a8a00a26eac6a9332b1de848340d97eff6b7cc5a5b6dbc34",
+          "vendorChecksum": true,
+          "rowsSha256": "a859b33e74d2c61f0f4e2abaadfe8636f57a255b64cae38479b3e766cac0cbdd",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "fedbf98cb32b74e3248d8b17379ec1d9493f7c905883481c3809674a2ec4188c",
+          "vendorChecksum": true,
+          "rowsSha256": "804d7effe48dc88e362d50723edec81d9681c5d35dfaf4cdfe366968b74cbe56",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/AVAXUSDT/5m/AVAXUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "8e29fdb801202da0fb8e93e8bc2a15aaee565b0e3430b68266caac428aecc0da",
+          "vendorChecksum": true,
+          "rowsSha256": "5b79b9189787d3d4e90b3388d691953a9a3b9be0474061a19ba4dcc48e87f015",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "AVAXUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-01.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-01.zip.CHECKSUM",
+          "sha256": "f956987198056fe72ca3a5bae02c0b75a03fba6ee469ff4ab142394186142753",
+          "vendorChecksum": true,
+          "rowsSha256": "5b298fc611992c019f74d4838e6a9920bb0ef272fb1fce9f65d28ba2622cf87d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-01",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-02.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-02.zip.CHECKSUM",
+          "sha256": "a091de8ffa78ecb2867e8ead71764629592962466c5c3f21751ffc71ad3cd3e0",
+          "vendorChecksum": true,
+          "rowsSha256": "00ffbb874978e36739db723597d436642c26f4d1c33ca1448150191a72cb1495",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-02",
+          "rows": 8064,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-03.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-03.zip.CHECKSUM",
+          "sha256": "ca84707b4f02ffa913f59f59dfff590b606cc5de89ed5ee3d048c9573306a90f",
+          "vendorChecksum": true,
+          "rowsSha256": "3c492cc2d89b1e705aee1e1716ad0207964016ad6bd2e1db9700cb28b949b63f",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-03",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-04.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-04.zip.CHECKSUM",
+          "sha256": "7819872d505eac47e3726303c738475c6f1f1e1cf9f03ff58d043cf74a50cc05",
+          "vendorChecksum": true,
+          "rowsSha256": "cd9e816875bc1c0a10ca3493e3be5effc9c764a4ce570ad9ddb50614924e5653",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-04",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-05.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-05.zip.CHECKSUM",
+          "sha256": "cf4f04aa20819144df34a3258b1906f57c143591d860a36410fb37c5f7d3765a",
+          "vendorChecksum": true,
+          "rowsSha256": "100a810703b877fa3aff4373c92d4bc2fa1c95938f9d3be9663193f8e23c979d",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-05",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-06.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-06.zip.CHECKSUM",
+          "sha256": "d2dc819b8ac320c0e4eb6f90b402b609314e32f31c0bf1630cf35bbb057416a0",
+          "vendorChecksum": true,
+          "rowsSha256": "e38441974b21ddf78ececd75a3d549af40542b3bc777c8eb0ec3cdd87b73fe65",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-06",
+          "rows": 8640,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-07.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-07.zip.CHECKSUM",
+          "sha256": "6910a7a20825f4acec152de416bd575a7adac72af118319853aade4642b9bf92",
+          "vendorChecksum": true,
+          "rowsSha256": "7edc2e8079c557d42f25aec15fbd2878f1e7eeb1b0b2a39f7940201823c0d0d2",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-07",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        },
+        {
+          "sourceUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-08.zip",
+          "checksumUrl": "https://data.binance.vision/data/futures/um/monthly/klines/LTCUSDT/5m/LTCUSDT-5m-2025-08.zip.CHECKSUM",
+          "sha256": "4fdc21baeeabdcc5d1da48219a1000832d9d280fbe5c049a8b0864a172542cf6",
+          "vendorChecksum": true,
+          "rowsSha256": "d8760cd8debf18bccb45304796d2e745a5859269d07702607b883250ece50e37",
+          "venue": "usdm",
+          "instrument": "USDT_PERPETUAL",
+          "symbol": "LTCUSDT",
+          "interval": "5m",
+          "month": "2025-08",
+          "rows": 8928,
+          "limitations": [
+            "Universe is selected explicitly, not survivorship-neutral",
+            "OHLC archive does not contain historical order-book spread or fill evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/forex.native-band-reentry-60-12-2-5-882fb61ee636.json.gz",
+      "reportSha256": "882fb61ee636eeaa67ebc48ccf7715c203e477cb4e636f927d60e39aa8d37067",
+      "engineSourceSha256": "8fffd18b0318328f22657a5b81d5083d09b9595be541cabc5b442b6de030a8f4",
+      "artifactId": 13998942838,
+      "artifactArchiveSha256": "b7aa379c32bc27559af3a82e63bdc675ebd810044a7a03d4ad6a04595f78001e",
+      "artifactMember": "report.json",
+      "strategyId": "forex.native-band-reentry-60-12-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 26
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/01/Exness_USDJPY_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-01",
+          "archiveSha256": "d2f0f693cd8f0a721b70883a04ecd7eef85da64cab4f5d7995ae659673e53712",
+          "rowsSha256": "d1b5e091ae619f5b19ac561406a01f81073cad403821a5d784023b59cf2ba67c",
+          "rows": 6319,
+          "ticks": 1985359,
+          "firstTick": 1735769118533,
+          "lastTick": 1738360734181,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/02/Exness_USDJPY_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-02",
+          "archiveSha256": "02c225e30239834333c4a04af7645cc64b7749948d7d23929953467f7afa4efb",
+          "rowsSha256": "94df7357665fbc6d663d1e70a73c097c44cd2bdf44332b72c2e5543f3926df7c",
+          "rows": 5756,
+          "ticks": 1923967,
+          "firstTick": 1738533909552,
+          "lastTick": 1740779938695,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/03/Exness_USDJPY_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-03",
+          "archiveSha256": "9244123067e55110d6776f5bdbcf228f8820cf418c455e46535d8d38b58273de",
+          "rowsSha256": "118dabfd6524b8f44bb921e3ad54d441daf79b1b288197dbf663d837df7dd917",
+          "rows": 6079,
+          "ticks": 2454702,
+          "firstTick": 1740953106695,
+          "lastTick": 1743465599794,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/04/Exness_USDJPY_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-04",
+          "archiveSha256": "4b61e4e83fbe120b0c4542e4582125e68446e20244f8b9d239f540463bf9a2db",
+          "rowsSha256": "dff8e7dd176e07feebbc131860f90e007987a91a73717ad58ca6c9d5f6b27de2",
+          "rows": 6324,
+          "ticks": 4104452,
+          "firstTick": 1743465600565,
+          "lastTick": 1746057598958,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/05/Exness_USDJPY_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-05",
+          "archiveSha256": "e408dade2da4ad9fa51d4fe14e6b1d7e7055b95fd52b77d0af0f37451b94c4f4",
+          "rowsSha256": "a23a2acdbe14f7c227ec7b5c5ba446d3b91256f0cdcbd4c0da9c4db18f3bc9ef",
+          "rows": 6296,
+          "ticks": 2378003,
+          "firstTick": 1746057600112,
+          "lastTick": 1748638738360,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/06/Exness_USDJPY_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-06",
+          "archiveSha256": "0a140cb4fc9d1aa40768bc626b06f1d6c50482315ec322ed0653c4483f3c858f",
+          "rowsSha256": "5aa0e9f180a65465fc79000baf489582b88dd4f27ef5c986a00b09e7019ea08d",
+          "rows": 6079,
+          "ticks": 1881425,
+          "firstTick": 1748811904040,
+          "lastTick": 1751327995170,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/07/Exness_USDJPY_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-07",
+          "archiveSha256": "f50d92c08f8ba0779dce48bc7379405bec3bfa6edfec775190eee7dd23c04527",
+          "rowsSha256": "20b42ef7e488a698cf90959d17816e3bc9ca2ff6295a89476c419f32d2240f5e",
+          "rows": 6620,
+          "ticks": 1803247,
+          "firstTick": 1751328000198,
+          "lastTick": 1754006395297,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/08/Exness_USDJPY_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-08",
+          "archiveSha256": "be429330d2b3be8ec0d45e351a0817f72931e1155a76caadbc242846a7e26961",
+          "rowsSha256": "30902001bdeeb67fdaafa18172c87465ecfdf61b0f544c09671ef0cc5342d5a6",
+          "rows": 6043,
+          "ticks": 1518477,
+          "firstTick": 1754006400057,
+          "lastTick": 1756684796946,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/forex.native-band-reentry-60-12-2-5-fb55e6b9e790.json.gz",
+      "reportSha256": "fb55e6b9e7901925cff7bb39cfb9b8f3accea78105b6eacee131febf07acde05",
+      "engineSourceSha256": "8fffd18b0318328f22657a5b81d5083d09b9595be541cabc5b442b6de030a8f4",
+      "artifactId": 13998354778,
+      "artifactArchiveSha256": "c03041b9fa92cf7d08d493ac7346862ece6bd2a1e5b4085d2f6e9a9b62463bc7",
+      "artifactMember": "report.json",
+      "strategyId": "forex.native-band-reentry-60-12-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 17
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/01/Exness_USDJPY_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-01",
+          "archiveSha256": "d2f0f693cd8f0a721b70883a04ecd7eef85da64cab4f5d7995ae659673e53712",
+          "rowsSha256": "d1b5e091ae619f5b19ac561406a01f81073cad403821a5d784023b59cf2ba67c",
+          "rows": 6319,
+          "ticks": 1985359,
+          "firstTick": 1735769118533,
+          "lastTick": 1738360734181,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/02/Exness_USDJPY_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-02",
+          "archiveSha256": "02c225e30239834333c4a04af7645cc64b7749948d7d23929953467f7afa4efb",
+          "rowsSha256": "94df7357665fbc6d663d1e70a73c097c44cd2bdf44332b72c2e5543f3926df7c",
+          "rows": 5756,
+          "ticks": 1923967,
+          "firstTick": 1738533909552,
+          "lastTick": 1740779938695,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/03/Exness_USDJPY_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-03",
+          "archiveSha256": "9244123067e55110d6776f5bdbcf228f8820cf418c455e46535d8d38b58273de",
+          "rowsSha256": "118dabfd6524b8f44bb921e3ad54d441daf79b1b288197dbf663d837df7dd917",
+          "rows": 6079,
+          "ticks": 2454702,
+          "firstTick": 1740953106695,
+          "lastTick": 1743465599794,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/04/Exness_USDJPY_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-04",
+          "archiveSha256": "4b61e4e83fbe120b0c4542e4582125e68446e20244f8b9d239f540463bf9a2db",
+          "rowsSha256": "dff8e7dd176e07feebbc131860f90e007987a91a73717ad58ca6c9d5f6b27de2",
+          "rows": 6324,
+          "ticks": 4104452,
+          "firstTick": 1743465600565,
+          "lastTick": 1746057598958,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/05/Exness_USDJPY_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-05",
+          "archiveSha256": "e408dade2da4ad9fa51d4fe14e6b1d7e7055b95fd52b77d0af0f37451b94c4f4",
+          "rowsSha256": "a23a2acdbe14f7c227ec7b5c5ba446d3b91256f0cdcbd4c0da9c4db18f3bc9ef",
+          "rows": 6296,
+          "ticks": 2378003,
+          "firstTick": 1746057600112,
+          "lastTick": 1748638738360,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/06/Exness_USDJPY_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-06",
+          "archiveSha256": "0a140cb4fc9d1aa40768bc626b06f1d6c50482315ec322ed0653c4483f3c858f",
+          "rowsSha256": "5aa0e9f180a65465fc79000baf489582b88dd4f27ef5c986a00b09e7019ea08d",
+          "rows": 6079,
+          "ticks": 1881425,
+          "firstTick": 1748811904040,
+          "lastTick": 1751327995170,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/07/Exness_USDJPY_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-07",
+          "archiveSha256": "f50d92c08f8ba0779dce48bc7379405bec3bfa6edfec775190eee7dd23c04527",
+          "rowsSha256": "20b42ef7e488a698cf90959d17816e3bc9ca2ff6295a89476c419f32d2240f5e",
+          "rows": 6620,
+          "ticks": 1803247,
+          "firstTick": 1751328000198,
+          "lastTick": 1754006395297,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/USDJPY_Raw_Spread/2025/08/Exness_USDJPY_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "USDJPY_Raw_Spread",
+          "symbol": "USDJPY",
+          "month": "2025-08",
+          "archiveSha256": "be429330d2b3be8ec0d45e351a0817f72931e1155a76caadbc242846a7e26961",
+          "rowsSha256": "30902001bdeeb67fdaafa18172c87465ecfdf61b0f544c09671ef0cc5342d5a6",
+          "rows": 6043,
+          "ticks": 1518477,
+          "firstTick": 1754006400057,
+          "lastTick": 1756684796946,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-band-reentry-15-48-3-5-3b58d3c61592.json.gz",
+      "reportSha256": "3b58d3c615921b5ec5dcd44b5130fe9396a9db5df4f2b5fabfacfb70b9a31f26",
+      "engineSourceSha256": "8fffd18b0318328f22657a5b81d5083d09b9595be541cabc5b442b6de030a8f4",
+      "artifactId": 13998734413,
+      "artifactArchiveSha256": "de4127604edc8e4465d75640c77fb993c34e8ee2e8f7cb9ec7021074754a991a",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-band-reentry-15-48-3-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 31
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-band-reentry-15-48-3-5-df751e4e0127.json.gz",
+      "reportSha256": "df751e4e012714bad015313952ddf4fec6af2c6e95a4184360b04e78ae15a285",
+      "engineSourceSha256": "8fffd18b0318328f22657a5b81d5083d09b9595be541cabc5b442b6de030a8f4",
+      "artifactId": 13998778755,
+      "artifactArchiveSha256": "97145e2bdd9f4e8986ae71d3890857ef68c243b4775ca978806982261b0807d0",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-band-reentry-15-48-3-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 16
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-momentum-15-48-2-5-2390f420f281.json.gz",
+      "reportSha256": "2390f420f281b1849727edba14056c76ca9301eeafc8c833bdfd29bb7ac45ce9",
+      "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+      "artifactId": 13987303147,
+      "artifactArchiveSha256": "ea446906213bee5d5dd19df377a59bf7db56ff5261c1b6dac92020c0e04fe4d7",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-momentum-15-48-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 62
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-momentum-15-48-2-5-ea06fb59006d.json.gz",
+      "reportSha256": "ea06fb59006d15eab19d615947aad6f144b8ed7c2615d93664ea1de45560e89f",
+      "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+      "artifactId": 13988300731,
+      "artifactArchiveSha256": "5c228ac808d3d402c95f6a11866bf79418028c0014a7b8301bfca6c3002183a4",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-momentum-15-48-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 39
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-momentum-60-24-2-5-202672ba70a2.json.gz",
+      "reportSha256": "202672ba70a24540e4f8498a41abe913b5e8b1c502d33215a63aacc611f3d7c4",
+      "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+      "artifactId": 13988096265,
+      "artifactArchiveSha256": "c30bf189e41d383231850059ce49631ef7ea8a282ca8c79b48537798c596ec79",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-momentum-60-24-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 24
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "docs/research/part1-backfill/gold.native-momentum-60-24-2-5-f0b879bbe756.json.gz",
+      "reportSha256": "f0b879bbe75611f258ddb6d3311d6aa2ad1d225a77d1c637f83704b5674f482a",
+      "engineSourceSha256": "d839e61f01c86921c94f2aa6174326a56e5c3fe3856559063852ce8b47863970",
+      "artifactId": 13988220990,
+      "artifactArchiveSha256": "8dff4cc58d49e317de4783f0a22bfafd21163694d604d84df86dbd2cde468771",
+      "artifactMember": "report.json",
+      "strategyId": "gold.native-momentum-60-24-2-5",
+      "status": "COMPLETED",
+      "accounts": [
+        {
+          "capital": 10000,
+          "riskPct": 0.5,
+          "closedTrades": 13
+        }
+      ],
+      "sourceManifests": [
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/01/Exness_XAUUSD_Raw_Spread_2025_01.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-01",
+          "archiveSha256": "21f00528927569f18d6f0aae01e6726484e4a375e6be8a28de4e234846e45876",
+          "rowsSha256": "cd52e27f924df46eee48048a8a3348db188089bcccd9df685633aed9ac76de53",
+          "rows": 6019,
+          "ticks": 4586547,
+          "firstTick": 1735772707809,
+          "lastTick": 1738360677308,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/02/Exness_XAUUSD_Raw_Spread_2025_02.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-02",
+          "archiveSha256": "a19a2a1938fe8b444c856e07843abff5afc86254bad9c5999ccb098203c04b89",
+          "rowsSha256": "499ab7fa0a2ee1140a3af52eca9035b0c5d3ed67cb42f11de82678a0d0524323",
+          "rows": 5482,
+          "ticks": 5122547,
+          "firstTick": 1738537523293,
+          "lastTick": 1740779878953,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/03/Exness_XAUUSD_Raw_Spread_2025_03.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-03",
+          "archiveSha256": "44b001c50aafac3adf8a9211f15e7c0185dfc054610c0a3a35deb1ea768f92e7",
+          "rowsSha256": "8282ba434f0835af3532230dcf934a03b877ef25489aac3af30d293875c9ae0b",
+          "rows": 5815,
+          "ticks": 4382715,
+          "firstTick": 1740956700071,
+          "lastTick": 1743465598829,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/04/Exness_XAUUSD_Raw_Spread_2025_04.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-04",
+          "archiveSha256": "327615805e36d40c4c93a0967ae7c433186d414f3afe1e7ec172afc8ded57892",
+          "rowsSha256": "71fb795ffb9ad330a96d3ef67b9b47abaeb41f2fef4030a7ef172a9c1836cb8f",
+          "rows": 5782,
+          "ticks": 7865984,
+          "firstTick": 1743465600091,
+          "lastTick": 1746057599643,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/05/Exness_XAUUSD_Raw_Spread_2025_05.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-05",
+          "archiveSha256": "f94df24983755b1135e573dd448b683860562888f0ea85ed08c48ec57dfb1551",
+          "rowsSha256": "fabfab5247e0aaf786d2c7cd4f2446a373a6447813e9a6d5eceafe808e519bf7",
+          "rows": 6010,
+          "ticks": 6575604,
+          "firstTick": 1746057600121,
+          "lastTick": 1748638678215,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/06/Exness_XAUUSD_Raw_Spread_2025_06.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-06",
+          "archiveSha256": "55717767b1e9a7e79d24e217c4339e2eba06385bb2e6423af824734fa204648e",
+          "rowsSha256": "7316268ff9af9ce53e3df3b75311d36625dd88f6a6b27825f81c69add7a9ca31",
+          "rows": 5770,
+          "ticks": 5157903,
+          "firstTick": 1748815500140,
+          "lastTick": 1751327999257,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/07/Exness_XAUUSD_Raw_Spread_2025_07.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-07",
+          "archiveSha256": "a4935b30f3aaf53c6544d9cfd3d639ec479c5bebb4b613bf3812c23b72a0eab3",
+          "rowsSha256": "8afb92bb8a0e0826fb49934da3b49c0fd4ab3fde179428afcc354ec406678009",
+          "rows": 6293,
+          "ticks": 4167814,
+          "firstTick": 1751328000310,
+          "lastTick": 1754006399702,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        },
+        {
+          "sourceUrl": "https://ticks.ex2archive.com/ticks/XAUUSD_Raw_Spread/2025/08/Exness_XAUUSD_Raw_Spread_2025_08.zip",
+          "source": "EXNESS_BROKER_BID_ASK",
+          "variant": "XAUUSD_Raw_Spread",
+          "symbol": "XAUUSD",
+          "month": "2025-08",
+          "archiveSha256": "49621118e5d1ad3ea5944f4a3aa9bcabad6dca126e3d255ee95ca806b90ed646",
+          "rowsSha256": "645d9d573c688de2f9e1bfb6d1b29538f4c72fefb18e7829821a3f5589e098d8",
+          "rows": 5791,
+          "ticks": 3620665,
+          "firstTick": 1754006400410,
+          "lastTick": 1756684799545,
+          "vendorChecksum": false,
+          "volumeMeaning": "Observed quote tick count; not traded volume",
+          "limitations": [
+            "Exness reference prices, not a JustMarkets account execution record",
+            "Broker spread is observed; commission, swap and contract filters remain explicit scenario assumptions",
+            "No synthetic quotes or weekend candles"
+          ]
+        }
+      ]
+    }
+  ]
+}
