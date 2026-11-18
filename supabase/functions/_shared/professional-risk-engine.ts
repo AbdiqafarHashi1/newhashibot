@@ -1,3 +1,4 @@
+import {type PersonalRiskProfile,type ForwardHistoryEvidence,assertSmartGrowthHistory,concurrentCryptoRiskMultiplier,personalCryptoGuardEnabled,personalRiskProfile,validatePersonalGrowthScope} from './personal-growth-policy.ts';
 import {houseMoneyRisk,type HouseMoneyFacts,type EquityMode} from './house-money-risk.ts';
 export {houseMoneyRisk,type HouseMoneyFacts,type HouseMoneyDecision} from './house-money-risk.ts';
 import {
@@ -34,7 +35,7 @@ export interface PositionRiskTruth {
 }
 
 export interface RiskEvaluationContext {
-  house_money?:{mode:EquityMode;facts:HouseMoneyFacts;topHourly:boolean;weekendMultiplier:1|0.75};
+  house_money?:{concurrentCryptoGuard?:boolean;forwardHistory?:ForwardHistoryEvidence;personalProfile?:PersonalRiskProfile;mode:EquityMode;facts:HouseMoneyFacts;topHourly:boolean;weekendMultiplier:1|0.75};
   schema_version: typeof RISK_CONTEXT_SCHEMA_VERSION;
   lineage: {
     evaluation_id: string;
@@ -317,7 +318,8 @@ export function evaluateRisk(approved: DeepReadonly<ApprovedStrategyPlan>, conte
   if (context.lineage.provider !== context.lineage.account_mode || policy.domain !== context.lineage.account_mode || context.lineage.risk_policy_id !== policy.policy_id || context.lineage.risk_policy_version !== policy.version) reject("contract.domain", "CONTRACT", `${context.lineage.provider}/${context.lineage.account_mode}`, policy.domain, "domain", "provider_account_mode_mismatch", "Provider, account mode and resolved policy domain must match."); else pass("contract.domain", "CONTRACT", policy.domain, policy.domain, "domain", "risk_domain_match", "Provider-aware domain is consistent.");
 
   if(context.house_money){
-   const h=context.house_money,f=h.facts,d=houseMoneyRisk(h.mode,f,context.lineage.evaluated_at,h.topHourly,h.weekendMultiplier);
+   const h=context.house_money; if(h.personalProfile&&h.personalProfile!=='STANDARD'){try{validatePersonalGrowthScope(h.personalProfile,h.mode==='PERSONAL'&&context.lineage.account_mode!=='MT5_PROP'?'PERSONAL':'PROP',context.lineage.environment)}catch{reject('account.growth_scope','ACCOUNT',h.personalProfile,'PERSONAL sandbox','scope','PERSONAL_GROWTH_SANDBOX_REQUIRED','Growth profiles require a Personal sandbox account.');}} if(personalRiskProfile(h.personalProfile)==='SMART_GROWTH'){try{assertSmartGrowthHistory(h.forwardHistory,context.lineage.customer_id??'',context.lineage.account_id,context.lineage.provider,context.lineage.evaluated_at)}catch{reject('account.smart_history','ACCOUNT',null,30,'days','SMART_GROWTH_30_VERIFIED_DAYS_REQUIRED','Smart Growth requires verified provider history.');}} const f=h.facts;let d=houseMoneyRisk(h.mode,f,context.lineage.evaluated_at,h.topHourly,h.weekendMultiplier,h.personalProfile);
+   if(h.mode==='PERSONAL'&&personalCryptoGuardEnabled(h.personalProfile,h.concurrentCryptoGuard)&&context.account.open_positions.state==='KNOWN'&&context.account.open_positions.value)d={...d,applied_risk_pct:d.applied_risk_pct*concurrentCryptoRiskMultiplier(plan?.market_context.symbol??'',context.account.open_positions.value)};
    if(f.accountId!==context.lineage.account_id||f.customerId!==context.lineage.customer_id||d.block_reason||context.request.risk_percent>d.applied_risk_pct+1e-9)reject('account.house_money','ACCOUNT',context.request.risk_percent,d.applied_risk_pct,'percent',d.block_reason??'HOUSE_MONEY_RISK_CEILING','Current account phase limits requested risk.');
   }
   // 2. Account eligibility

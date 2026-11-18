@@ -1,4 +1,5 @@
-import {assertVipStrategy,VIP_RISK_FOOTER,removeRawWinRates,vipSetupTag} from './vip-signal-policy.ts';
+import {loadProductEntryQuality,productEntryQuality} from './strategy-deployment-policy.ts';
+import {VIP_CONFIG_IDS,assertVipStrategy,VIP_RISK_FOOTER,removeRawWinRates,vipSetupTag} from './vip-signal-policy.ts';
 import {subscriberCopySafe} from './subscriber-copy.ts';
 import {resolveHubChat} from './telegram-hub.ts';
 import {validateEditorialPublication,renderEditorialPublication,renderCanonicalVipSignal} from "./telegram-product.ts";
@@ -14,7 +15,7 @@ export class SupabasePublicationStore implements PublicationStore{
  constructor(private db:any){}
  async claim(i:{workerId:string;limit:number;leaseSeconds:number;maxAttempts:number}){const {data,error}=await this.db.rpc("claim_signal_publication_work",{p_worker:i.workerId,p_limit:i.limit,p_lease_seconds:i.leaseSeconds,p_max_attempts:i.maxAttempts});if(error)throw error;const ready:PublicationClaim[]=[];for(const row of data??[]){const c=rowClaim(row);if(c.eventType==='EDITORIAL'&&['free','vip','vip_crypto','vip_forex_gold'].includes(c.destination)){const truth=await this.loadTruth(c);const checked=truth?.payload?.editorial?validateEditorialPublication(truth.payload.editorial as any):{valid:false};if(!checked.valid){await this.finishClaim({claim:c,state:'SUPPRESSED',reason:'EDITORIAL_STALE_OR_INVALID'});continue;}const r=await this.db.rpc('reserve_editorial_channel_slot',{p_work:c.id,p_lease:c.leaseToken});if(r.error)throw r.error;if(r.data?.allowed!==true){await this.finishClaim({claim:c,state:'RETRY',reason:'EDITORIAL_CHANNEL_COOLDOWN',nextAttemptAt:r.data?.next_attempt_at??new Date(Date.now()+7200000).toISOString()});continue;}}ready.push(c);}return ready}
  async loadTruth(c:PublicationClaim):Promise<CanonicalPublicationTruth|null>{
-  if(c.entityType==="signal"){const {data,error}=await this.db.from("signals").select("*").eq("id",c.entityId).maybeSingle();if(error)throw error;if(!data)return null;try{await loadPublishableSignal(this.db,data.id)}catch(error){data._publication_hold=error instanceof Error?error.message:"SIGNAL_QUALIFICATION_UNAVAILABLE"}return{entityType:"signal",entityId:data.id,eventType:c.eventType,eventVersion:c.eventVersion,occurredAt:data.updated_at??data.created_at,customerId:null,payload:Object.freeze({...data})}}
+  if(c.entityType==="signal"){const {data,error}=await this.db.from("signals").select("*").eq("id",c.entityId).maybeSingle();if(error)throw error;if(!data)return null;if(['vip','vip_crypto','vip_forex_gold'].includes(c.destination)&&!await loadProductEntryQuality(this.db,data))data._publication_hold='PRODUCT_ENTRY_QUALITY_REQUIRED';try{await loadPublishableSignal(this.db,data.id)}catch(error){data._publication_hold=error instanceof Error?error.message:"SIGNAL_QUALIFICATION_UNAVAILABLE"}return{entityType:"signal",entityId:data.id,eventType:c.eventType,eventVersion:c.eventVersion,occurredAt:data.updated_at??data.created_at,customerId:null,payload:Object.freeze({...data})}}
   const table=c.entityType==="lifecycle_event"?"canonical_lifecycle_events":c.entityType==="account_event"?"execution_event_logs":c.entityType==="certification"?"customer_certification_events":null;if(!table)return null;let query=this.db.from(table).select("*");query=c.entityType==="lifecycle_event"?query.eq("event_type",c.eventType).eq("event_version",c.eventVersion).or(`execution_id.eq.${c.entityId},signal_id.eq.${c.entityId},id.eq.${c.entityId}`):query.eq("id",c.entityId);const {data,error}=await query.maybeSingle();if(error)throw error;if(!data)return null;if(c.entityType==="lifecycle_event"&&data.signal_id&&["free","vip","vip_crypto","vip_forex_gold"].includes(c.destination)){
    const {data:parent,error:parentError}=await this.db.from("signal_publication_work").select("id").eq("entity_type","signal").eq("entity_id",data.signal_id).eq("destination",c.destination).eq("status","sent").limit(1).maybeSingle();
    if(parentError||!parent)data.payload={...(data.payload??{}),_publication_hold:"QUALIFIED_INITIAL_PUBLICATION_REQUIRED"};
@@ -22,6 +23,12 @@ export class SupabasePublicationStore implements PublicationStore{
   if(c.entityType==="lifecycle_event"&&data.event_type==="CONDITIONAL_SETUP"){
    const {data:latest,error:setupError}=await this.db.from("conditional_signal_setups").select("state").eq("id",data.payload?.setup_id).maybeSingle();
    const state=data.payload?.state,current=latest?.state;
+   data.payload={...(data.payload??{}),_prior_product_delivery:false};
+   if(['vip','vip_crypto','vip_forex_gold'].includes(c.destination)&&state&&!['WAITING','ARMED'].includes(state.status)&&data.payload?.setup_id&&(!VIP_CONFIG_IDS.includes(state.strategy)||!productEntryQuality(state.strategy,state,data.occurred_at??data.created_at))){
+    const history=await this.db.from('canonical_lifecycle_events').select('id').eq('event_type','CONDITIONAL_SETUP').contains('payload',{setup_id:data.payload.setup_id}).lt('occurred_at',data.occurred_at??data.created_at).order('occurred_at',{ascending:false}).limit(100);
+    if(history.error)throw Error('PRIOR_PRODUCT_DELIVERY_UNAVAILABLE');
+    if(history.data?.length){const prior=await this.db.from('signal_publication_work').select('id').eq('entity_type','lifecycle_event').in('entity_id',history.data.map((r:any)=>r.id)).eq('destination',c.destination).eq('status','sent').limit(1).maybeSingle();if(prior.error)throw Error('PRIOR_PRODUCT_DELIVERY_UNAVAILABLE');data.payload._prior_product_delivery=!!prior.data;}
+   }
    if(setupError||!current||!state||(["WAITING","ARMED"].includes(state.status)&&(current.status!==state.status||Date.parse(state.expiresAt)<=Date.now())))data.payload={...(data.payload??{}),_publication_hold:"CONDITIONAL_STATE_SUPERSEDED_OR_UNAVAILABLE"};
   }
   if(c.eventType==='EDITORIAL'&&String(data.payload?.editorial?.content_id??'').startsWith('phase-o:')){
@@ -47,7 +54,7 @@ export function renderCanonicalTruth(t:CanonicalPublicationTruth,audience:any){
   const gap=p.state?.status==='DATA_GAP';
   if((gap?audience!=='admin':audience!==(p.market_type==="crypto"?"vip_crypto":"vip_forex_gold")&&!(audience==='free'&&p.free_sample===true))||!["crypto","forex"].includes(p.market_type)||p.policy!=="conditional-signals/v1"||typeof p.message!=="string"||!p.message.trim())throw Error("CONDITIONAL_PUBLICATION_SCOPE_INVALID");
   const conditionalVip=audience==='vip_crypto'||audience==='vip_forex_gold';
-  if(conditionalVip)assertVipStrategy(p.state?.strategy??p.strategy_id);
+  if(conditionalVip&&!p._prior_product_delivery){assertVipStrategy(p.state?.strategy??p.strategy_id);if(!productEntryQuality(p.state?.strategy??p.strategy_id,p.state,t.occurredAt))throw Error('PRODUCT_ENTRY_QUALITY_REQUIRED');}
   const text=(conditionalVip?vipSetupTag(p.state?.strategy??p.strategy_id)+'\n'+removeRawWinRates(p.message):p.message)+(conditionalVip?'\n\n'+VIP_RISK_FOOTER:'')+(audience==='free'?'\n\nToday’s Free selection. Get the full Scalp, Intraday & Swing stream with VIP — $29/month or KES 3,500/30 days.\nhttps://hashibot.app/vip':gap?`\nAdmin review: ${p.state.result??'Outcome unknown'}`:'');
   if(audience!=='admin'&&!subscriberCopySafe(text))throw Error('SUBSCRIBER_DIAGNOSTIC_BLOCKED');
   const escaped=text.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");

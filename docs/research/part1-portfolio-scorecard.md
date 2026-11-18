@@ -101,3 +101,43 @@ Fourteen VIP configs; the two broadcast exclusions apply only here. Starting equ
 | 2025-06-01 / 60d | 12/14 | 48 / 46 | 41.30 | 1.53 | 15.39 | 10.17 | 2 |
 | 2026-07-05 / 60d | 3/14 | 44 / 44 | 29.55 | 0.54 | -14.03 | 14.22 | 0 |
 | 2026-09-01 / 60d | 7/14 | 44 / 44 | 34.09 | 0.89 | -3.25 | 11.77 | 0 |
+
+## Diagnostic 4 — Smart Growth Personal policy comparison
+
+Saved PR #276 windows; five configured Personal engines (one Crypto, four Forex/Gold), split into market-specific accounts. Only fully covered engines participate: Crypto 1/1 in both windows; Forex/Gold 3/4 in 2025 and Gold 1/4 in 2026. No common five-engine history is invented. Each row starts flat at $10,000. All profiles use the same 50% entry-margin budget and 15x Crypto / 100x Forex margin-capacity assumption. STANDARD retains dynamic House-Money (1% base, profit escalation/loss throttling), 6% open / 3% factor / 4% daily / 18% peak limits and its existing weekend eligibility. SMART_GROWTH uses 1.5%, 7% / 4.5% / 6% / 14%; GROWTH_2PCT uses PR #276's 2%, 8% / 6% / 8% / 40%. Growth profiles retain 0.75x weekend Crypto risk. “Guard” halves second and later concurrent Crypto entries before factor/margin checks; Forex is unchanged. Daily locks persist until the next UTC day; peak locks persist for the window.
+
+| Window | Policy | Crypto guard | Entries | Guarded entries | Return % | Realized DD % | Return/DD | End-open |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| Crypto 2025 (62d) | STANDARD | off | 18 | 0 | 10.20 | 6.20 | 1.64 | 0 |
+| Crypto 2025 (62d) | SMART_GROWTH | off | 23 | 0 | 13.19 | 10.68 | 1.23 | 0 |
+| Crypto 2025 (62d) | SMART_GROWTH | 0.50x | 29 | 22 | 16.77 | 7.47 | 2.24 | 0 |
+| Crypto 2025 (62d) | GROWTH_2PCT | off | 23 | 0 | 16.46 | 14.06 | 1.17 | 0 |
+| Crypto 2025 (62d) | GROWTH_2PCT | 0.50x | 29 | 22 | 21.78 | 9.90 | 2.20 | 0 |
+| Crypto 2026 (46d) | STANDARD | off | 12 | 0 | 12.00 | 6.58 | 1.82 | 0 |
+| Crypto 2026 (46d) | SMART_GROWTH | off | 15 | 0 | 9.63 | 15.96 | 0.60 | 0 |
+| Crypto 2026 (46d) | SMART_GROWTH | 0.50x | 19 | 12 | 18.42 | 12.63 | 1.46 | 0 |
+| Crypto 2026 (46d) | GROWTH_2PCT | off | 17 | 0 | 33.58 | 20.74 | 1.62 | 0 |
+| Crypto 2026 (46d) | GROWTH_2PCT | 0.50x | 19 | 12 | 24.23 | 16.51 | 1.47 | 0 |
+| Forex/Gold 2025 (92d) | STANDARD | — | 87 | 0 | 42.62 | 9.63 | 4.43 | 0 |
+| Forex/Gold 2025 (92d) | SMART_GROWTH | — | 92 | 0 | 43.51 | 11.64 | 3.74 | 0 |
+| Forex/Gold 2025 (92d) | GROWTH_2PCT | — | 92 | 0 | 59.47 | 15.27 | 3.90 | 0 |
+| Gold 2026 (119d) | STANDARD | — | 29 | 0 | 8.88 | 5.60 | 1.59 | 0 |
+| Gold 2026 (119d) | SMART_GROWTH | — | 29 | 0 | 21.16 | 6.36 | 3.33 | 0 |
+| Gold 2026 (119d) | GROWTH_2PCT | — | 29 | 0 | 28.66 | 8.44 | 3.40 | 0 |
+
+## Diagnostic 5 — eight-source VIP, one trade per UTC day
+
+Eight configured sources: four Crypto and four Forex/Gold. Each VIP row is ONE hypothetical subscriber portfolio across ALL fully covered sources, sharing ONE entry slot per UTC day across both markets. Coverage is printed explicitly; missing periods are excluded, never synthesized. Window names identify the inherited PR #276 date cohort, not a market-only VIP portfolio. Earliest eligible saved entry wins, ties by ID; one new entry per day, max one open position per symbol and three open total. Flat fractional stop-risk of 1.0% or 1.5%, including weekends; no House-Money, account correlation guard or experimental margin gate. Original source management/costs retained; discretionary subscriber breakeven changes are not replayed.
+
+| Window | Covered / 8 | Risk % | Entries / closed | Return % | Realized DD % | Return/DD | End-open |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Crypto 2025 (62d) | 7/8 | 1.0 | 50/50 | 12.94 | 9.78 | 1.32 | 0 |
+| Crypto 2025 (62d) | 7/8 | 1.5 | 50/50 | 19.07 | 14.38 | 1.33 | 0 |
+| Crypto 2026 (46d) | 4/8 | 1.0 | 27/27 | -0.08 | 12.89 | -0.01 | 0 |
+| Crypto 2026 (46d) | 4/8 | 1.5 | 27/27 | -0.40 | 18.75 | -0.02 | 0 |
+| Forex/Gold 2025 (92d) | 7/8 | 1.0 | 76/76 | 15.70 | 9.78 | 1.61 | 0 |
+| Forex/Gold 2025 (92d) | 7/8 | 1.5 | 76/76 | 23.23 | 14.38 | 1.62 | 0 |
+| Gold 2026 (119d) | 2/8 | 1.0 | 46/46 | 15.34 | 5.09 | 3.02 | 0 |
+| Gold 2026 (119d) | 2/8 | 1.5 | 46/46 | 23.44 | 7.56 | 3.10 | 0 |
+
+Dates (exclusive end): Crypto 2025 July 1–September 1; Crypto 2026 September 16–November 1; Forex/Gold 2025 June 1–September 1; Gold 2026 July 5–November 1. Historical source admissions limit participation; these are reused research windows, not new holdouts, live returns or forward-history eligibility. Realized-close DD excludes floating losses and liquidation, and end-open exposure is unmarked. Returns include source transaction costs but exclude the $100 execution / $29 VIP monthly subscriptions, tax and withdrawals. Return/DD is interval return divided by realized DD, not annualized. Profiles can alter admissions, so less risk need not produce proportionally less return.

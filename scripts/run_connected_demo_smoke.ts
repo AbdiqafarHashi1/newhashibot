@@ -1,3 +1,4 @@
+import {PERSONAL_RISK_PROFILES,personalRiskProfile} from '../supabase/functions/_shared/personal-growth-policy.ts';
 import {pathToFileURL} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {createClient} from '@supabase/supabase-js';
@@ -23,14 +24,19 @@ export async function telegramSmoke(fetcher:typeof fetch,token:string,chatId:str
 type SmokeDependencies={db?:any;selections?:Selection[];authorize?:typeof authorizeCanonicalAccountSignal;dispatch?:typeof drainAccountDispatch;sleep?:(ms:number)=>Promise<void>};
 export async function runSmoke(mode:'mock'|'live',env:Env=process.env,fetcher:typeof fetch=fetch,deps:SmokeDependencies={}){
  if(mode==='mock'){
-  const {db,x,at,getDecision}=mockSmokeDatabase();const telegram=[];
-  for(const [channel,symbol,market] of [['vip_crypto','ETHUSDT','crypto'],['vip_forex_gold','XAUUSD','forex']])telegram.push(await telegramSmoke(async()=>new Response(JSON.stringify({ok:true,result:{message_id:1}})),'mock-token','mock-chat',{...x.signal,symbol,market_type:market,strategy_id:market==='crypto'?'crypto.complementary-ema-pullback':'gold.native-momentum-60-24-2-5'},channel));
+  const {db,x,at,getDecision}=mockSmokeDatabase();const profile=personalRiskProfile(env.SMOKE_PERSONAL_RISK_PROFILE);
+  if(profile!=='STANDARD'){const p=PERSONAL_RISK_PROFILES[profile];Object.assign(x.account.policy_overrides.policy_configuration,{personalRiskProfile:profile,riskPerTradePct:p.risk,maxOpenRiskPct:p.open,maxCorrelatedRiskPct:p.correlated,maxLeverage:100,maxDailyDrawdownPct:p.daily,maxTotalDrawdownPct:p.peak,maxConcurrentPositions:3});
+   // Explicit synthetic margin capability for offline profile-path testing only.
+   x.context.leverage=100;x.contract={...x.contract,maximum_leverage:100};x.context.provider_contract={...x.contract};}
+  const telegram=[];
+  for(const [channel,symbol,market] of [['vip_crypto','ETHUSDT','crypto'],['vip_forex_gold','XAUUSD','forex']])telegram.push(await telegramSmoke(async()=>new Response(JSON.stringify({ok:true,result:{message_id:1}})),'mock-token','mock-chat',{...x.signal,symbol,market_type:market,strategy_id:market==='crypto'?'crypto.complementary-ema-pullback':'gold.native-momentum-15-48-2-5'},channel));
   const authorization=await authorizeCanonicalAccountSignal(db,{customerId:x.account.customer_id,accountId:x.account.id,signalId:x.signal.id,idempotencyKey:'connected-demo-mock'},at);
   if(!['ALLOW','REDUCE'].includes(authorization.decision))throw Error('MOCK_AUTHORIZATION_BLOCKED:'+JSON.stringify(getDecision()));
   const orders:any[]=[];const dispatches=await drainAccountDispatch(db,async plan=>{const receipt={mock:true,order_id:'mock-'+plan.execution_plan_id,provider:plan.provider};orders.push(receipt);return{accepted:true,receipt};});
   if(dispatches.length!==1||dispatches.some(r=>r.state!=='SENT'))throw Error('MOCK_DISPATCH_FAILED');
   return {mode,synthetic:true,telegram,equity_phase:getDecision().equity_phase,applied_risk_pct:getDecision().applied_risk_pct,dispatches,order_receipts:orders};
  }
+ if(env.SMOKE_PERSONAL_RISK_PROFILE)throw Error('MOCK_ONLY_RISK_PROFILE_OVERRIDE');
  const config=liveSmokeConfig(env),db=deps.db??createClient(config.url,config.key,{auth:{persistSession:false}});
  const selections=deps.selections??JSON.parse(readFileSync(env.SMOKE_ACCOUNTS_FILE!,'utf8')) as Selection[];
  if(!Array.isArray(selections)||selections.length!==3||selections.some(s=>!s.customerId||!s.accountId||!s.signalId)||new Set(selections.map(s=>s.accountId)).size!==3)throw Error('THREE_DISTINCT_SANDBOX_ACCOUNTS_REQUIRED');

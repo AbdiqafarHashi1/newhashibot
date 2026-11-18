@@ -1,3 +1,4 @@
+import {PERSONAL_RISK_PROFILES,personalRiskProfile,validatePersonalGrowthScope,concurrentCryptoRiskMultiplier,personalCryptoGuardEnabled,assertSmartGrowthHistory,type ForwardHistoryEvidence,type PersonalRiskProfile} from './personal-growth-policy.ts';
 import {houseMoneyRisk,equityMode,topHourlyConfig,type HouseMoneyFacts} from './house-money-risk.ts';
 import {rotationEntry} from './conditional-market.ts';
 import {portfolioRiskGate} from './portfolio-exposure.ts';
@@ -30,6 +31,8 @@ export interface OwnedExecutionAccount {
 }
 
 export interface PolicyConfiguration {
+  readonly concurrentCryptoGuard?:boolean;
+  readonly personalRiskProfile?:PersonalRiskProfile;
   readonly houseMoney?: "house-money/v1";
   readonly historicalPropStudy?: "SIZING_AND_STATIC_20261113";
   readonly historicalStaticBasis?: boolean;
@@ -61,6 +64,7 @@ export interface AccountEvaluationInput {
   readonly evaluatedAt: string;
   /** Loaded by a trusted service from canonical account evidence, never from a customer request. */
   readonly houseMoneyFacts?: HouseMoneyFacts;
+  readonly forwardHistoryEvidence?:ForwardHistoryEvidence;
   readonly performanceEvidence?: AccountPerformanceEvidence;
   readonly duplicateSignalForAccount?: boolean;
   readonly activeSymbolConflict?: boolean;
@@ -121,13 +125,15 @@ export function resolveVersionedAccountPolicy(account: OwnedExecutionAccount, ba
   const limit=historicalResearch&&config.preset==='PROP_SAFE'?{...declaredLimit,risk:1,leverage:10}:declaredLimit;
   const study=historicalResearch&&config.preset==='PROP_SAFE'&&config.historicalPropStudy==='SIZING_AND_STATIC_20261113';
   const dynamic=config.houseMoney==='house-money/v1';
-  const cap=dynamic?{...limit,open:account.accountType==='PERSONAL'?6:2,risk:account.accountType==='PERSONAL'?2.25:1,daily:4,total:account.accountType==='PERSONAL'?18:account.accountType==='PROP_FUNDED'?8:7.5}:study?{risk:2,open:3,leverage:30,positions:3,daily:4.5,total:9}:limit;
-  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? limit.risk, cap.risk);
+  const growth=personalRiskProfile(config.personalRiskProfile);if(growth!=='STANDARD'&&(account.accountType!=='PERSONAL'||!dynamic))throw Error('PERSONAL_GROWTH_DYNAMIC_PERSONAL_REQUIRED');
+  const growthBounds=growth==='STANDARD'?null:{...PERSONAL_RISK_PROFILES[growth],leverage:account.provider.startsWith('MT5')?100:15};
+  const cap=growthBounds?{...limit,open:growthBounds.open,risk:growthBounds.risk,daily:growthBounds.daily,total:growthBounds.peak,leverage:growthBounds.leverage}:dynamic?{...limit,open:account.accountType==='PERSONAL'?6:2,risk:account.accountType==='PERSONAL'?2.25:1,daily:4,total:account.accountType==='PERSONAL'?18:account.accountType==='PROP_FUNDED'?8:7.5}:study?{risk:2,open:3,leverage:30,positions:3,daily:4.5,total:9}:limit;
+  const risk = bounded("riskPerTradePct", config.riskPerTradePct ?? (growthBounds?.risk??limit.risk), cap.risk);
   const open = bounded("maxOpenRiskPct", config.maxOpenRiskPct ?? (dynamic?cap.open:limit.open), cap.open);
   bounded("maxCorrelatedRiskPct",config.maxCorrelatedRiskPct??open,open);
-  const leverage = bounded("maxLeverage", config.maxLeverage ?? (config.preset === "PROP_SAFE" ? 5 : limit.leverage), cap.leverage);
-  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (config.preset === "PROP_SAFE" ? 2 : limit.positions), limit.positions);
-  const daily = bounded("maxDailyDrawdownPct", dynamic?Math.min(config.maxDailyDrawdownPct??4,4):(config.maxDailyDrawdownPct ?? limit.daily), cap.daily);
+  const leverage = bounded("maxLeverage", config.maxLeverage ?? (growthBounds?.leverage??(config.preset === "PROP_SAFE" ? 5 : limit.leverage)), cap.leverage);
+  const positions = bounded("maxConcurrentPositions", config.maxConcurrentPositions ?? (growthBounds?3:config.preset === "PROP_SAFE" ? 2 : limit.positions), growthBounds?3:limit.positions);
+  const daily = bounded("maxDailyDrawdownPct", dynamic?Math.min(config.maxDailyDrawdownPct??cap.daily,cap.daily):(config.maxDailyDrawdownPct ?? limit.daily), cap.daily);
   const total = bounded("maxTotalDrawdownPct", dynamic?Math.min(config.maxTotalDrawdownPct??cap.total,cap.total):(config.maxTotalDrawdownPct ?? limit.total), cap.total);
   if (account.accountType !== "PERSONAL" && config.preset !== "PROP_SAFE") throw new Error("PROP_ACCOUNT_REQUIRES_PROP_SAFE");
   return composeAccountPolicy(base, { historical_static_loss_basis:study&&config.historicalStaticBasis?true:undefined, max_risk_per_trade_pct: risk, max_portfolio_risk_pct: open, max_leverage_allowed: leverage, max_open_positions_total: positions, max_daily_drawdown_pct: daily, max_total_drawdown_pct: total, allowed_symbols: config.allowedSymbols === undefined ? base.allowed_symbols : config.allowedSymbols as string[] | null });
@@ -138,18 +144,22 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const signalBefore = JSON.stringify(input.signal);
   if (input.account.customerId !== input.context.user_id || input.account.id !== input.context.account_id || input.account.provider !== input.context.provider || input.account.accountType !== input.context.account_type) throw new Error("ACCOUNT_CONTEXT_OWNERSHIP_MISMATCH");
   const dynamic=input.configuration.houseMoney==='house-money/v1';
+  const growth=personalRiskProfile(input.configuration.personalRiskProfile);validatePersonalGrowthScope(growth,input.account.accountType,input.context.environment);
+  if(growth==='SMART_GROWTH')assertSmartGrowthHistory(input.forwardHistoryEvidence,input.account.customerId,input.account.id,input.account.provider,input.evaluatedAt);
+  const growthBounds=growth==='STANDARD'?null:PERSONAL_RISK_PROFILES[growth];
   const performance=accountPerformanceGate({policy:dynamic?undefined:input.configuration.lossResponse,evidence:input.performanceEvidence,customerId:input.account.customerId,accountId:input.account.id,provider:input.account.provider,evaluatedAt:input.evaluatedAt,dailyDrawdownPct:input.context.daily_drawdown.current_drawdown_pct});
   if(input.historicalResearch&&(input.account.customerId!=='isolated-research-customer'||!input.account.immutableIdentity.startsWith('historical:')||input.context.environment!=='DEMO'))throw Error('ISOLATED_RESEARCH_POLICY_REQUIRED');
   const approvedPolicy = resolveVersionedAccountPolicy(input.account, input.basePolicy, input.configuration,input.historicalResearch===true);
   let policy=performance.riskMultiplier>0&&performance.riskMultiplier<1?composeAccountPolicy(approvedPolicy,{max_risk_per_trade_pct:approvedPolicy.max_risk_per_trade_pct*performance.riskMultiplier}):approvedPolicy;
   if(input.product.endsWith('PROP'))policy=composeAccountPolicy(policy,{max_daily_drawdown_pct:Math.min(policy.max_daily_drawdown_pct,4)});
-  const rotation=rotationEntry(input.signal.symbol,input.evaluatedAt,input.account.provider.startsWith('MT5')&&input.configuration.allowedSymbols?.includes(input.signal.symbol)===true);
+  const rotation=rotationEntry(input.signal.symbol,input.evaluatedAt,input.account.provider.startsWith('MT5')&&input.configuration.allowedSymbols?.includes(input.signal.symbol)===true,growth!=='STANDARD');
   let house:ReturnType<typeof houseMoneyRisk>|undefined;
   if(dynamic){
    const facts=input.houseMoneyFacts;
    if(!facts||facts.customerId!==input.account.customerId||facts.accountId!==input.account.id)throw Error('SCOPED_HOUSE_MONEY_EVIDENCE_REQUIRED');
-   house=houseMoneyRisk(equityMode(input.account.accountType,input.product),facts,input.evaluatedAt,topHourlyConfig(input.signal.strategy_id,input.signal.timeframe),rotation.riskMultiplier);
-   policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:house.applied_risk_pct||.1,max_daily_drawdown_pct:4,max_total_drawdown_pct:input.account.accountType==='PERSONAL'?18:input.account.accountType==='PROP_EVALUATION'?7.5:8});
+   house=houseMoneyRisk(equityMode(input.account.accountType,input.product),facts,input.evaluatedAt,topHourlyConfig(input.signal.strategy_id,input.signal.timeframe),rotation.riskMultiplier,growth);
+   if(personalCryptoGuardEnabled(growth,input.configuration.concurrentCryptoGuard)&&input.account.accountType==='PERSONAL')house={...house,applied_risk_pct:house.applied_risk_pct*concurrentCryptoRiskMultiplier(input.signal.symbol,input.context.open_positions)};
+   policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:(growthBounds?Math.min(house.applied_risk_pct,approvedPolicy.max_risk_per_trade_pct):house.applied_risk_pct)||.1,max_daily_drawdown_pct:growthBounds?Math.min(approvedPolicy.max_daily_drawdown_pct,growthBounds.daily):4,max_total_drawdown_pct:growthBounds?Math.min(approvedPolicy.max_total_drawdown_pct,growthBounds.peak):input.account.accountType==='PERSONAL'?18:input.account.accountType==='PROP_EVALUATION'?7.5:8});
    if(input.liveAuthorization)policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:Math.min(policy.max_risk_per_trade_pct,input.liveAuthorization.maximum_risk_pct)});
   }else if(rotation.weekend)policy=composeAccountPolicy(policy,{max_risk_per_trade_pct:policy.max_risk_per_trade_pct*rotation.riskMultiplier});
   if(rotation.weekend&&rotation.allowed&&input.account.provider.startsWith('MT5')&&(input.account.accountType==='PERSONAL'||input.context.prop_rules?.weekend_holding_allowed===true))policy=composeAccountPolicy(policy,{weekend_restriction:{mode:'ALLOW'}} as Partial<AccountPolicy>);
@@ -171,14 +181,15 @@ export function evaluateAccountSignal(input: AccountEvaluationInput): AccountDec
   const f=input.houseMoneyFacts;
   const brainContext=dynamic&&f?{...input.context,daily_drawdown:{...input.context.daily_drawdown,current_drawdown_pct:Math.max(0,-f.dailyPnlPct),is_violated:-f.dailyPnlPct>=policy.max_daily_drawdown_pct},total_drawdown:{...input.context.total_drawdown,current_drawdown_pct:input.account.accountType==='PERSONAL'?f.peakDrawdownPct:f.totalDrawdownPct,is_violated:(input.account.accountType==='PERSONAL'?f.peakDrawdownPct:f.totalDrawdownPct)>=policy.max_total_drawdown_pct}}:input.context;
   const brainDecision = brain.evaluateSignal(input.signal, brainContext, policy);
-  if(brainDecision.authorized_risk_pct>0){const portfolio=portfolioRiskGate({symbol:input.signal.symbol,positions:input.context.open_positions,requestedRiskPct:brainDecision.authorized_risk_pct,portfolioLimitPct:policy.max_portfolio_risk_pct,correlatedLimitPct:input.configuration.maxCorrelatedRiskPct??(dynamic?(input.account.accountType==='PERSONAL'?3:1.5):policy.max_portfolio_risk_pct)});preReasons.push(...portfolio.reasons);}
+  if(brainDecision.authorized_risk_pct>0){const portfolio=portfolioRiskGate({symbol:input.signal.symbol,positions:input.context.open_positions,requestedRiskPct:brainDecision.authorized_risk_pct,portfolioLimitPct:policy.max_portfolio_risk_pct,correlatedLimitPct:input.configuration.maxCorrelatedRiskPct??(growthBounds?growthBounds.correlated:dynamic?(input.account.accountType==='PERSONAL'?3:1.5):policy.max_portfolio_risk_pct)});preReasons.push(...portfolio.reasons);}
   const productProvider = input.account.provider;
   const gate = decideAccountExecution({ attempt: "NEW_ENTRY", signalId: input.signal.signal_id, accountId: input.account.id, customerId: input.account.customerId, product: input.product, assignedProvider: productProvider, requestedProvider: productProvider, eligibility: input.eligibility, runtimeControl: input.account.runtimeControl, openPositions: input.context.exposure.active_position_count, pendingOrders: 0, duplicateSignalForAccount: input.duplicateSignalForAccount ?? false, activeSymbolConflict: input.activeSymbolConflict ?? false, canonicalRiskApproved: true, canonicalCapitalApproved: true, accountRuleApproved: preReasons.length === 0 && !["SKIP", "LOCK_ACCOUNT"].includes(brainDecision.decision), propDecision: input.product.endsWith("PROP") ? { decision: brainDecision.decision === "LOCK_ACCOUNT" || brainDecision.decision === "SKIP" ? "BLOCK" : brainDecision.decision === "REDUCE_RISK" ? "REDUCE" : "ALLOW", reasonCodes: [brainDecision.decision_code], riskMultiplier: policy.max_risk_per_trade_pct ? brainDecision.authorized_risk_pct / policy.max_risk_per_trade_pct : 0, managementEnabled: true } : null });
   if (JSON.stringify(input.signal) !== signalBefore) throw new Error("CANONICAL_SIGNAL_MUTATED");
   let decision:AccountDecisionRecord['decision'] = brainDecision.decision === "LOCK_ACCOUNT" ? "LOCK" : gate.decision === "BLOCK" ? "BLOCK" : brainDecision.decision === "REDUCE_RISK" || performance.riskMultiplier<1 ? "REDUCE" : "ALLOW";
   let reasons = Object.freeze([...new Set([...preReasons, ...performance.reasonCodes, ...gate.reasonCodes, brainDecision.decision_code])]);
-  const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version,JSON.stringify(freezeConfig(input.configuration)),JSON.stringify(input.context),JSON.stringify(input.performanceEvidence??null),JSON.stringify(input.houseMoneyFacts??null),JSON.stringify(input.entitlement),input.evaluatedAt];
+  const lineage = [input.signal.signal_id, input.account.customerId, input.account.id, input.account.immutableIdentity, input.account.policyProfileId, input.account.policyVersion, brain.brain_version,JSON.stringify(freezeConfig(input.configuration)),JSON.stringify(input.context),JSON.stringify(input.performanceEvidence??null),JSON.stringify(input.houseMoneyFacts??null),JSON.stringify(input.entitlement),...(input.forwardHistoryEvidence?[JSON.stringify(input.forwardHistoryEvidence)]:[]),input.evaluatedAt];
   const positionPlan = decision === "ALLOW" || decision === "REDUCE" ? brain.createPositionPlan(brainDecision, input.signal, brainContext, policy) : null;
+  if(growthBounds&&positionPlan&&(!Number.isFinite(positionPlan.required_margin)||(positionPlan.required_margin+input.context.used_margin)>input.context.equity*.5)){decision='BLOCK';reasons=Object.freeze([...reasons,'PERSONAL_GROWTH_MARGIN_BUDGET']);}
   if((decision==="ALLOW"||decision==="REDUCE")&&(!positionPlan||!Number.isFinite(positionPlan.quantity)||positionPlan.quantity<=0)){decision='BLOCK';reasons=Object.freeze([...reasons,'APPROVED_POSITION_PLAN_UNAVAILABLE']);}
   return Object.freeze({ ...(house?{...house,applied_risk_pct:decision==='ALLOW'||decision==='REDUCE'?brainDecision.authorized_risk_pct:0,block_reason:house.block_reason??(decision==='BLOCK'||decision==='LOCK'?reasons.join(','):null)}:{}),authorityVersion: ACCOUNT_POLICY_AUTHORITY_VERSION, decisionId: `decision_${stableId(lineage)}`, customerId: input.account.customerId, accountId: input.account.id, immutableAccountIdentity: input.account.immutableIdentity, signalId: input.signal.signal_id, decision, reasonCodes: reasons, ruleDiagnostics: Object.freeze(brainDecision.rule_violations.map(v=>Object.freeze({ruleId:v.rule_id,category:v.rule_category,severity:v.severity,message:v.message}))), authorizedRiskPct: decision === "ALLOW" || decision === "REDUCE" ? brainDecision.authorized_risk_pct : 0, brainFamily: input.account.accountType === "PERSONAL" ? "PERSONAL" : "PROP", brainProvider: brain.provider, brainVersion: brain.brain_version, policyProfileId: policy.policy_id, policyVersion: policy.policy_version, configuration: freezeConfig(input.configuration), evaluatedAt: input.evaluatedAt, executionIntent: positionPlan && (decision==="ALLOW"||decision==="REDUCE") ? Object.freeze({ intentId: `intent_${stableId([...lineage, "intent"])}`, accountId: input.account.id, customerId: input.account.customerId, signalId: input.signal.signal_id, approvedQuantity: positionPlan.quantity, positionPlan }) : null });
 }
