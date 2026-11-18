@@ -35,7 +35,7 @@ export function watchedMarketContext(rows:readonly StrategyCandle[],now:number,o
  const volatility:NonNullable<WatchedIntelligence['volatility']>={atrPercent,baselineAtrPercent,ratio,band:ratio<.75?'QUIET':ratio>1.5?'HIGH':'NORMAL'};
  return {volatility,observedAt:new Date(now).toISOString(),sourceIds:[`${last.source}:${last.symbol}:${tf}:${last.open_time}`,...higher.slice(-1).map(r=>`${r.source}:${r.symbol}:${r.timeframe}:${r.open_time}`),...anchor?.slice(-1).map(r=>`${r.source}:${r.symbol}:${r.timeframe}:${r.open_time}`)??[],...eligible.map(s=>s.id)],priceSource:last.source,higherTimeframe:higher.at(-1)?.timeframe??`${higherMinutes}m`,higherDirection:direction(higher),trendDirection:Math.sign(emaRootV1(rows.map(r=>r.close),20)-emaRootV1(rows.map(r=>r.close),50)),atr,rangeAtr:atr>0?(last.high-last.low)/atr:Infinity,volumeRatio:avg>0?last.volume/avg:0,spreadPrice:options.spreadObservedAt&&now-Date.parse(options.spreadObservedAt)>=0&&now-Date.parse(options.spreadObservedAt)<=120000?options.spreadPrice??null:null,session:last.market_type==='forex'?forexSession(new Date(now).toISOString()):'CONTINUOUS',news:impacted?'HIGH_IMPACT_WINDOW':newsSources.length?'SOURCE_AVAILABLE':'UNAVAILABLE',newsObservedAt:newsSources.at(0)?.created_at??null,newsSources:newsSources.map(s=>s.id),anchorDirection:anchor?.length?direction(anchor):null};
 }
-export type StrategyThesis={family:'TREND'|'BREAKOUT'|'REVERSAL';boundary:number;minimumVolumeRatio:number;maximumRangeAtr:number;sessions:string[];higherRequired:boolean;maximumCostR:number;anchorRequired?:boolean};
+export type StrategyThesis={family:'TREND'|'BREAKOUT'|'REVERSAL';boundary:number;minimumVolumeRatio:number;maximumRangeAtr:number;sessions:string[];higherRequired:boolean;maximumCostR:number;anchorRequired?:boolean;directionPolicy?:'NAMED_STRATEGY'};
 export function strategyContextDecision(thesis:StrategyThesis,side:'buy'|'sell',rows:readonly StrategyCandle[],intel:WatchedIntelligence):'VALID'|'INVALID'|'WAIT'|'UNKNOWN' {
  const d=side==='buy'?1:-1,last=rows.at(-1)!;
  if(!last||!Number.isFinite(intel.atr)||intel.atr<=0)return 'UNKNOWN';
@@ -43,9 +43,11 @@ export function strategyContextDecision(thesis:StrategyThesis,side:'buy'|'sell',
  if(intel.news==='HIGH_IMPACT_WINDOW'||intel.rangeAtr>thesis.maximumRangeAtr)return 'WAIT';
  if(thesis.family==='BREAKOUT'&&d*(last.close-thesis.boundary)<=0)return 'INVALID';
  if(thesis.family==='REVERSAL'&&d*(last.close-thesis.boundary)<=0)return 'INVALID';
- if(thesis.family==='TREND'&&intel.trendDirection!==d)return 'INVALID';
+ if(thesis.family==='TREND'&&thesis.directionPolicy!=='NAMED_STRATEGY'&&intel.trendDirection!==d)return 'INVALID';
+ if(thesis.directionPolicy==='NAMED_STRATEGY'&&d*(last.close-thesis.boundary)<=0)return 'INVALID';
  if(thesis.higherRequired&&intel.higherDirection!==d)return intel.higherDirection===0?'UNKNOWN':'INVALID';
  if(thesis.anchorRequired&&(intel.anchorDirection===null||intel.anchorDirection!==0&&intel.anchorDirection!==d))return 'WAIT';
  if(intel.volumeRatio<thesis.minimumVolumeRatio)return 'WAIT';
  return 'VALID';
 }
+

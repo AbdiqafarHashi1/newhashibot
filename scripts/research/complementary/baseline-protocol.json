@@ -1,0 +1,54 @@
+{
+  "version": "current-production-intraday-comparison/v1",
+  "scope": [
+    "EURUSD",
+    "XAUUSD"
+  ],
+  "evaluationTimeframes": [
+    "15m"
+  ],
+  "development": {
+    "start": "2026-08-11T00:00:00Z",
+    "end": "2026-09-15T23:59:59Z"
+  },
+  "validation": {
+    "start": "2026-09-16T00:00:00Z",
+    "end": "2026-10-31T23:59:59Z"
+  },
+  "historyBars": 960,
+  "selection": "All declared roles and symbols retained. No tuning on validation or losing-asset deletion.",
+  "fees": {
+    "cryptoRoundTripBps": 16,
+    "cryptoFundingReserveBps": 9,
+    "fxCommissionBps": 0.7,
+    "fxSlippageBps": 0.2,
+    "fxSwapReserveBps": 0.3,
+    "stressMultiplier": 1.5
+  },
+  "outcomes": {
+    "partialExitPct": 0.5,
+    "moveStopToBreakevenAfterTp1": true,
+    "sameCandlePolicy": "STOP_FIRST",
+    "tp1StopPolicy": "CONSERVATIVE_SAME_BAR",
+    "closeAtHorizon": true
+  },
+  "accountScenario": {
+    "initialEquity": 10000,
+    "riskPct": 0.5,
+    "dailyLockPct": 3.5,
+    "firmDailyLossPct": 4,
+    "totalLossPct": 10,
+    "leverage": 3,
+    "mode": "RISK_CAPPED",
+    "marginUtilization": 0.9,
+    "maintenanceMarginRate": 0.005
+  },
+  "limits": [
+    "Previously inspected calendar, exploratory chronological comparison rather than untouched holdout.",
+    "No claim of four to eight signals per day or guaranteed fee coverage.",
+    "Full ORB uses native intraday data separately; hourly bars cannot test a 15-minute opening range.",
+    "Funding reserves and swap costs are modeled; no claim of provider fills or firm compliance.",
+    "One-symbol and sequential-account diagnostics are not a concurrent multi-account portfolio."
+  ],
+  "declaration": "Comparison against existing unchanged production evaluators and current default geometry thresholds after complementary diagnostics. No strategy parameter tuning."
+}

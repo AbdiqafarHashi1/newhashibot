@@ -1,3 +1,4 @@
+import {complementaryDefinitions} from '../_shared/complementary-strategies.ts';
 import {frozenStrategyConfirmation,currentWatchQualification} from '../_shared/frozen-strategy-confirmation.ts';
 import {loadPaperLearning} from '../_shared/paper-learning.ts';
 import {watchedStrategyCatalog} from '../_shared/watched-strategy-catalog.ts';
@@ -2086,10 +2087,16 @@ async function runScanPipeline(
           }
           activeDefinitions.push(...team.map(definition=>({...definition,evaluate:(context:StrategyEvaluationContext)=>definition.evaluate({...context,candles:teamCandles??context.candles,reference_candles:reference,evaluated_at:teamCandles?.length?new Date(Date.parse(teamCandles.at(-1)!.open_time)+900000).toISOString():context.evaluated_at})})));
         }
+        // New specialists use the full already-admitted source prefix; legacy windows stay unchanged.
+        const complementary=complementaryDefinitions(name=>getStratCfg(name)).filter(d=>d.market===marketType);
+        const complementaryHigherTf=tf==='1h'?'4h':tf==='15m'?'1h':undefined;
+        const complementaryHigher=complementary.some(d=>d.config.enabled&&d.config.allowed_timeframes.includes(tf))&&complementaryHigherTf
+          ?marketType==='crypto'?await fetchCryptoCandlesForRun(normalizedSymbol,complementaryHigherTf):(await fetchForexCandlesForRun(normalizedSymbol,complementaryHigherTf)).candles:undefined;
+        const complementaryContext:StrategyEvaluationContext={symbol:normalizedSymbol,market:marketType as "crypto"|"forex",timeframe:tf,candles:admitted.candles,indicators:calculateActiveIndicators(admitted.candles),higher_timeframe_candles:complementaryHigher,evaluated_at:candleCloseTime};
         activeDefinitions.push(...costAwareResearchDefinitions().filter(definition=>definition.market===marketType));
         const strategyContext: StrategyEvaluationContext = { symbol: normalizedSymbol, market: marketType as "crypto" | "forex", timeframe: tf, candles, indicators: ind, evaluated_at: new Date().toISOString() };
         const registry = new ProfessionalStrategyRegistry(activeDefinitions, professionalStrategyDiagnostics);
-        for (const evaluation of evaluateActiveStrategies(registry, strategyContext)) {
+        for (const evaluation of [...evaluateActiveStrategies(registry, strategyContext),...evaluateActiveStrategies(new ProfessionalStrategyRegistry(complementary,professionalStrategyDiagnostics),complementaryContext)]) {
           if (!evaluation.publishable) arbitrationDiagnostics.researchExcluded();
           if (!evaluation.publishable) continue;
           const name = evaluation.definition.legacyName as StrategyName;
@@ -2968,3 +2975,4 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
+

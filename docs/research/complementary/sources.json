@@ -1,0 +1,2026 @@
+[
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-01.zip",
+    "sha256": "9ebc05c9b3d5ab3591edf65bc5c7e5dbc2f96c1efc4adc4ea198c651a99a41b1",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-03.zip",
+    "sha256": "08043384c3336b0fa3eeee06e113a6f1eceb6d3fbe7b2971e9b9fa83625fdfb9",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-02.zip",
+    "sha256": "077d761098eb5f2dbde65457833b9edab41ea6475284a77fcce0d4bec1bfb5cf",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-04.zip",
+    "sha256": "2adf7c1be412e43b04a128e997f4cb1e5e7f895f55b6e1bf66621807f221f274",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-05.zip",
+    "sha256": "2e736b9e792d5ae9d4607d7426e4530020762cb898d580b18d3fb0faf9d2ba8e",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-08.zip",
+    "sha256": "a240d3f766cd5c3db4e0702cf660ae54e327ec67aba169dda55abc90cae055f2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-06.zip",
+    "sha256": "d1d9d5dbc540c19dd882305937f864f59ffffe3f5449a6b05b3f95efe7ca4fbc",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-11.zip",
+    "sha256": "75c4069b8ff93aa5e4064e885077426fd60f1cf6239a728b2d4ca543c0210d5a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-10.zip",
+    "sha256": "b173469216acad36058ecfb0a5432471ec58b3c49032246d4d687dd3af8ae34a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-07.zip",
+    "sha256": "3f471677b97cd3c5c21e9c1420bd7d58c1fe4041a3d2e195369277298ca01ea2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-09.zip",
+    "sha256": "b15817c45e6ca13a907772591664a57e00b711fecbd4285f2a16ced3c7023019",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-01.zip",
+    "sha256": "6c15ac5fd895f26bf8e12b99df6ab9aff637dc94b37128e92c75c19887d0e3b3",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-02.zip",
+    "sha256": "886fca9764139a1d71d97ca28e0a2cb30fe7d6f44df9be2539452c02e3c4e775",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-03.zip",
+    "sha256": "41199df2dd62c333ea306d28de331bfffbbfed03609d100c63b2de1d173f7414",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2025-12.zip",
+    "sha256": "41e977a06b7806ce1398aca5f9075befffd1e6303db891795f3b179c762709ec",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-04.zip",
+    "sha256": "c822801b16eb317f4672e376a73664f2e5f9180409c57b6c7517707f4f873e8c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-07.zip",
+    "sha256": "a09f135066ace6925ce051ddbbdd4345c103423fbe35d32b568942de978dcc7c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-06.zip",
+    "sha256": "30bba473837a672a6a00a181a447446852414e6927bbda6684f873571788e9aa",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-09.zip",
+    "sha256": "07ab960882feb6d3120673a851f2a654c4c3f31f3a74d1f3fc4b0351a8ee1483",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-08.zip",
+    "sha256": "b594301740cbb39818ba60f2835e4636aa06ad53308e25b1b312f1443fe0ccfe",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-05.zip",
+    "sha256": "9a367708c90de999a7a9d3114fd111ff28203b13c8daef77d154b5216fb571f7",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2026-10.zip",
+    "sha256": "da0ec480b8857600067635308423022972e994d9dffe8b0251f0b7813018e2c8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-02.zip",
+    "sha256": "d7466620f50bb4048080ece1deab8eb0298274413a3eb2a9f4c728536ab3c647",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-01.zip",
+    "sha256": "99928eb8fdc5d565d317b0e9685e07fc5f9487510a39b8675d7374cfdfcbec82",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-03.zip",
+    "sha256": "9dbad1e542ff8344fe8610450cf71d5cb98e1af2e8f2d7a31dbe8679ef263535",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-07.zip",
+    "sha256": "e9c3dcdc09de72386d465800c665169c9bb011f35d350f9ba9bc7b4d7a69876a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-04.zip",
+    "sha256": "238c691129962d9fe08aaca46ea367f911e62c58a820a8e5ded371bff7f4eec4",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-05.zip",
+    "sha256": "201829c864a26677ad0b53df5b0491e9eab00e6f48e1a8bf5204dc7d794dd7ea",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-08.zip",
+    "sha256": "51e3ca163e71691ebb43b55d32698fc5c25506ee2e663a195d8e5863194908c2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-06.zip",
+    "sha256": "45763ee27ad110703c6f71d9ec80711de151b8211b14ad98cc978c4d5ede82ce",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-09.zip",
+    "sha256": "9bab9763c1cb2514df907fe6e746405428c6b92cbba12ff987e4820b2a8726f0",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-10.zip",
+    "sha256": "6c51ad0250f4174431c659a3c78f604be087e844c6357e5feb48ba66e6bb1862",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-12.zip",
+    "sha256": "80080e1303ab2c291e53103d703b5364ef7a3da36dff5eaf45044cca74e764ca",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2025-11.zip",
+    "sha256": "4b5622c5a4021b1a0bbd2d1fa754bb9d13f16b996d79b153b423bce0ec154f26",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-01.zip",
+    "sha256": "d710e68cf0dc90759814647dff64be482b4ddd05bf332adb73126885cb2979d7",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-03.zip",
+    "sha256": "9ec5e28db1e0cf093d5c756b85329b43db730d6f95d6ed142a9717044b1423c2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-02.zip",
+    "sha256": "97a6c569361290917a525d54d5f964af1642dc2d281e162834b4685157016540",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-09.zip",
+    "sha256": "f4331baae4c38dea1c123836808f3353473cc28e6c434ef38669698ae79599fc",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-04.zip",
+    "sha256": "b72f5a102bd468d1e3d0c3b88619f1354a29e81616f9a55935d2e00837958e4b",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-06.zip",
+    "sha256": "138bcb6c7c8be4c5bdd8048fa417be551fbeffe4024f64e5bef5ed30d3069d8c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-05.zip",
+    "sha256": "5353c7cd71f610eca5a58824606ba1016efe34ea62fd6e6cd4b7be4b99277915",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-08.zip",
+    "sha256": "52ede96e424bdc696b4b7a30aa4f2f56cd32e58c6598400f25f7b3a8dc6cf50a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-07.zip",
+    "sha256": "2036043c65c50a1d9c817db4c93db0c97366851d7cc972efb8c5e951cb3b5cdd",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-02.zip",
+    "sha256": "863aeb10c3a31a5a9da82bfbcd120740c0dfad5078a579366caf166f58aa9b34",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/ETHUSDT/1h/ETHUSDT-1h-2026-10.zip",
+    "sha256": "ead58fea8a5e4a3f173818428b7e32f0bacfda035896b96fd13a25f0823d5ff5",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-05.zip",
+    "sha256": "b20e5bf7b4b3b3d5c0720ab2d845e03933ef08f15d3f06570b009463ba12bad9",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-03.zip",
+    "sha256": "04b504d8b18dd7e1dce1783add7bf40df0132e6aeb9932a46aa950abb36534c8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-01.zip",
+    "sha256": "372c98abd2da7bbf5e3cbe39e77296efe8ef4e94790c3566da3e7313049be7b8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-04.zip",
+    "sha256": "6d8784d0f2a936547897208aada8b57d65104bd3307cfad32fb39070fdec061c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-08.zip",
+    "sha256": "ff753c960ffa6954d3ffbd9cf6f6a0f8d2b280753cf868ebe4732d0afa5a14fd",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-09.zip",
+    "sha256": "9cbc37023b21bc91802c38689466e2bb69eff22e55d6012c6feb0bb0bce56004",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-06.zip",
+    "sha256": "72d6fb9cab913d98220a06a08eab70a361b5d3fe84ea9701420e5f2cc6600c7c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-07.zip",
+    "sha256": "5493328c22d7804c5d64298e8ac475786eba0810cdb31ed6e6134f5720c5a2bc",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-10.zip",
+    "sha256": "8d96a116ab53375ce88316e027fed319d625a35756122ed4af79d75584133b97",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-11.zip",
+    "sha256": "2a74a61262338c2cf49d65d3c2d8e5a27ccda3aadedeaeed87da0544b13fb372",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-01.zip",
+    "sha256": "cc16e807c075689a73f096b7603c34f1eb289bb2d782ca8f6147e4c42632ed0e",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-02.zip",
+    "sha256": "fa733e5400163477fa7eb544a9a7e04b5c679656720ccb7f92787fcf33b739a3",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2025-12.zip",
+    "sha256": "7c25b753fd893dc697b5e7e8a1d0db904150181be7b7991cc05ba5b08f81cdf8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-03.zip",
+    "sha256": "5e9440665d3e4209c320e2dab897b5c3cec578800e669e1c8fd3503f157e49f1",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-05.zip",
+    "sha256": "0d1aef19746005c140421825e55e482813330b19a82cbc24c792aaa0464778c2",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-04.zip",
+    "sha256": "2f466580c7e6d2e02a67a968428c0f9b987108cc1a3d2ba73061e329aacc208d",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-06.zip",
+    "sha256": "5b6913a64843d8fbadeb1783a2ef064291355a33e6eee84f1a03c7e8786acfc8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-07.zip",
+    "sha256": "4a88a47617d14ba94ae2154732ba724497a8cad66b1d7fd0dc4f88216101e0be",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-08.zip",
+    "sha256": "a25ab3dfcabcf739bd8bdd0aa9b1302865d5c571a5af1ffbb6e4a2b5c26ab833",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-09.zip",
+    "sha256": "e57f44b7df1f4269a06395c161d3618d9bc3d56e623825fc77c615d713a19263",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/SOLUSDT/1h/SOLUSDT-1h-2026-10.zip",
+    "sha256": "01758aa27caa6379505f3a50c0c096a3002de3b2c1ecbb516c6f155c8d31196c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-01.zip",
+    "sha256": "d7a3c3240f2214756249042ec7d914008d13457d2fdba41571607e5243a2513d",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-03.zip",
+    "sha256": "eab50e62bc9d8c8c65b9da0e34af0f80bce41624a6b385148a5c1bea05216999",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-02.zip",
+    "sha256": "3cc05e52175fbee8638a83472b29cae87ed409d3ff95391fe260f94f2a991bf1",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-06.zip",
+    "sha256": "b828c5ecd697ea470abb5745a41589987198213d08a2c205ffa128258d071f84",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-10.zip",
+    "sha256": "d771a6b2e109daa57db991ca7ea5c723da5f1af25d039d6f316c657a096824de",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-05.zip",
+    "sha256": "e9efa6d5f3980d3c5be1a9b3f45d96a1b6bc116b53149d311e506ae1280ffde8",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-07.zip",
+    "sha256": "d88f08146b11fae863886e93981ac9860f59c99924409f759eb3954993bf2e6a",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-09.zip",
+    "sha256": "2d3d4c796ea41015339f0e16142a6da13bc6d1cb5ebcd202a1164ca791cb4350",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-08.zip",
+    "sha256": "be006aede18c8a2e77c77a705994f0eccf0b7364850df35d27e4b2c4cc443db9",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-04.zip",
+    "sha256": "0c2472f4288c96f99b3e0ad4ff705658c7d62b922a52fa1ac9d3abadcc25d9b4",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-01.zip",
+    "sha256": "e7e14cf37810e776f93007d3799448855bd078005c98357a6d16584022290e46",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-11.zip",
+    "sha256": "75de6507975d1d2e615a97aa4b9fb1054f89c14922910b822a0e3b1b71718dc7",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2025-12.zip",
+    "sha256": "a545fd0880bb7fe0a1790897de4e5e2bd25b993832bc2d4c27176b3108832c50",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-02.zip",
+    "sha256": "9beb008667ca86ea8a1fe9739f8a7e1793c2ec539ba9bde329eba93973d9f177",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-03.zip",
+    "sha256": "1e50c1fb04976debffed8500fc95e8418233a0a020497e813774b700b3bba6aa",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-04.zip",
+    "sha256": "197440860948507349cda7242530861f42c8879e551e2673a7bd144a286b3303",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-05.zip",
+    "sha256": "61c5e4bd190326a5de1dbb69a91716b75212573a282792b260b7cced9a335709",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-06.zip",
+    "sha256": "d3760589416bf315de18bb9557cb9ced5d4f92bc89d1bfcd4dbbe2733ba5d355",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-07.zip",
+    "sha256": "1f5f1a843bd6347c9b9ff2afd8f1d90038dfa999ae20840dc14f4561d3d48d50",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-08.zip",
+    "sha256": "20c98a1ccd5eb2f8d8d120d1d96e7d63dd5cacd79062813e2fa8097b92cff39c",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-09.zip",
+    "sha256": "2ebd9f79a198e86070fe860b7a3cfbacc1cffbb85cf281f981ce3d9363c4e6a7",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://data.binance.vision/data/futures/um/monthly/klines/BNBUSDT/1h/BNBUSDT-1h-2026-10.zip",
+    "sha256": "bfc19635c0f337b83aff15ae6b4072d269e61da3528496a62976ff179a8ea647",
+    "vendorChecksum": true
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "139a08f46fb06f7c6a5f0fc51e95e31d7a2c08881c784cb1844ebfb11f6edc65",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "6a44dae5363af86f3afcb5abbd3783f9b85e0ba407668f3681e6abc6309a860d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "3b5f18e981ddf6c2b5f98f5f68d64218a9ce216f35995700b7ead56b9cb95ab4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "5c273e6a27da53ba9588dc12d9da1175dc6153a0d114eeec6cfd959a27218389",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "f78ca8d08d5b54e950f22dbacfe02ab8929ff94851c6578ae51ae0df6873b135",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "41089e5f64271628c3d60799fa8af10aa786389d4d4d4a65aeca1d38e6be6f08",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "b6cd7cb3c22c69e5d32acce0efa2f2e29380d62c542db90da8e607b72a8f35f3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "f8ca97b98edd1667640afbe7013a73e92a5960b227102274c2a495c108186811",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "f6f7550912e9e5e771c87462ff593f50b9c9ba86b5bf92a67aeea72c1d8fd653",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "178889638406360c128754cdc1e44614924d0bb38cd174dca9c055590404ea8c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "e732f8d651396d26732d93126fde0127116bb2b0226a7a38931a18eb730f715f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "7296bdea11fb46a384a8d3c03760b99a1004428a68fc23d44ad0a6e04a575a13",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "544156d24f4ffb33bcd53e7993fde6af7fe31d67cebd3583b23a033f679c1858",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "e74aaace9992c381d26c7bf9015bd0c53e41e45ee3e74368bf6ec8b7f9ee692f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "3d346dc86168de92098aa77d951e5a54c074b38336e2fedf8c402af0cb45b506",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "507510c15e93a20cafc750e9195ee59cf44cf8a6107d74558a82f2bfd9e4a662",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "a92cc1e57a0851c777004cfcc457ed5b0d2c058ae24a75d4af77cfde47e3be82",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "af707bb7483a855a7c3e85d4223e3de087dc1ad76656008442c75f0bd125fd5c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "51a368d94dfdad6398155cd878dcf2a319dd2ba529f532ee074fd50e92eee925",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "0aa2323d9ddbe14e5aa6de78035a1c8b1afbfea2a210f7686f3fd353264f0f2e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "9edeccea1b66b5745971e134578c01baa882949362bf3997d1f7d79a039148b5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "ea90ac18e8687cca0c5560c37ee0fcbe0adcc184922b92eddaaeb6f3d7c2b3f5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "b9764fc4bb0c0a1926b5704cff4c0abc4a62ce1415dfcc442f9a543faccb3f48",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "89e24bef1c184a4e03e0fa82227b3a2a9026b1ac9be179209f6b436ca4b93c87",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "1895d6f164b819fa2dd4400c666dab92daca8831b44a27d70a80e0ab9ba7a757",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "f77525ade7280e0375d30f3e1ba255745c8cadbcb9b99ed8ab0988258a848946",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "ad7ca9903f0d46adc540c42465d404d4344de6142689ee9477895bf4f7e561fd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "66ca2ff93354d3816956e516bd9460fb46043138918ec6047a648a1a3832530f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "d0d9b3cbde324886e30f0fe65c84261dd8df9a0672884ed0a421dffa822c4c65",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "a4d21172ab270a979653c08162402e27934f73a61f0d27a79a21eb17db3321bf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "caa605d4dd1094e9fe7456ff9875085edc809f7728de3a1b2f77afc3bed7ddbc",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "0566de01219d2a01a82d7aa9eabd70474df8bf55458f412dd23b993126e01ee4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "a618f0227902e1e7644a7e4cdddea7ac2fb7aa97b2485cac020a8634112e83e1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "b3aa8b094fedb094d9e975c2f93c038a3a1fbf4239eb21a860c9f7378318034a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "f36e890fc9941b334b180c41bf65b983ded48c8f7e88da48f41cc0064d342e07",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "74c006bf1d6e635f1e76173bc4cc2ba86c95a98b58ae8d80d9918573173ffc36",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "f6dd277b87e070a5890698bc400899c60ece3f13c5586356d7a6a2ca866ae4d9",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "049f1e942ba4dd5ef3e48a6cc91f1c21fc15aa3a61bc16a87cfc0b182d5ebef6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "76c5b3c3ac7cfe35c84f03496666d53587f334e1a6c6b962257202d1aab3244a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "8ca0d964ac6d8d29bdcdd69989d405ce28863717e4ff20786a671fc0d8567874",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "e8694a3e510a45d17c85705685452f35c87cc03121a744ac4aafe355d920d095",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "dba40dd5f5b6dae36e781d9666d39eaa719eb5d9b7b6fe1c1ccd2e94f07a524b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "120e92a8d26ff7396a10629a6292c27c6ad15edf05c1097bc0fbc63cd54034fd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "bef9598fd10e0eb0c0dda18ebfcbf17810737d37d12bafe7fb3094402fd3f577",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "37b2de4d069f99634f7127920531225b171c7a7ad7568da0fedbec845e5a03e0",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "6c82068c6e7ed57aafa90a717c65c4773349e7e565d6a974878df53ca50c7b1c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "d2019b5f6b20f7b6d99cbf21aaba978ac171a06df44248e54719edaf8f0bed17",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "3e8d0ac859c6c6c3e47265cd899babea9a77be5f3170d1bbb5c7c8bc317990a5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "d501c42a0ec44b631ede0fe837a1332a9c8ced7ed995ff54a58dc6829563ae48",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "9dcc6e3594c9c64ea16e1f8c6e0d23fc63193422e3cc07862843ec872dc290d9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "4770cc7f5b5b658198ea3567fa26e80c6060c01fb801f08e8f46146c4663e6f1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "baee643221593dfc1eca73c84f8b995e6b8e8204b0a6c39884ed021a1253ff93",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "838cfb920a9800b7ab22ad50c64793760335544977ec369e96316a92c9cd2d99",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "4102b4a218868bd2296b4b57b2422fd333c1fbcebb0a19c6af8e17515b96d512",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "39bee2c59ac80fa41d2bb83f6bf2ad8000eee8dbfa94e1cecc967523ca16204a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "0f9a267ebce022624b0af02210615de053a292fdb3fafd2f883ab8a42debf40e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "aa4c036b2e8570fbd14bb0be26c89e6c98cf55b795eb524723e3599fc179b3fe",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "a4d50175cbb8bdc345dbeec16982955e716ce3999c12ca9e6211c5e73a070030",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "cba7ce69a247ad35ff6770fbdb125584ce8de56502782f2332ad097ff39bfa6e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "4edada3854f1523fce294695a13b8116404f9b6dbb7553a1846b210fea6d1e60",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "01f68201a715f629e720d85c283deab780107b2f4ff06e1a7e758ffdf82e423a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "c337a1b27324dac6c1038c72330e0835b19b6cc4ed917186b96764313e631d5b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "602dc3f51e1f5d8f3bd538a1cd3cd31c8b2ce27ffe3693d6cd55c478cd1b3b60",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "9447a28a784ffb6ba3647fb712718399ed810bc8156078d28ccc4aa6077dc785",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "cd8754c57742a7c78ac1fd6f956fa3e6573d2d831bc87f6a53ab75fe7a1e7826",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "12ac8cdb6fdc17dc418b8371eabe00f9d6955e343cb4f30dd703b3c43c3866f5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "7ed7bae89c63b05dad4ab7f1c39558bf486cb08f23f2f1485b26d2ec194b088d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "ce1d9115f2b48b227f2253ca8efe2249b826ce197bcd61633ef55be3874aa84c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "130a6ac70676d526d84f21f0f9e08d84801fcdd05417442280d8c006c7fb36cf",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "815d006d6085002249d0cb69e72aac078c2d0de523bb5b75ba2a7b3db48b5f5e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "be701e141cf5a24b2b27c6b717fc144f5ec6c9fb32e881bba6e8fcc1ba939ac7",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "c104811aceb3c798cbf7f5a25a229d5f87724bc234a194c4a9287b6856b44fef",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "3e3f00b075186072a9aa3a8a03bc60a0a9aed7f6deb1404d1f544786ba82b08b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "f03603b80a1524e746070e597881557ec93a3af5ed98759cf27aa2699ef13997",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "279e5dbaa69e1dcafa904133992db754abaa2efce4be360e6cb25fc12bd94fc4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "ab9dd8dc9a0ef95712f6af080a22e64850511a940620b24d694c4e538619ebe5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "e6fcf3806d0786356b2c4b2fd35719c3565876dccf86a61ccdf9f203b3d84f11",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "742f349543b36eb83c128085498286261d52f4f84e6edae0a288d89d3da07b3b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "f674c3c9d47c695336bfd84989d246f5483a700a3bda762ab4d460bc309ebf29",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "f07a1756616057fa9a0517451e48081d99cc0bee22a72e317f5cb03e494cc10e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "462237aad08443d5ecdf25b00e264a52a85ab07a7523303252d664d32e625ad5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "e2c1727dc3c77bf34ad9b1028d94d9bd4a53b4c8627f3257dd93ba4ba21fc6de",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "7fe8c0af299a7e25becfcbd391b32e2db3a97aa1d9162acc738564e318a80382",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "b7786372f5659309a84bdf6a2c449fb74a4ca37fd559e00b40708b59431fd361",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "1c77e3ab095383797a6fe762460f642769d514719c5d21e3a822842d3360c48c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "a20156e4c250c266a71c21491427e67e2bb87ae5c5a440981734beeeec25c514",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "d49bed74953472d14e5ac28da3172dd202ce782aa9c0c94d1fce846aa07c16f1",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "bb737436e605c2ee29bceaff258370f6f1268314148e544bb45c244fea86a521",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "6c5845d80295fa9aecad0e1d3d65e02dc1cc55de4829b671b754692a977c6a9d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "4f0aba3019916535b87edd7321136d9a3c043d395ed85109726585a9b572681f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "a21797dd4eaae29cb5f291623d2e0e159d837eac86856e6eb54e0f03b7e2c2ba",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "4a62a72fe56f7e14a4614ec6f0aecddcbb075d8f87303b51c6796e5154e0f236",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "7e0d960e0d0ad01dab7e19ef828223c30318c268b53ebe8ccda16827baed22b2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "2cf91825b08d2d875f62d913a43d4cb83e9d5ed03f6743b9aecec1d7dae982cc",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "f668f412f95287e182d83c490635af056d030e0f01f8bb6c385b0a307bb33998",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "936bb8e909397a2e21ea63c1173954fe66c701345af2dbecb9ee2bbdf50df546",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "34a85b1539efb1f66a25f0f1e08a2e5dd2d240620478890edaccfc6aa48d42a4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "c60d277942cda34d107a40db4edb45f9fc91b474c34e23a2c8f18717a1580bdb",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "d16b5f0920d86d164c02ced7e671071c085282fd8dc92c3053457f7c724de61e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "9c10f092b04be6977e1fc1743f5df943c267123296981baa45f9d872b452967e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "af5894dd0cccd35d718da577eb70dd97e5338acaed19bb5ab3a4780122bef327",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "31bfd4acb2d5a6077aea0b3634b0cf5e563cf1eab0d4819c974d0db04a2489df",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "b9cb725d9e65e45d4b3e629ed4dbd8257dac5a893de5bd0c5fb61234f248543c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "5cfc85ac64d1a0203ca1ec1ed6f4ec27d9a97d3dc40a91f3eebabaffcf281a10",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "30b052ac7725b712fac259ba882497eefa99e961c0eb6fcff9dd10ffe43af547",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "d9eb48cb0bd404d47c06d7b4d3db4b1fbaa2db76b3137d193f90ef242f36d854",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "378026672b6ea8fa283a2686e50ff9e16976eb8242feb5f04791a2d4f1587e02",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "57e5d5c9b65d7f92b92fe674ede74f07831658181d5c3c772efc9fa76dfae4da",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "61063b7c0ac2849d8022ac0c304cd31b8ee3accec8845ccfbc1b12d9033adbab",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "48b50a256aa04060187ef269268e9615e476ba8b81a60ffe7ea4922b91e98255",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "644f7684263109ac66aff9a79b3c1af0f2bc8cd8d7491c45e0323db8b10e9c29",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "c14080a7749fca969cfa3e35e5c2e194ce0f9d04bef5a9963258db917b13f73b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "efc9763b296a92bdd16a9a3239317f6d814c4a9eef1fc4f1379c1bf4105db3b4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "4e92b0e07f181b1fbf0301be1927982de06c8ac917fe42362c5b06fbe51b69a5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "10b697a540f874eeb8de96ca4ffc7d42d65026e84bf3d50e4292336d4506eb33",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "0e055b6dc4173093cd5c8b18b0e1a116b1dd422355d85f917a3eaea03d0361d1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "2b7da3a0cb5c40abf17e5732fb7ad271ea2b32eca6e2d0400302ad35d3a01b66",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/GBPUSD/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "e7426719aa908b1bfc326cc5c565083930525b7051e4785fd442fa56bd93058f",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "7117bdfe82c16ff32c92fde65a708e7a9a122894e11f402b5f0ffc25624c3e96",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "fad2024d690865901e1b79556090bc8d930ed5663cfacc25a756d7b69e4b1bb4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "822a1cb539162d8f86a7c249565c888003696517ad80fa566264cb780bb050fa",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "cb4f051cb6a27feb7070e71602369a45376619b15401ba1a9c26767b779a1392",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "5ffae9b0656a1181ede22896668c789c2c0342ff8789da503d6fb748efe2b067",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "c513fb57863d499336dd8036f20a9948841b38af4d4e6fb8ea9ff05e693591a9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "09d7011ff95af4e08b481a33103659000e09f89c6704396d3af48fb49e2e1c55",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "80846151ed307ca6bda700b4e29875b3006c9817a9c86e5cec0a1b0fee7af1b8",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "93dc9ada4ff4659469c61b175cbe00729cc7024a2666af59522f13b456e97516",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "16270bb78e22957cb491b28a6a457f067b275cb521212d8e39328a143b0a8a2a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "b758ef59d1f56133177aa61adbdb92cb5f2c18ca39608b6daca256a14d35fcab",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "3c72452d53701faf92fb8f2ecd14e42cfeb360851e5ebbbead7ff55d5d2c83b3",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "7fdae9683636357ab070db68eb8c62c98c260800dd02aed1b16b527e97637bdf",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "36c2db9530c6f5893ea3066341f1899dd7773dc87dc188d445097e8fc933fef3",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "4d41cb4e9d8bafacca1b2ca03922a82da23a4f2308055685b50c34fc86ecf0db",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "05442548547bbc8904793071838e8647baaeb13c073a38203cc4edcda8a193e8",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "2c56f63ea97c1d6919c37d860612d88f2c885e29664a803e6bb436b3d0e39bdd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "ac13bbc71654c41ac36f3feff79f91e13dc903db78b1ec9435b022d283f77b2b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "b06451ee7dcdc6c52b8c1f035adcfd516371497bd82c8a57f373c22b0beae0a8",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "6ccf78acc4dca84cf7a964b6d0aac5cfc6f644cbcd4e6dcb43483dacda4882ad",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "79c910fe9eeb87656ce42f3755f56019f91e5d3e38d5abecfa1a376714e5d6f6",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "27df5e04a9feb1803c433369223da8989f1e5630c171951a5f21228e1189009b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "a5a450dad32dfff8914869cea8ce40b20e7426e05f91b54a2158cbfb18d8b299",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "fc6be493919c620ffe5b48c431042872635c30944a3920bb9bcba9421a550033",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "2c6e943fcf77209432177e24f39c73630c10620c3f345624c0c43de2de3318a6",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "9008763261e90e21a52d568b8012bd035f36afbd6fe6a1951418cc3987396306",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "6ea7518a5e5f934afa205aa159591c1cd1046a724f94816d2541483b9fd3b6fb",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "39eeda30e6a3bded8543a1825c05349d0a5bd230b2bc2b07721b2e1550734282",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "40aec8df63ba9b31a2c9c64b7a44cbefac8cd4d34a61482bf029b25353e4dd81",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "78efe544dbc879f383ec684e128551702e48e4efccd3b7ce4b076afaa8b580d8",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "4572cc5450e69a2dcf6686e71e30b7fdb7f6291e920594621d1958331baf2a17",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "7faf9e02b6031b8f289497ae25dcf3958562055f00cf3c663953c271f8217166",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "7e235572d363d7851d20e501bcab260fee07683a98485534b182511d15c5330a",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "d1001fef9d3c00b7bf936378bb90748d6abc82889d5362df78ea9b662fcb97ad",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "77a46092075be2bbe069bb7fb894057dfeab7fa2369c578ecb243e858a841448",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "c7f2f39a8b6f1d282e111b672c69f88806ebd5aadfbb720020e6eedaf1f87b45",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "034ab6c1cc4af0386dcda6e29f33f96a302ab37a190367178da3ba4fd6d0b85e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "49afda46cc0653532aedcf4a5cd3a1bc8665f7e010defa6cb767b3c57ad93399",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "5a9d225785055d98d8cba02d091d843688ea9fe5ddd600ec01cf9f22625be818",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "7f3454037044abdd24fb42a9527889b5c35f6ece4e21006a92d262af06ca98ab",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "82188ee21ffc1769bc5258bb8b4afa692522b2f010996500055845501782633d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "17b2b712441035eb313cd2069657781df68741bc2bfb6f368c522e4810d72964",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "ee521ebfd35ef1ad90e5f7be9f7c20b1f5eeb55c62becc9c3988af661b290f8d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "7d3af6688459f6d9a9065a3309ae3f350909cb9a30bff68020ffaf29eb3b46cf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "5d2e373fd0a3d0e3f305fb1f7108976ef393236c95d9ac40745f8f11607275ff",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "4ff99ecb4bac4ad28a751254e02d110bb63a182545213bf9f4a1147ec0d4814a",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "178ca2737260cc8fe016b2dffbefe16ada35edc5f15b235434ed58f13f6880a3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "55d2cac3f48bdba3c1342bfac5426a0a88c5553996781aa72084f8dd5143a1d5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "15b93d177d099ae3174eb5b16c9b30270a963d4da7142cfaaba498738fd7e950",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "30b23a0cadcbbf4033fb9986111679c2919475b238b469b8cc2595e5a056f3b9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "289253e507e060121529cb431239fb433bff6d5cdb1a1c27220dc1cd188f4ea0",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "258b2f9e75e7b624b08014bc1be0ca1caa1d4adf6db99b9a004ea9048720ac61",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "6168cc7205766cf4b025268fd9a0da0e090e27e6b69f11b1c803c819fc6410b3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/AUDUSD/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "0ad9df0e6a4d77b1483180b0fba9441436395e7182d7a87011ba701ac21192fa",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "ebf9b9e0e6c1b6b01b5864ed314f460a4ff5a8e411e177d690642ce6cf9fed1b",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "4da7410f0810318e99aeb1f13c4ca907b40913774f455c1e4f4003a3b5e12de5",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "69b6ed28513ab6a543b42222c886438043c1f010ad06967c8e140d2f804d30fd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "c885df92e3b161edc871bf9e5bc3d138fc311ad67c1cacdfaf442083cb52bac0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "af92b943e6a1f8f00796007fe272bb9f735554e952561d60377e804018be4594",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "3c5506c242d7cb3b3b6cb4a7cb34a341e7eb7e8d7c3decbd0e229c734e1bb841",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "6163e65ff7136df7ac3990aa44bc0a54eeb6f5cb20a6ec58d2e3c5c4c5c4a9be",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "ae5ca57a087fa9a0ee93567e24022b61fc04887590fbe84ef5eb5a133d08fbcf",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "d66b48679b90aa9759fcd70c388a0c0a1449207d54f7e103c396dcbdef7f0f1e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "a9a35ce47cf5d472e006ebe01d0c406934c45a51887a44f89ce279a726061a7b",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "63f6f291a54f242aa1c3c2c41192646662cb0dbccc33262a790378cda7133021",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "6cbef7bbce77dc654032db50d32d7b6e4ae3d0cd1fc9c0085f253d734877442e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "824d85d996acd2c348809a4f8bf7e665f3c98ebd11e0cf003b07ebd465fb005e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "a11a8215b47f3860e485c54c0c4c4f58cfeb85ed351e7e329758fa1595d3c979",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "53cd85ffdd07eb220e10ba9b82d820e9f1c14ff50bdde3cc1609782881a1d044",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "908343439ab90d7e7058113ac57479f04c579db7f62201a8cc111a2358a14d51",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "aba3e28e9a9df534de8e58724a92314c4151ebb7f17c599ee4c98715b202aa5f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "83bdd834d610da76d41aa9ec1907513af5265f14a9a2c2867fd3e8644da5c07c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "ba83ca71edfb315838c6531bd5f7557c642a1f7999170e4887968209e9839854",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "44e57845176bfaf6db2f2a12903a26ce54e86753fccc78285fb5aa694f33efec",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "64629903d9de5763e1b0a17509c0ca432243b9aeec3b3cc0d8e230b4f0a60cba",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "d099eb66714d6d67b5faf2b938e2f83f21d013302395aa8cdeb603c317766f38",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "2fe2b90de573959b74d30a278762c9a2d5aaaceddf091f6dabca9a2c4a7a5000",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "f8610f8c483c7e460988b5eaf7fbc3004269db27ca61d66c81259fe16a91adff",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "961fe5e1e4419125a80f0cb1d4dd5d3c96a9c587faca8e019fa2874aee8d3fcc",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "64b18d60db109c375769bd12781ae96c8f5aee38623c4dca229690ea847bf027",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "d6d7dd04dafb9eaa931f777ff7cbae3a38cab09427831765c5219b2015d255db",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "b82f3719165153bd819b4b0f3d56683442a53c1fc16a9fdbfb80636dffc29667",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "bd774d8958b5427522a154d037829bc30e55c809fa7501f2a20ea9540f499c63",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "3487d1a341eb23f87ff03f14c5513024f1e0ede03aff7a53b67ca49614fabfa9",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "ba617fc1722a099d6be24e244ce30b48647814fb7bd2b70c1ba34601d1cbd1f5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "89e6d7ee99abdc1b80118fbc8f2d4856fe25ad4cc63da9bb502f013dfa7837d4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "d1fc3c2b1ce1b3ae6eca996441d66b2858d514a322cffd9c086f70a8b56949a3",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "a082dc84f1f7c05662ab6846dfd76512f3fef010c57cd1fb61d8a69303fdfa59",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "beeedee22711711cdf9fc1fe419209aab2e9e6dd390f030cb412581b2bb9f395",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "78f14c131f5a12c9bf2486a4b8ababafe583e18ba4619c9fd9b1c13dbcc9ed93",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "d74d0c06e0ed97ad4d6dbb9e43d65863d74f23333df2d27026cb2a09f736c46e",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "a9539bd0c3d668f550a9bf5037e3fa81f627238a5e95616c976508d238f33e85",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "4b511261fb660aff326dfafb93128a3345717426269b464407d6bb09f290e437",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "ba0e2e47e6af6e8ec0def2dbc71ac06e926b4b4cd6a84ac6f666469cd77988fd",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "13372b6fcf4a1c59002e8b479ec664d9886d6f8db87b86d50ae15d0dd71a8aa6",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "c86183c65a3ed864754f4960436ae6c6c0139f5e81d44a10ee176785e610e3b0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "9d442351faa213586abc4c02a99aff08afef7c7af0d82a0eb1bb18dbf5025321",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDCAD/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "a01873e6252b6ea360640245922f8c9425c4f910313885d08d72f7435108a088",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/00/BID_candles_hour_1.bi5",
+    "sha256": "b99be9c8f468f4930e659df8ccabb8d0de4d1189087c8687a7f1ac773b72bafd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/00/ASK_candles_hour_1.bi5",
+    "sha256": "e7170e29beccfd4f55184b76520a25ad4c48bfae633f49f7da41a6b2717a7c86",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/01/BID_candles_hour_1.bi5",
+    "sha256": "34a8d30e2de38f80ca3806d5af1853b67ffcaac3adc828fb0ac89957cfc65bca",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/01/ASK_candles_hour_1.bi5",
+    "sha256": "4ae806bb35f3537b6e3b95094e6d44ccc9bf9bda689e4b9bf5c93cf1aaf024b4",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/02/BID_candles_hour_1.bi5",
+    "sha256": "2366652d81ac9ea6adf807153819ddbff67602c2d0b84a03c07d62579d5485c5",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/02/ASK_candles_hour_1.bi5",
+    "sha256": "47fa37214d07d4d7ced0da432dbdef7cd1b2c8939327a9870a1dacd6416cfd68",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "adb3c2f5966afb8acf6074f2c92593f48b08f4773ef59c40a7bddb702ec4cdbd",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "ddeebfe88efeb33825565bcf6c49d65933a57e224a134d62888d207d434191f2",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/03/BID_candles_hour_1.bi5",
+    "sha256": "2c11fe6eb3d263868c83ce876b9bd250edc71199c816a504d1a621f8e030f50d",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/03/ASK_candles_hour_1.bi5",
+    "sha256": "922fcf7fd7e35085d79dc6aba7ecaa9feabd5b074f4ef6a44ea195c806e496b1",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "246c73cdc5504e9910bf50b54eccfd5f40c1d8481bebe2c171fc8d2211308748",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "dc7dab4746058e51fafc3bb0642b3017b05ed4497a2c8c1b8bde5c4f63166115",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/06/BID_candles_hour_1.bi5",
+    "sha256": "19222c68b5417d963957ec98e85e331a11f696a04881204a9fafdc140585c679",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/06/ASK_candles_hour_1.bi5",
+    "sha256": "aeb64315d41bb33ee81e23dd22220422c29afaad8cf6ee090e7d2a67415df4bd",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/07/BID_candles_hour_1.bi5",
+    "sha256": "50936c179898108a35942ba195fd46d8271737ad7586a6d0e954c454d8b4e522",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/07/ASK_candles_hour_1.bi5",
+    "sha256": "03d780e6142634d6fb8d03195ab23a93c956e23d99d20ea2673b6ca0797efe1e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/08/BID_candles_hour_1.bi5",
+    "sha256": "0b121a285cf40ef4ab901e6d999370211318fc8d7f1c449354cd45d7ae866c70",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/08/ASK_candles_hour_1.bi5",
+    "sha256": "dbd699189e010616991f4403016163bfce5f202eb16b482ff4f65ae22f77ae94",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/09/BID_candles_hour_1.bi5",
+    "sha256": "88d8aa62a991437024e31a27f0f00bb24ad7d46e4a1203e3eb5bc6c7362b4d6c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/09/ASK_candles_hour_1.bi5",
+    "sha256": "ea9b11f0e5465e18f53f467968adea770a889d5ad6ba3a49bdaef0e5c7f4d328",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/10/BID_candles_hour_1.bi5",
+    "sha256": "e261303e1938e5c8ec727c1d84d97f06aab5c7f7affb2dbf4b9fef627f175c7f",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/10/ASK_candles_hour_1.bi5",
+    "sha256": "d4d000fa23b93b56f74aa80344f411e2fce28142af52a7d38a26801456df3d61",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/00/BID_candles_hour_1.bi5",
+    "sha256": "66a967a0c98fc72ab7dabd4fef2ef79324752fed1e6332e5b6914e352775ae68",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/00/ASK_candles_hour_1.bi5",
+    "sha256": "3d827104284f6559281e9936f75282d009957f31cb5276c965f2a1de69c2cc53",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/02/BID_candles_hour_1.bi5",
+    "sha256": "f37b0087edf5ba7cda602c1e2e630c93abe477d3a2063512e56e296cfd60abce",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/02/ASK_candles_hour_1.bi5",
+    "sha256": "648bd796fed37d5c65645087d7c348a6f9e885197ebe8fbbff37c20785b31431",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/03/BID_candles_hour_1.bi5",
+    "sha256": "95beeb07b7dd2dcafa7e74416d642db955202fc8dba805829447a873bb565655",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/03/ASK_candles_hour_1.bi5",
+    "sha256": "7935000e8d5fed609656e8fd4824c3ebb1f1edfcdb29a42f11a58044fa6d9863",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/11/BID_candles_hour_1.bi5",
+    "sha256": "dbf8dc1f7c9a7db320dae1d547e568fb00443c44929569298fc11be750dddcee",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2025/11/ASK_candles_hour_1.bi5",
+    "sha256": "8368912e73b13632a8aa584655d42abe44d59ca810f9023417ca2de74775812d",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/01/BID_candles_hour_1.bi5",
+    "sha256": "4e35b96392f4e8856d784834d55cc7f5de3dc4fe0add8492fb6df3e6d1ceb0fe",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/01/ASK_candles_hour_1.bi5",
+    "sha256": "4849dc838b7f4f18c3e33f78052d670de159e54eb9c3803749e6bb0587db962c",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/04/BID_candles_hour_1.bi5",
+    "sha256": "0004fd64da259f9416eeebf177c87c7d02a371837f04f086df21baa9eaf59c05",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/04/ASK_candles_hour_1.bi5",
+    "sha256": "8e4def91c7c889694f49db44f48b7b6ffc70947e37a16fada8968aafe627adc0",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/05/BID_candles_hour_1.bi5",
+    "sha256": "1d706b3d2182fdf49c56e98d0289a0e72f0e382440da82fb7d1ca87a68f02b62",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/05/ASK_candles_hour_1.bi5",
+    "sha256": "a5ba12bf53dd804a89cb0906a8b52497c7d9018ff54c6fac185b9033eaf50fd6",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/BID_candles_hour_1.bi5",
+    "sha256": "3142c1880347df8c3f28b8475dd970ad737bf299ec5d5e2f4cdb04b040662f99",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/07/ASK_candles_hour_1.bi5",
+    "sha256": "0262edb679cfb4b3e8b7d01e9d9b45e56c81f2cdbe701c245cce852fc9a8f63e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/06/BID_candles_hour_1.bi5",
+    "sha256": "d703c2adbefc429620d0376228b19dadf5b557fcc543cd06eec62918e675ab4c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/06/ASK_candles_hour_1.bi5",
+    "sha256": "c16d0d554232c21124a8e36f5f9205c17088ebc36b250ebeda3b3da621c89c1e",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/BID_candles_hour_1.bi5",
+    "sha256": "89991525a3e22dc416a89fe7b157d0748563a9b6498a93e43694c483c82392d2",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/08/ASK_candles_hour_1.bi5",
+    "sha256": "10b58ce5be82bae5bcfc2b39b5b50fbcf93614cb7c1dcd7f21a094002a6b8870",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/BID_candles_hour_1.bi5",
+    "sha256": "656eb4bba7123b31fb9085f5f1416b8e28ee10e949ea746667484eeb5bca9fa7",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/XAUUSD/2026/09/ASK_candles_hour_1.bi5",
+    "sha256": "706571a71589ddcbf8167c943461157135b1cc106adf903d1ab8f9cf7bfe0380",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/05/BID_candles_hour_1.bi5",
+    "sha256": "7c420206ab218704b0fc05ff78b7c46e64aa11dd35b41985eb980c30790bc2a4",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/05/ASK_candles_hour_1.bi5",
+    "sha256": "b2dec97210d6b1ac448cebca217e30303e6dda5cd16716328cb2dfc90cdba5bc",
+    "vendorChecksum": false,
+    "side": "ASK"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/04/BID_candles_hour_1.bi5",
+    "sha256": "f823eb6c45529b77d33d7a39ffd4dec0bd4f1d9d553df34cc3109744e82f949c",
+    "vendorChecksum": false,
+    "side": "BID"
+  },
+  {
+    "url": "https://datafeed.dukascopy.com/datafeed/USDJPY/2025/04/ASK_candles_hour_1.bi5",
+    "sha256": "024ac8b09017e0bc513716ae686c992605c4758d786c235754afbf3b443d27ad",
+    "vendorChecksum": false,
+    "side": "ASK"
+  }
+]
