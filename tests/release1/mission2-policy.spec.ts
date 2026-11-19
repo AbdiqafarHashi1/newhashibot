@@ -58,6 +58,7 @@ test('authenticated Admin opens the browser ledger lab and downloads the saved s
 
 for (const role of ['user', 'owner']) {
  test(`${role} profile cannot open either Backtest workspace or CSV tools`, async ({page}) => {
+  await page.addInitScript(()=>sessionStorage.setItem('hashibot.owner-preview.v1','admin-shell'));
   await authenticatedLab(page, role);
   for (const path of ['/admin/backtest', '/admin/backtest?workspace=SCANNER']) {
    await page.goto(path);
@@ -68,10 +69,31 @@ for (const role of ['user', 'owner']) {
  });
 }
 
-test('owner workspace preview cannot bypass the strict Backtest gate', async ({page}) => {
+test('temporary Admin workspace runs saved research and CSV tools while Supabase is paused', async ({page}) => {
  await page.addInitScript(()=>sessionStorage.setItem('hashibot.owner-preview.v1','admin-shell'));
+ await page.route('**/*.supabase.co/**',route=>route.fulfill({status:503,json:{error:'Supabase paused'}}));
+ const onlineReads: string[] = [];
+ page.on('request',r=>{if (/validation_(runs|outcomes)/.test(r.url())) onlineReads.push(r.url());});
+ await page.goto('/admin/backtest');
+ await expect(page.getByRole('heading',{name:'Backtest Lab',exact:true})).toBeVisible();
+ await expect(page.getByRole('status').filter({hasText:'1,159 Trades'})).toBeVisible();
+ await page.getByLabel('Trade source', {exact:true}).selectOption('ONLINE');
+ await expect(page.getByText(/Admin workspace is offline/)).toBeVisible();
+ expect(onlineReads).toEqual([]);
+ const sourceDownload = page.waitForEvent('download');
+ await page.getByRole('button',{name:'Download Source CSV',exact:true}).click();
+ expect((await sourceDownload).suggestedFilename()).toMatch(/source-trades\.csv$/);
+ await page.getByRole('button',{name:'Run browser comparison',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Net return',exact:true})).toBeVisible();
+ const resultDownload = page.waitForEvent('download');
+ await page.getByRole('button',{name:'Download Results CSV',exact:true}).click();
+ expect((await resultDownload).suggestedFilename()).toMatch(/backtest-results\.csv$/);
+ await page.getByRole('button',{name:'Server research workspace →',exact:true}).click();
+ await expect(page.getByRole('navigation',{name:'Backtest workflow'})).toBeVisible();
+});
+
+test('Backtest still requires login without the explicit temporary Admin workspace', async ({page}) => {
  await page.route('**/*.supabase.co/**',route=>route.fulfill({json:[]}));
- await page.goto('/admin/backtest?workspace=SCANNER');
+ await page.goto('/admin/backtest');
  await expect(page).toHaveURL(/\/login$/);
- await expect(page.getByRole('button', {name:'Download Source CSV',exact:true})).toHaveCount(0);
 });

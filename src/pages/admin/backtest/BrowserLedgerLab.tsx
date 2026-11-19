@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase, isSupabaseClientEnabled } from '../../../lib/supabase';
 import { LAB_LINEUPS, assertLabAdmin, labAdminAllowed, normalizeLedger, parseLedgerCsv, sourceTradesCsv, resultTradesCsv, runClientBacktest, type LedgerTrade, type BacktestOptions, type BacktestResult, type Lineup, type ExitMode } from '../../../lib/clientBacktestEngine';
+import { canUseOfflineBacktestWorkspace } from '../../../lib/backtestWorkspaceAccess';
 import { onlineOrSaved } from '../../../lib/clientBacktestSources';
 import { executionStrategyDisplayName } from '../../../../supabase/functions/_shared/execution-strategy-presets';
 import { PERSONAL_RISK_PROFILES, type CanonicalPersonalRiskProfile } from '../../../../supabase/functions/_shared/personal-growth-policy';
@@ -25,7 +26,7 @@ function EquityCurve({ points }: {
 export default function BrowserLedgerLab({ onServer }: {
     onServer: () => void;
 }) {
-    const { user, profile, lastKnownProfile } = useAuth(), [denied, setDenied] = useState(false), role = labAdminAllowed(user?.id, profile ?? lastKnownProfile) && !denied ? 'admin' : null, roleRef = useRef<string | null>(role);
+    const { user, profile, lastKnownProfile } = useAuth(), [denied, setDenied] = useState(false), offlineWorkspace = canUseOfflineBacktestWorkspace(user?.id), role = (offlineWorkspace || labAdminAllowed(user?.id, profile ?? lastKnownProfile)) && !denied ? 'admin' : null, roleRef = useRef<string | null>(role);
     roleRef.current = role;
     const [trades, setTrades] = useState<LedgerTrade[]>([]), [source, setSource] = useState('OFFLINE'), [sourceChoice, setSourceChoice] = useState('SAVED'), [notice, setNotice] = useState('Loading saved ledger…'), [error, setError] = useState(''), [busy, setBusy] = useState(false), [o, setOptions] = useState<BacktestOptions>(initial), [lineup, setLineup] = useState<Lineup | 'SINGLE' | 'CUSTOM'>('PERSONAL_5'), [result, setResult] = useState<BacktestResult | null>(null), [runKey, setRunKey] = useState(''), [revision, setRevision] = useState(0);
     const generation = useRef(0);
@@ -49,12 +50,12 @@ export default function BrowserLedgerLab({ onServer }: {
             assertLabAdmin(roleRef.current);
             install(rows, 'OFFLINE', 'Saved cost-inclusive research ledger.');
         }
-        else if (!isSupabaseClientEnabled) {
+        else if (offlineWorkspace || !isSupabaseClientEnabled) {
             const rows = await saved();
             if (token !== generation.current)
                 return;
             assertLabAdmin(roleRef.current);
-            install(rows, 'OFFLINE', 'Online connection unavailable. Using the saved ledger.');
+            install(rows, 'OFFLINE', offlineWorkspace ? 'Admin workspace is offline. Using the saved ledger; sign in after Supabase activation for online history.' : 'Online connection unavailable. Using the saved ledger.');
         }
         else {
             const loaded = await onlineOrSaved(supabase, user?.id ?? '', roleRef.current, saved);
@@ -136,7 +137,7 @@ export default function BrowserLedgerLab({ onServer }: {
         return <p role="alert" className="p-6 text-amber-200">A verified Admin profile is required for the lab and CSV tools.</p>;
     const peaks = trades.filter(t => t.peak_r !== null).length, flags = result ? Object.entries(result.warnings).filter(([key]) => key !== 'ALTERNATE_EXIT_ESTIMATE').reduce((n, [, count]) => n + count, 0) : 0;
     return <div className="mx-auto max-w-6xl space-y-5 text-zinc-100"><header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-wider text-cyan-300">Admin research · browser replay</p><h1 className="text-3xl font-semibold">Backtest Lab</h1><p className="mt-2 max-w-2xl text-sm text-zinc-400">Explore saved trades, fees and account sizing. These controls never change strategies or customer execution settings.</p></div><div className="flex flex-wrap gap-2"><span role="status" className="rounded-full border border-cyan-800 px-3 py-2 text-sm">{source === 'ONLINE' ? 'Online Supabase' : source === 'CSV' ? 'Uploaded CSV' : 'Offline'} · {trades.length.toLocaleString()} Trades</span><button className={button} onClick={onServer}>Server research workspace →</button></div></header>
- <section className="space-y-3 rounded-xl border border-zinc-800 p-4"><div className="flex flex-wrap items-end gap-3"><label className="min-w-48 flex-1 text-sm">Trade source<select disabled={busy} className={inputClass} value={sourceChoice} onChange={e => void chooseSource(e.target.value)}><option value="SAVED">Saved ledger · offline</option><option value="ONLINE">Supabase history · auto offline fallback</option>{sourceChoice === 'CSV' && <option value="CSV">Uploaded CSV</option>}</select></label><label className={button + ' cursor-pointer'}>Upload CSV<input aria-label="Upload trade ledger CSV" disabled={busy} type="file" accept=".csv,text/csv" className="sr-only" onChange={e => { void upload(e.target.files?.[0]); e.target.value = ''; }}/></label><button disabled={busy || !trades.length} onClick={exportSource} className={button}>Download Source CSV</button><button disabled={busy || !result || stale} onClick={exportResults} className={button}>Download Results CSV</button></div><p className="break-words text-xs text-zinc-400">{notice}</p><p className="text-xs text-zinc-400">{peaks}/{trades.length} rows have saved reference peak R. Other rows use net-R caps for alternate exits. All alternate exits retain the original exit timestamp; their touch/stop order is unknown.</p></section>
+ <section className="space-y-3 rounded-xl border border-zinc-800 p-4"><div className="flex flex-wrap items-end gap-3"><label className="min-w-48 flex-1 text-sm">Trade source<select aria-label="Trade source" disabled={busy} className={inputClass} value={sourceChoice} onChange={e => void chooseSource(e.target.value)}><option value="SAVED">Saved ledger · offline</option><option value="ONLINE">Supabase history · auto offline fallback</option>{sourceChoice === 'CSV' && <option value="CSV">Uploaded CSV</option>}</select></label><label className={button + ' cursor-pointer'}>Upload CSV<input aria-label="Upload trade ledger CSV" disabled={busy} type="file" accept=".csv,text/csv" className="sr-only" onChange={e => { void upload(e.target.files?.[0]); e.target.value = ''; }}/></label><button disabled={busy || !trades.length} onClick={exportSource} className={button}>Download Source CSV</button><button disabled={busy || !result || stale} onClick={exportResults} className={button}>Download Results CSV</button></div><p className="break-words text-xs text-zinc-400">{notice}</p><p className="text-xs text-zinc-400">{peaks}/{trades.length} rows have saved reference peak R. Other rows use net-R caps for alternate exits. All alternate exits retain the original exit timestamp; their touch/stop order is unknown.</p></section>
  <fieldset disabled={busy} className="grid grid-cols-1 gap-4 rounded-xl border border-zinc-800 p-4 sm:grid-cols-2 lg:grid-cols-3"><legend className="px-2 font-medium">Build a comparison</legend>
  <label className="text-sm">Strategy lineup<select className={inputClass} value={lineup} onChange={e => applyLineup(e.target.value as typeof lineup)}>{Object.entries(lineups).map(([id, label]) => <option key={id} value={id}>{label}</option>)}<option value="SINGLE">Single strategy</option><option value="CUSTOM">Custom checkboxes</option></select></label>
  <label className="text-sm">Exit method<select className={inputClass} value={o.exitMode} onChange={e => set('exitMode', e.target.value as ExitMode)}>{Object.entries(exits).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
