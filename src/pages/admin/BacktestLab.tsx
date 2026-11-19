@@ -1,50 +1,12 @@
-import {AssetExpansionEvidencePanel} from '../../components/operations/AssetExpansionEvidencePanel';
-import {TEN_ASSET_PROFILES} from '../../../supabase/functions/_shared/ten-asset-contract';
-import {DailyTrendReplayPanel} from '../../components/operations/DailyTrendReplayPanel';
-import {DAILY_PROFILES} from '../../../supabase/functions/_shared/daily-trend-contract';
-import {SignalEnsembleEvidencePanel} from '../../components/operations/SignalEnsembleEvidencePanel';
-import {ScannerParticipationPanel} from '../../components/operations/ScannerParticipationPanel';
-import {LEGACY_CRYPTO_PROFILE_ID} from '../../../supabase/functions/_shared/legacy-crypto-research-profile';
-import {SlowTrendResearchPanel} from '../../components/operations/SlowTrendResearchPanel';
-import {CryptoTeamEvidencePanel} from '../../components/operations/CryptoTeamEvidencePanel';
-import {CRYPTO_TEAM_PROFILE_IDS} from '../../../supabase/functions/_shared/coordinated-crypto-contract';
-import { ResearchActivityPanel } from '../../components/operations/ResearchActivityPanel';
-import { FuturesTrendFilterPanel } from '../../components/operations/FuturesTrendFilterPanel';
-import { RegimeGapResearchPanel } from '../../components/operations/RegimeGapResearchPanel';
-import {StrategyReleasePanel} from '../../components/operations/StrategyReleasePanel';
-import {StrategyDiagnosisPanel} from '../../components/operations/StrategyDiagnosisPanel';
-import {CryptoRoleEvidencePanel} from '../../components/operations/CryptoRoleEvidencePanel';
-import {LiteratureResearchPanel} from '../../components/operations/LiteratureResearchPanel';
-import { useState,useEffect } from 'react';
-import { Link,useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { StrictBacktestAdmin } from '../../components/guards/StrictBacktestAdmin';
 import { AdminLayout } from '../../components/layout/AdminLayout';
-import { PhaseMOperationsPanel } from '../../components/operations/PhaseMOperationsPanel';
-import { PhasePWorkersOperations } from '../../components/operations/PhasePWorkersOperations';
-import type { DatasetCampaign } from '../../lib/research/datasetCampaign';
-import { LAB_STEPS, type LabStep } from '../../lib/research/labWorkflow';
-import DataAcquisitionPanel from './backtest/DataAcquisitionPanel';
-import PermanentResearchLab from './backtest/PermanentResearchLab';
-import ProductPortfolioResearch from './backtest/ProductPortfolioResearch';
-import CalibrationLab from './backtest/CalibrationLab';
-import Mission2ResearchResults from './backtest/Mission2ResearchResults';
-import Mission2PolicyReplay from './backtest/Mission2PolicyReplay';
-
-export default function BacktestLab() {
- const [query]=useSearchParams(),initial=query.get('workspace'),candidate=[...CRYPTO_TEAM_PROFILE_IDS,LEGACY_CRYPTO_PROFILE_ID,...DAILY_PROFILES,...TEN_ASSET_PROFILES].includes(query.get('candidate')??'')?query.get('candidate')!:'',
- [step,setStep]=useState<LabStep>(LAB_STEPS.some(s=>s[0]===initial)?initial as LabStep:'DATA'),[campaign,setCampaign]=useState<DatasetCampaign|null>(null),[portfolio,setPortfolio]=useState(false);
- useEffect(()=>{if(LAB_STEPS.some(s=>s[0]===initial))setStep(initial as LabStep)},[initial,candidate]);
- const current=LAB_STEPS.find(s=>s[0]===step)!;
- return <AdminLayout><div className="mx-auto max-w-[1500px] space-y-5 text-zinc-100"><header><p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">Research & validation</p><h1 className="mt-1 text-3xl font-bold">Backtest Lab</h1><p className="mt-2 max-w-3xl text-sm text-zinc-400">Connect data. Measure strategies. Replay the scanner. Check account and Prop rules. Then observe new markets before any execution decision.</p></header>
- <nav aria-label="Backtest workflow" className="grid grid-cols-2 gap-2 lg:grid-cols-4">{LAB_STEPS.map(([id,title],index)=><button key={id} aria-current={step===id?'step':undefined} onClick={()=>setStep(id)} className={`min-h-14 rounded-xl border px-3 py-3 text-left text-sm ${step===id?'border-cyan-500 bg-cyan-500/10 text-cyan-200':'border-zinc-800 bg-zinc-950 text-zinc-300'}`}><span className="mr-2 text-zinc-500">{index+1}.</span>{title}</button>)}</nav>
- <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-4"><div><h2 className="text-xl font-semibold">{current[1]}</h2><p className="mt-1 text-sm text-zinc-400">{current[2]}</p></div><p className="max-w-lg break-words text-xs text-zinc-400">{campaign?`Selected campaign: ${campaign.name} · ${campaign.datasets.length} datasets · ${campaign.quality}`:'No cached campaign selected. Server-registered datasets are selected separately in scanner replay.'}</p></section>
- <div hidden={step!=='DATA'}><DataAcquisitionPanel onCampaign={setCampaign}/></div>
- {step==='SINGLE'&&<><p className="rounded border border-cyan-800/40 p-3 text-sm text-cyan-100">Choose one approved strategy below to test it through the actual scanner boundary with stored datasets, costs and persisted outcomes. Leave Strategy scope on Full approved scanner to compare arbitration. Neither mode promotes a strategy.</p><PhaseMOperationsPanel key={`production-single:${candidate}`} initialMode="SCANNER" initialCandidate={candidate}/><details className="rounded border border-zinc-800 p-4"><summary>Additional experimental research workspace</summary><p className="mt-2 text-xs text-amber-200">Separate research registry; these results do not establish production parity or approve signals.</p><PermanentResearchLab campaign={campaign}/></details></>}
- {step==='SCANNER'&&<><Mission2ResearchResults/><Mission2PolicyReplay campaign={campaign}/><p className="text-sm text-zinc-400">Select complete server datasets and dates. The legacy server replay uses its older entry policy. Its results cannot qualify the Mission 1 entry engine. Use the policy verification panel above to inspect the new lifecycle. Start the configured portable worker to consume queued work.</p><PhaseMOperationsPanel key={`scanner:${candidate}`} initialMode="SCANNER" initialCandidate={candidate}/><details className="rounded border border-zinc-800 p-4"><summary>Product / portfolio research (separate research authority)</summary><button className="mt-3 rounded border px-3 py-2" onClick={()=>setPortfolio(v=>!v)}>{portfolio?'Close research':'Open research workspace'}</button>{portfolio&&<ProductPortfolioResearch campaign={campaign}/>}</details></>}
- {step==='ACCOUNT'&&<><p className="text-sm text-zinc-400">Requires a completed scanner replay with eligible outcomes, an owned account, current Brain assignment, contract specifications and documented currency conversions. The account Brain remains the sizing authority. No provider orders are sent.</p><PhaseMOperationsPanel key="account" initialMode="ACCOUNT"/></>}
- {step==='PROP'&&<><div className="rounded-xl border border-violet-800 bg-violet-950/20 p-4"><h3 className="font-bold">100 chronological challenge windows</h3><p className="mt-2 text-sm text-zinc-300">First complete scanner replay, then Account simulation. Choose its completed account run and a frozen firm profile below. Inspect each trial, phase failures and incomplete rules in Results. Overlapping windows are not 100 independent experiments.</p><div className="mt-3 flex gap-4"><button className="text-cyan-300" onClick={()=>setStep('SCANNER')}>1. Scanner replay →</button><button className="text-cyan-300" onClick={()=>setStep('ACCOUNT')}>2. Account simulation →</button><Link className="text-cyan-300" to="/admin/prop">Firm profiles & Prop research →</Link></div></div><PhaseMOperationsPanel key="prop" initialMode="PROP"/></>}
- {step==='FORWARD'&&<><div className="grid gap-3 md:grid-cols-2"><article className="rounded-xl border border-zinc-800 p-4"><h3 className="font-bold">Shadow signal observation</h3><p className="mt-2 text-sm text-zinc-400">Fresh closed candles through the scanner boundary. No orders, Telegram publication or certification. Start, observe, inspect and cancel below; inspecting evidence never advances the observer.</p></article><article className="rounded-xl border border-zinc-800 p-4"><h3 className="font-bold">Customer #001 demo execution</h3><p className="mt-2 text-sm text-zinc-400">Separate account-scoped provider certification checks real demo fills, protection, reconnect and closure. Requires authenticated backend, eligible accounts and explicitly enabled demo dispatch.</p><div className="mt-3 flex flex-wrap gap-3 text-cyan-300"><Link to="/admin/onboarding">Accounts & readiness →</Link><Link to="/admin/performance">Certification & evidence →</Link><Link to="/admin/providers">Provider setup →</Link></div></article></div><PhaseMOperationsPanel key={`shadow:${candidate}`} initialMode="SHADOW" initialCandidate={CRYPTO_TEAM_PROFILE_IDS.includes(candidate)?candidate:''}/></>}
- {step==='CALIBRATION'&&<><AssetExpansionEvidencePanel/><DailyTrendReplayPanel/><SignalEnsembleEvidencePanel/><ScannerParticipationPanel/><SlowTrendResearchPanel/><CryptoTeamEvidencePanel/><ResearchActivityPanel onReplay={()=>setStep('SCANNER')}/><CalibrationLab campaign={campaign}/><StrategyReleasePanel/><details className="rounded-xl border border-zinc-800 p-4"><summary className="cursor-pointer font-medium">Earlier studies and evidence</summary><div className="mt-4 space-y-4"><FuturesTrendFilterPanel/><RegimeGapResearchPanel/><LiteratureResearchPanel/><CryptoRoleEvidencePanel/><StrategyDiagnosisPanel/></div></details></>}
- {step==='RESULTS'&&<><p className="text-sm text-zinc-400">Persisted server evidence. Choose a mode, inspect a run, and export the recorded dataset/configuration lineage, assumptions, decisions and outcomes. Browser research exports remain in Single strategy and Calibration.</p><PhaseMOperationsPanel key="results" initialMode="SCANNER" historyOnly/><details className="rounded border border-zinc-800 p-4"><summary>Worker queue & recovery</summary><PhasePWorkersOperations/></details></>}
- <footer className="flex flex-wrap justify-between gap-3 border-t border-zinc-800 pt-4 text-xs text-zinc-400"><span>Backtests are historical simulations. Measured releases require explicit approval; provider execution has separate account gates.</span><button className="text-cyan-300" onClick={()=>setStep(LAB_STEPS[Math.min(LAB_STEPS.findIndex(s=>s[0]===step)+1,LAB_STEPS.length-1)][0])}>Next workspace →</button></footer>
- </div></AdminLayout>;
+const BrowserLedgerLab = lazy(() => import('./backtest/BrowserLedgerLab'));
+const LegacyBacktestLab = lazy(() => import('./LegacyBacktestLab'));
+/** Every lab workspace, including legacy CSV tools, shares the literal Admin-role gate. */
+export default function BacktestLab() { return <StrictBacktestAdmin><LabMode /></StrictBacktestAdmin>; }
+function LabMode() {
+    const [query] = useSearchParams(), [server, setServer] = useState(query.has('workspace'));
+    return <Suspense fallback={<p className="p-8 text-zinc-300">Loading research workspace…</p>}>{server ? <LegacyBacktestLab onBrowser={() => setServer(false)}/> : <AdminLayout><BrowserLedgerLab onServer={() => setServer(true)}/></AdminLayout>}</Suspense>;
 }
