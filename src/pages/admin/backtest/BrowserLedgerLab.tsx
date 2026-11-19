@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { supabase, isSupabaseClientEnabled } from '../../../lib/supabase';
 import { LAB_LINEUPS, assertLabAdmin, labAdminAllowed, normalizeLedger, parseLedgerCsv, sourceTradesCsv, resultTradesCsv, runClientBacktest, type LedgerTrade, type BacktestOptions, type BacktestResult, type Lineup, type ExitMode } from '../../../lib/clientBacktestEngine';
+import { canUseOfflineBacktestWorkspace } from '../../../lib/backtestWorkspaceAccess';
 import { onlineOrSaved } from '../../../lib/clientBacktestSources';
 import { executionStrategyDisplayName } from '../../../../supabase/functions/_shared/execution-strategy-presets';
 import { PERSONAL_RISK_PROFILES, type CanonicalPersonalRiskProfile } from '../../../../supabase/functions/_shared/personal-growth-policy';
@@ -25,7 +26,7 @@ function EquityCurve({ points }: {
 export default function BrowserLedgerLab({ onServer }: {
     onServer: () => void;
 }) {
-    const { user, profile, lastKnownProfile } = useAuth(), [denied, setDenied] = useState(false), role = labAdminAllowed(user?.id, profile ?? lastKnownProfile) && !denied ? 'admin' : null, roleRef = useRef<string | null>(role);
+    const { user, profile, lastKnownProfile } = useAuth(), [denied, setDenied] = useState(false), offlineWorkspace = canUseOfflineBacktestWorkspace(user?.id), role = (offlineWorkspace || labAdminAllowed(user?.id, profile ?? lastKnownProfile)) && !denied ? 'admin' : null, roleRef = useRef<string | null>(role);
     roleRef.current = role;
     const [trades, setTrades] = useState<LedgerTrade[]>([]), [source, setSource] = useState('OFFLINE'), [sourceChoice, setSourceChoice] = useState('SAVED'), [notice, setNotice] = useState('Loading saved ledger…'), [error, setError] = useState(''), [busy, setBusy] = useState(false), [o, setOptions] = useState<BacktestOptions>(initial), [lineup, setLineup] = useState<Lineup | 'SINGLE' | 'CUSTOM'>('PERSONAL_5'), [result, setResult] = useState<BacktestResult | null>(null), [runKey, setRunKey] = useState(''), [revision, setRevision] = useState(0);
     const generation = useRef(0);
@@ -49,12 +50,12 @@ export default function BrowserLedgerLab({ onServer }: {
             assertLabAdmin(roleRef.current);
             install(rows, 'OFFLINE', 'Saved cost-inclusive research ledger.');
         }
-        else if (!isSupabaseClientEnabled) {
+        else if (offlineWorkspace || !isSupabaseClientEnabled) {
             const rows = await saved();
             if (token !== generation.current)
                 return;
             assertLabAdmin(roleRef.current);
-            install(rows, 'OFFLINE', 'Online connection unavailable. Using the saved ledger.');
+            install(rows, 'OFFLINE', offlineWorkspace ? 'Admin workspace is offline. Using the saved ledger; sign in after Supabase activation for online history.' : 'Online connection unavailable. Using the saved ledger.');
         }
         else {
             const loaded = await onlineOrSaved(supabase, user?.id ?? '', roleRef.current, saved);
