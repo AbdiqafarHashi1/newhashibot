@@ -107,7 +107,7 @@ test('window cutoff leaves future exits open; Gold gate rejects future or absent
     assert.equal(runClientBacktest([{ ...gold, entry_volume_ratio: 1, entry_feature_at: gold.entry_time }], o).entries, 1);
 });
 function dbMock(role = 'admin', paused = false) { return { from: (table: string) => { const result = paused ? { error: { message: 'paused' }, data: null } : table === 'profiles' ? { error: null, data: { id: 'u', role } } : table === 'validation_runs' ? { error: null, data: { id: 'run' } } : { error: null, data: [{ ...trade(), candidate_id: 'a', net_r: 2 }] }; const query: any = { then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject) }; for (const method of ['select', 'eq', 'in', 'order', 'limit', 'abortSignal', 'maybeSingle', 'range'])
-        query[method] = () => query; return query; } }; }
+        query[method] = () => query; return query; } } as unknown as Parameters<typeof onlineOrSaved>[0]; }
 test('online Admin history loads, paused Supabase falls back, revoked Admin cannot fall back', async () => {
     const online = await onlineOrSaved(dbMock(), 'u', 'admin', async () => saved);
     assert.equal(online.mode, 'ONLINE');

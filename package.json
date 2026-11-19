@@ -129,6 +129,7 @@
     "typecheck:account-authorization": "tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --allowImportingTsExtensions --lib ES2022,DOM --skipLibCheck --strict --types node supabase/functions/_shared/production-account-authorization.ts supabase/functions/_shared/observed-account-policy-evidence.ts supabase/functions/_shared/phase-d-execution-plan.ts",
     "check:edge-bundles": "node scripts/check-edge-bundles.mjs",
     "build:web": "vite build",
+    "test:release1-browser": "VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_hashibot_browser_fixture npm run build:web && playwright test -c playwright.release1.config.ts",
     "test:release1": "node scripts/release1/test.mjs",
     "research:release1": "node --import tsx scripts/release1/certify-signals.ts",
     "test:signal-ensemble": "node --import tsx --test tests/signalEnsemble/*.test.ts",
