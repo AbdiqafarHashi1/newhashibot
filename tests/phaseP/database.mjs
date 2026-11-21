@@ -127,6 +127,11 @@ try{
   fails(()=>raw('select cleanup_hashibot_resource_history(0);'),/BATCH_MUST/);
   fails(()=>raw('select cleanup_hashibot_resource_history(NULL);'),/BATCH_MUST/);
   assert.equal(raw("select active from cron.job where jobname='hashibot_resource_history_hourly';").trim(),'f');
+  const job={name:'hashibot_outcomes_5m',endpoint:'evaluate-signal-outcomes',schedule:'1-59/5 * * * *',header:'x-hashibot-cron-token',token:'fixture-not-a-live-secret',body:{}};
+  fails(()=>query(`select install_hashibot_release_schedules('${actor}','https://uqiwbzfcntlcyyewawfc.supabase.co',${literal([{...job,schedule:'*/5 * * * *'}])});`),/RELEASE_JOB_CONFIGURATION_INVALID/);
+  fails(()=>query(`select install_hashibot_release_schedules('${actor}','https://uqiwbzfcntlcyyewawfc.supabase.co',${literal([job,job])});`),/DUPLICATE_RELEASE_JOBS/);
+  const installed=JSON.parse(query(`select install_hashibot_release_schedules('${actor}','https://uqiwbzfcntlcyyewawfc.supabase.co',${literal([job])});`));
+  assert.equal(installed[0].active,false);
   raw("insert into hashibot_retention_archive(source_table,cutoff_at,payload,archived_at) select 'test',now(),'{}',now()-interval '31 days' from generate_series(1,3);");
   const cleaned=JSON.parse(raw('select cleanup_hashibot_resource_history(2);').trim());
   assert.equal(cleaned.archive_copies_deleted,2);
