@@ -3,8 +3,12 @@ import {spawnSync} from 'node:child_process';
 import {resolve,basename} from 'node:path';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
+import {buildManifest} from './deployment-manifest.mjs';
 export function validateReviewedRelease(plan,root='.'){
  if(plan.status!=='REVIEWABLE_DRY_RUN'||plan.blockers?.length||plan.projectRef!=='uqiwbzfcntlcyyewawfc'||!Array.isArray(plan.pending))throw Error('RECONCILED_PROJECT_PLAN_REQUIRED');
+ const current=buildManifest(root);
+ if(current.timestampCollisions.length)throw Error('DUPLICATE_MIGRATION_IDENTITIES');
+ if(!plan.sourceFingerprint||plan.sourceFingerprint!==current.sourceFingerprint)throw Error('REVIEWED_RELEASE_SOURCE_CHANGED');
  for(const m of plan.pending){if(!/^supabase\/migrations\/\d{14}_[^/]+\.sql$/.test(m.path))throw Error('AUTOMATIC_MIGRATIONS_ONLY');const hash=createHash('sha256').update(readFileSync(resolve(root,m.path))).digest('hex');if(hash!==m.sha256)throw Error('PENDING_MIGRATION_SOURCE_CHANGED');}
  return plan.pending.map(m=>basename(m.path));
 }

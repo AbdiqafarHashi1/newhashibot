@@ -52,7 +52,7 @@ test('Telegram errors cannot be reported as a delivered message',async()=>{
  await assert.rejects(telegramSmoke(async()=>new Response(JSON.stringify({ok:false}),{status:403}),'test','1',{id:'t',strategy_id:'gold.native-momentum-15-48-2-5',symbol:'XAUUSD',market_type:'forex',direction:'BUY',entry_low:100,stop_loss:90,tp1:115,tp2:130,created_at:new Date().toISOString()},'vip_forex_gold'),/TELEGRAM_DELIVERY_FAILED/);
 });
 test('editorial SQL enforces durable channel locking, jitter and cooldown under service authority',()=>{
- const sql=readFileSync('supabase/migrations/20261118120000_editorial_channel_spacing.sql','utf8');
+ const sql=readFileSync('supabase/migrations/20261121111114_editorial_channel_spacing_unique.sql','utf8');
  for(const term of ['pg_advisory_xact_lock',"interval '2 hours'","interval '30 minutes'",'random()',"status='processing'",'enable row level security','SERVICE_ROLE_REQUIRED'])assert.ok(sql.includes(term));
 });
 

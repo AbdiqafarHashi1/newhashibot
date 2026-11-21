@@ -110,6 +110,28 @@ try{
  assert.ok(inspection.sections.routines.data.some(r=>r.name==='claim_phase_p_job'));assert.ok(inspection.sections.roles.data.some(r=>r.name==='service_role'&&r.bypassRls));
  assert.ok(inspection.sections.relations.data.some(r=>r.name==='inspection_fixture_view'&&r.viewDefinitionFingerprint&&r.options.includes('security_invoker=true')));
  }
+ if(existing){
+  const first='11111111-1111-4111-8111-111111111161',second='11111111-1111-4111-8111-111111111162';
+  assert.equal(query(`select claim_scanner_resource_lease('${first}');`),'t');
+  assert.equal(query(`select claim_scanner_resource_lease('${second}');`),'f');
+  query(`select release_scanner_resource_lease('${second}');`);
+  assert.equal(query(`select claim_scanner_resource_lease('${second}');`),'f');
+  query(`select release_scanner_resource_lease('${first}');`);
+  assert.equal(query(`select claim_scanner_resource_lease('${second}');`),'t');
+  raw("update scanner_resource_lease set expires_at=clock_timestamp()-interval '1 second';");
+  assert.equal(query(`select claim_scanner_resource_lease('${first}');`),'t');
+  query(`select release_scanner_resource_lease('${second}');`);
+  assert.equal(query(`select claim_scanner_resource_lease('${second}');`),'f');
+  query(`select release_scanner_resource_lease('${first}');`);
+  fails(()=>raw(`set role authenticated;select claim_scanner_resource_lease('${first}');`),/permission denied/);
+  fails(()=>raw('select cleanup_hashibot_resource_history(0);'),/BATCH_MUST/);
+  fails(()=>raw('select cleanup_hashibot_resource_history(NULL);'),/BATCH_MUST/);
+  assert.equal(raw("select active from cron.job where jobname='hashibot_resource_history_hourly';").trim(),'f');
+  raw("insert into hashibot_retention_archive(source_table,cutoff_at,payload,archived_at) select 'test',now(),'{}',now()-interval '31 days' from generate_series(1,3);");
+  const cleaned=JSON.parse(raw('select cleanup_hashibot_resource_history(2);').trim());
+  assert.equal(cleaned.archive_copies_deleted,2);
+  assert.equal(raw("select count(*) from hashibot_retention_archive where source_table='test';").trim(),'1');
+ }
  console.log('PASS: PostgreSQL real concurrent claims, global ownership, expired fencing, checkpoint restart, conflict detection, cancellation, native completion, retry/dead letters, quotas, and ACL/RLS');
  console.log(existing?'Scope: actual completed migration-chain schema with explicit disposable test rows, no prerequisite fixture DDL.':'Scope: isolated prerequisite fixture plus actual Phase L/M/P SQL; separate from full chain.');
  if(!existing)console.log('PASS: consistent read-only catalog inspection including present Storage/Vault metadata, RPC fingerprints/grants and secret-value exclusion.');
