@@ -40,6 +40,7 @@ export function plan(manifest,observed,reference){
   if(JSON.stringify(canonical(observed.sections.platform))!==JSON.stringify(canonical(reference.snapshot.sections.platform)))add('PLATFORM_VERSION_OR_EXTENSION_DRIFT');
   for(const key of ['cron','storageBuckets','storageObjectCounts','vault'])if(JSON.stringify(canonical(observed.sections[key]))!==JSON.stringify(canonical(reference.snapshot.sections[key])))add(`METADATA_DRIFT_REVIEW_REQUIRED:${key}`);
  }
+ if(observed?.sections?.cron?.data?.some(j=>j.active&&(j.name?.startsWith('hashibot_')||j.endpointNames?.some(n=>manifest.functions.some(f=>f.name===n)))))add('PAUSE_HASHIBOT_SCHEDULES_BEFORE_RELEASE');
  if(observed?.deployedFunctions?.status!=='VERIFIED_ARTIFACT_FINGERPRINTS')add('DEPLOYED_FUNCTION_SOURCE_UNKNOWN');
  else{
   const deployed=observed.deployedFunctions.data;
