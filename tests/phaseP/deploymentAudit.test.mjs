@@ -106,3 +106,12 @@ test('compatible chain preparation retains identities, excludes manual SQL and n
  assert.throws(()=>execFileSync('node',['scripts/phase-p/prepare-compatible-chain.mjs',output],{stdio:'pipe'}),/Command failed/);
  }finally{rmSync(output,{recursive:true,force:true});}
 });
+
+test('release planning refuses active current or legacy-named HashiBot HTTP schedules',()=>{
+ for(const job of [{name:'hashibot_outcomes_5m',active:true},{name:'legacy-scanner',active:true,endpointNames:['market-scanner']}]){
+  const {m,observed,reference}=planningFixture();
+  m.functions=[...m.functions,manifest.functions.find(f=>f.name==='market-scanner')];
+  observed.sections.cron.data=[job];reference.snapshot.sections.cron.data=[job];
+  assert(plan(m,observed,reference).blockers.includes('PAUSE_HASHIBOT_SCHEDULES_BEFORE_RELEASE'));
+ }
+});

@@ -2,9 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {customerTradingActionAllowed} from '../../supabase/functions/_shared/customer-trading-access.ts';
 import {portfolioRiskGate} from '../../supabase/functions/_shared/portfolio-exposure.ts';
-test('customer account reports and consent stay available; trading mutations require Admin',()=>{
- for(const action of ['account_detail','account_policy','acknowledge_risk','refresh_readiness'])assert.equal(customerTradingActionAllowed('customer',action),true);
- for(const action of ['assign_brain','create_account_draft','submit_credentials','set_account_control','revoke_credentials','create_pairing','install_tested_demo_strategies','authorize_live_account','unknown']){
+test('customer account reports stay available; onboarding consent and trading mutations require Admin',()=>{
+ for(const action of ['account_detail','account_policy','refresh_readiness'])assert.equal(customerTradingActionAllowed('customer',action),true);
+ for(const action of ['acknowledge_risk','assign_brain','create_account_draft','submit_credentials','set_account_control','revoke_credentials','create_pairing','install_tested_demo_strategies','authorize_live_account','unknown']){
   assert.equal(customerTradingActionAllowed('customer',action),false,action);
   assert.equal(customerTradingActionAllowed('admin',action),true,action);
  }

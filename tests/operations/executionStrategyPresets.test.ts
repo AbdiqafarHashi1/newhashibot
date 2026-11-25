@@ -8,10 +8,12 @@ test('presets select reviewed exact configurations compatible with each account'
   for(const p of presets){assert(p.ids.length>0);assert(p.ids.every(id=>executionStrategyEvidence(id)||['crypto.complementary-ema-pullback','forex.complementary-ema-pullback'].includes(id)));assert.deepEqual(validateExecutionStrategySelection(provider,environment,p.ids),[...p.ids].sort());}
  }
  assert.deepEqual(executionStrategyPresets('UNKNOWN','demo'),[]);
- assert.equal(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='reviewed')?.ids.length,10);
+ assert.equal(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='reviewed')?.ids.length,8);
  assert.equal(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='gold-compression')?.ids.length,1);
- assert.equal(executionStrategyPresets('MT5_PERSONAL','demo').find(p=>p.id==='gold')?.ids.length,6);
- assert.equal(executionStrategyPresets('BINANCE','testnet').find(p=>p.id==='reviewed')?.ids.length,6);
+ assert.equal(executionStrategyPresets('MT5_PERSONAL','demo').find(p=>p.id==='gold')?.ids.length,3);
+ assert.equal(executionStrategyPresets('BINANCE','testnet').find(p=>p.id==='reviewed')?.ids.length,1);
+ assert.equal(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='all-reviewed-comparison')?.ids.length,10);
+ assert.equal(executionStrategyPresets('BINANCE','testnet').find(p=>p.id==='all-reviewed-comparison')?.ids.length,6);
  assert.deepEqual(executionStrategyPresets('MT5_PERSONAL','demo').find(p=>p.id==='gold-momentum-focused')?.ids,['gold.native-momentum-15-48-2-5']);
  assert.deepEqual(executionStrategyPresets('MT5_PROP','demo').find(p=>p.id==='gold-momentum-focused')?.ids,['gold.native-momentum-15-48-2-5']);
  assert.equal(executionStrategyPresets('BINANCE','testnet').some(p=>p.id==='gold-momentum-focused'),false);

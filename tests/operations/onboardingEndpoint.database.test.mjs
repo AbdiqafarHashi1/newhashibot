@@ -14,6 +14,8 @@ test('actual onboarding HTTP handler -> concrete RPC -> PostgreSQL: customer vie
   const unified=await readFile('supabase/migrations/20261030170618_account_forward_activation.sql','utf8');await db.exec(unified.slice(unified.indexOf('create function public.create_customer_execution_account'),unified.indexOf('create or replace function public.assign_customer_account_brain')));
   const controls=await readFile('supabase/migrations/20261015225107_account_execution_routing_guards.sql','utf8');await db.exec(controls.slice(controls.indexOf('-- An administrator')));
   const latest=await readFile('supabase/migrations/20261017014250_measured_execution_lineage.sql','utf8');await db.exec(latest.slice(latest.indexOf('-- Owner controls narrow'),latest.indexOf('create function public.install_hashibot_release_schedules')));
+  const currentControls=await readFile('supabase/migrations/20261118233000_smart_growth_history.sql','utf8');
+  await db.exec(currentControls.slice(currentControls.indexOf('create or replace function public.admin_set_account_controls')));
   await db.query("insert into profiles values($1,'user'),($2,'admin')",[customer,other]);
   const roles={customer:{id:customer,user_metadata:{role:'admin'}},admin:{id:other}};
   const client={auth:{async getUser(token){return {data:{user:roles[token]??null},error:null}}},

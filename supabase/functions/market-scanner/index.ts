@@ -27,6 +27,7 @@ import {classifyMarketContext,arbitrationScore,arbitrationNoTradeReason,strategy
 import {measuredRuntimeConfiguration} from "../_shared/measured-strategy-runtime.ts";
 import {drainProductionAccountAuthorizations} from '../_shared/production-account-authorization.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { withScannerLease } from "../_shared/scanner-lease.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { authorizeInternalOrAdmin } from "../_shared/internal-auth.ts";
 import { routeTelegramEvent } from "../_shared/telegram-router.ts";
@@ -2962,7 +2963,7 @@ Deno.serve(async (req: Request) => {
     const existingRunId = typeof body.scanner_run_id === "string" ? body.scanner_run_id : null;
     const runSource = typeof body.source === "string" && body.source ? body.source : undefined;
     try {
-      const result = await runScanPipeline(supabase, config, runType, existingRunId, runSource);
+      const result = await withScannerLease(supabase, () => runScanPipeline(supabase, config, runType, existingRunId, runSource));
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (scanError) {
       const message = scanError instanceof Error ? scanError.message : "Unknown scan pipeline error";

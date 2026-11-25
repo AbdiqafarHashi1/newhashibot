@@ -33,7 +33,8 @@ test('persistent genuine conditional evaluator → restart → confirmation → 
  const active=enterConditionalAtOpen(armed,opening,Date.now());assert.equal(active.status,'ACTIVE',active.result);assert.equal(await store.save(active,armed.version),true);
  const signal=(await db.query<any>('select * from signals')).rows[0];assert.equal(signal.status,'active');assert.equal((await db.query<any>('select state from conditional_signal_setups')).rows[0].state.watchOutcome,'CONFIRMED');
  const event=(await db.query<any>("select payload from test_events where payload->'state'->>'status'='ACTIVE'")).rows[0].payload;assert.equal(event.confirmed_signal_id,signal.id);
- assert(renderCanonicalTruth({entityType:'lifecycle_event',entityId:'conditional-event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),customerId:null,payload:event},'vip_crypto').length);
+ // A measured research release does not grant admission to the commercial VIP lineup.
+ assert.throws(()=>renderCanonicalTruth({entityType:'lifecycle_event',entityId:'conditional-event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),customerId:null,payload:event},'vip_crypto'),/VIP_STRATEGY_NOT_ADMITTED/);
  assert.equal(await store.save(active,armed.version),true);assert.equal((await db.query('select * from signals')).rows.length,1);
  t.mock.timers.tick(w);const stopped={...opening,high:s.tp2+1,low:s.stop-1,close:s.trigger};await observeConditionalSymbol(store,s.symbol,'5m',[...fresh,stopped],Date.now());
  assert.equal((await db.query<any>('select status from signals')).rows[0].status,'sl_hit');assert.equal((await db.query<any>('select state from conditional_signal_setups')).rows[0].state.result,'STOP_FIRST_AMBIGUOUS_BAR');

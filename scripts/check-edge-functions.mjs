@@ -45,6 +45,6 @@ const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const deployScript = packageJson.scripts?.['deploy:edge-functions'] ?? '';
 deployScript === 'node scripts/deploy-supabase-functions.mjs' ? pass('deploy script discovers functions dynamically') : fail('deploy script must call dynamic deploy script');
 const workflow = readFileSync(join(root, '.github/workflows/deploy-supabase-functions.yml'), 'utf8');
-workflow.includes('npm run deploy:edge-functions -- --project-ref') ? pass('workflow calls dynamic deploy script') : fail('workflow does not call dynamic deploy script');
+workflow.includes('scripts/phase-p/deploy-reviewed-release.mjs') ? pass('workflow coordinates reviewed SQL and function deployment') : fail('workflow must use coordinated reviewed release runner');
 for (const fn of deployableFunctions) pass(`automatic deploy discovery includes ${fn}`);
 if (failures) process.exit(1);

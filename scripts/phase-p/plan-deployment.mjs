@@ -2,6 +2,7 @@ import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
 import {dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {hash} from './sql-inventory.mjs';
+import {buildManifest} from './deployment-manifest.mjs';
 import {schemaFingerprint,canonical} from './inspect-deployment.mjs';
 export function plan(manifest,observed,reference){
  const blockers=[],add=x=>blockers.push(x),automatic=manifest.migrations.filter(m=>m.automaticCandidate);
@@ -39,6 +40,7 @@ export function plan(manifest,observed,reference){
   if(JSON.stringify(canonical(observed.sections.platform))!==JSON.stringify(canonical(reference.snapshot.sections.platform)))add('PLATFORM_VERSION_OR_EXTENSION_DRIFT');
   for(const key of ['cron','storageBuckets','storageObjectCounts','vault'])if(JSON.stringify(canonical(observed.sections[key]))!==JSON.stringify(canonical(reference.snapshot.sections[key])))add(`METADATA_DRIFT_REVIEW_REQUIRED:${key}`);
  }
+ if(observed?.sections?.cron?.data?.some(j=>j.active&&(j.name?.startsWith('hashibot_')||j.endpointNames?.some(n=>manifest.functions.some(f=>f.name===n)))))add('PAUSE_HASHIBOT_SCHEDULES_BEFORE_RELEASE');
  if(observed?.deployedFunctions?.status!=='VERIFIED_ARTIFACT_FINGERPRINTS')add('DEPLOYED_FUNCTION_SOURCE_UNKNOWN');
  else{
   const deployed=observed.deployedFunctions.data;
@@ -50,12 +52,13 @@ export function plan(manifest,observed,reference){
   if(deployed?.some(f=>manifest.functions.find(m=>m.name===f.name)?.verifyJwt!==f.verifyJwt))add('DEPLOYED_FUNCTION_JWT_POLICY_DRIFT');
  }
  const pending=automatic.filter(m=>!seen.has(m.version));
- return {schemaVersion:1,projectRef:observed?.projectRef??null,status:blockers.length?'REFUSED':'REVIEWABLE_DRY_RUN',executionAllowed:false,activationAllowed:false,blockers:[...new Set(blockers)],remoteStatus:blockers.length?'UNKNOWN_OR_DRIFT':'INSPECTED_CONTENT_VERIFIED',pending:blockers.length?null:pending.map(m=>({path:m.path,version:m.version,sha256:m.sha256})),batches:blockers.length?null:manifest.batches.map(b=>({...b,migrations:b.migrations.filter(p=>pending.some(m=>m.path===p))})).filter(b=>b.migrations.length),edgeChanges:blockers.length?null:manifest.functions.filter(f=>!observed.deployedFunctions.data.some(d=>d.name===f.name&&d.closureSha256===f.closureSha256)).map(f=>({name:f.name,closureSha256:f.closureSha256})),preparedAutomaticPromotion:false};
+ return {schemaVersion:1,sourceFingerprint:manifest.sourceFingerprint,projectRef:observed?.projectRef??null,status:blockers.length?'REFUSED':'REVIEWABLE_DRY_RUN',executionAllowed:false,activationAllowed:false,blockers:[...new Set(blockers)],remoteStatus:blockers.length?'UNKNOWN_OR_DRIFT':'INSPECTED_CONTENT_VERIFIED',pending:blockers.length?null:pending.map(m=>({path:m.path,version:m.version,sha256:m.sha256})),batches:blockers.length?null:manifest.batches.map(b=>({...b,migrations:b.migrations.filter(p=>pending.some(m=>m.path===p))})).filter(b=>b.migrations.length),edgeChanges:blockers.length?null:manifest.functions.filter(f=>!observed.deployedFunctions.data.some(d=>d.name===f.name&&d.closureSha256===f.closureSha256)).map(f=>({name:f.name,closureSha256:f.closureSha256})),preparedAutomaticPromotion:false};
 }
 function main(){const args=process.argv.slice(2),get=flag=>args[args.indexOf(flag)+1],read=flag=>args.includes(flag)?JSON.parse(readFileSync(get(flag),'utf8')):null;
- const manifest=read('--manifest')??JSON.parse(readFileSync('docs/phase-p/deployment-manifest.json','utf8'));
+ const observed=read('--observed'),reference=read('--reference');
+ const manifest=read('--manifest')??buildManifest('.',reference?.sourceRef??'WORKING_TREE');
  for(const item of [...manifest.migrations,...manifest.artifacts])if(hash(readFileSync(item.path))!==item.sha256)throw Error(`LOCAL_SOURCE_DRIFT:${item.path}`);
- const result=plan(manifest,read('--observed'),read('--reference'));
+ const result=plan(manifest,observed,reference);
  if(args.includes('--output')){mkdirSync(dirname(get('--output')),{recursive:true});writeFileSync(get('--output'),JSON.stringify(result,null,2)+'\n');}
  console.log(JSON.stringify(result,null,2));if(result.status==='REFUSED')process.exitCode=2;
 }

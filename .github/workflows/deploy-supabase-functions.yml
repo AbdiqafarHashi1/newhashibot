@@ -1,26 +1,44 @@
-name: Deploy Supabase Edge Functions
+name: Deploy coordinated Supabase release
 
 on:
   workflow_dispatch:
     inputs:
       approval:
-        description: 'Type DEPLOY_VERIFIED_RELEASE after release verification and owner authorization'
+        description: 'Type DEPLOY_VERIFIED_RELEASE after reconciliation and rehearsal'
+        required: true
+        type: string
+      plan_path:
+        description: 'Committed, reconciled release plan for this exact source fingerprint'
         required: true
         type: string
 
 permissions:
   contents: read
-
+concurrency:
+  group: hashibot-supabase-production-release
+  cancel-in-progress: false
 jobs:
   deploy:
     if: inputs.approval == 'DEPLOY_VERIFIED_RELEASE'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check:edge-functions
+      - run: npm run check:supabase-activation
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
-      - name: Deploy functions with repository JWT policy
+          version: 2.120.0
+      - name: Reconcile dry run, apply SQL, then deploy functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: npm run deploy:edge-functions -- --project-ref uqiwbzfcntlcyyewawfc
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          REVIEWED_PLAN_PATH: ${{ inputs.plan_path }}
+        run: |
+          supabase link --project-ref uqiwbzfcntlcyyewawfc
+          node scripts/phase-p/deploy-reviewed-release.mjs --plan "$REVIEWED_PLAN_PATH" --apply
