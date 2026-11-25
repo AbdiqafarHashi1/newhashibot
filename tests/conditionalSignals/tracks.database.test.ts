@@ -24,7 +24,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  await db.exec(`create function public.project_conditional_execution(text) returns jsonb language sql as $$select '{"state":"BLOCKED"}'::jsonb$$;`);
  await db.exec(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').split('-- Both entry routes')[0].slice(readFileSync('supabase/migrations/20261104224012_mission1_entry_lifecycle.sql','utf8').indexOf('create or replace function public.commit_conditional_signal_setup')));
  const t=Math.floor(Date.now()/3600000)*3600000,iso=(n:number)=>new Date(t+n*3600000).toISOString();
- const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'conditional',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
+ const setup=(symbol:string,track:'INTRADAY'|'SWING',side:'buy'|'sell'='buy'):ConditionalSetup=>({id:`${symbol}:${track}:${side}`,symbol,track,timeframe:track==='INTRADAY'?'15m':'1h',side,strategy:'crypto.launch-trend-pullback-48-1.5-5',variant:'TREND_PULLBACK',policy:'conditional-signals/v1',source:'TEST',sourceClose:iso(0),lastBar:iso(-1),trigger:100,stop:side==='buy'?90:110,tp1:side==='buy'?110:90,tp2:side==='buy'?120:80,expiresAt:iso(8),holdBars:48,score:85,reason:'Higher timeframe trend pullback',status:'WAITING',version:1});
  const save=async(s:ConditionalSetup,v=0)=>(await db.query<{ok:boolean}>('select commit_conditional_signal_setup($1::jsonb,$2,$3) ok',[JSON.stringify(s),v,conditionalMessage(s)])).rows[0].ok;
  const a=setup('BTCUSDT','INTRADAY');assert.equal(await save(a),true);assert.equal(await save(a),true);
  assert.equal(await save(setup('BTCUSDT','SWING')),true);
@@ -76,7 +76,7 @@ test('PostgreSQL track isolation, original plans/history, Free selection and adm
  const cohort=(await db.query<any>("select conditional_proof_cohort(now()-interval '1 day',now()) data")).rows[0].data;
  assert.equal(cohort.total,6);assert.equal(cohort.rows.length,6);assert.ok(cohort.observed_at);
  await db.exec('set role authenticated');await assert.rejects(db.query("select conditional_proof_cohort(now()-interval '1 day',now())"),/permission denied/);await db.exec('reset role');
- const fx={...setup('EURUSD','INTRADAY'),market:'forex' as const,strategy:'forex.conditional-intraday',source:'mt5_hashibridge:owner'};
+ const fx={...setup('EURUSD','INTRADAY'),market:'forex' as const,strategy:'forex.native-squeeze-15-48-2-3-usdjpy-h12',source:'mt5_hashibridge:owner'};
  assert.equal(await save(fx),true); // Crypto's per-hour quota cannot consume Forex's capacity.
  const fe=(await db.query<any>('select * from test_events where key=$1',[`conditional:${fx.id}:1`])).rows[0];
  assert.deepEqual(fe.destinations,['vip_forex_gold','free']);assert.equal(fe.payload.market_type,'forex');

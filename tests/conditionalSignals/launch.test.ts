@@ -11,7 +11,7 @@ test('upgrade guide explains lifecycle and failed breakouts without fabricating 
 });
 test('diagnostics cannot become subscriber copy, including already stored canonical messages',()=>{
  for(const text of ['SyntaxError: unexpected token','Site not found','Deployment not found','404: NOT_FOUND','HTTP 503 upstream','Traceback (most recent call last)','<!doctype html><html>Bad gateway']){assert.equal(subscriberCopySafe(text),false);assert.throws(()=>validateGenerated(text,[]),/DIAGNOSTIC/);
-  assert.throws(()=>renderCanonicalTruth({entityId:'e',entityType:'lifecycle_event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),payload:{market_type:'crypto',policy:'conditional-signals/v1',message:text,state:{status:'WAITING'}}} as any,'vip_crypto'),/DIAGNOSTIC/);
+  assert.throws(()=>renderCanonicalTruth({entityId:'e',entityType:'lifecycle_event',eventType:'CONDITIONAL_SETUP',eventVersion:1,occurredAt:new Date().toISOString(),payload:{market_type:'crypto',policy:'conditional-signals/v1',message:text,state:{status:'WAITING',strategy:'crypto.launch-trend-pullback-48-1.5-5'}}} as any,'vip_crypto'),/DIAGNOSTIC/);
  }
  assert(subscriberCopySafe('A failed breakout invalidated this setup. No entry.'));
 });
