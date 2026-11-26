@@ -1,3 +1,4 @@
+import {saveGoldTurboConfig,loadGoldTurboStatus} from '../_shared/gold-turbo-admin.ts';
 import {personalRiskProfile,loadSmartGrowthHistory} from '../_shared/personal-growth-policy.ts';
 import {defaultTierStrategies} from '../_shared/execution-tier-presets.ts';
 import {customerTradingActionAllowed} from '../_shared/customer-trading-access.ts';
@@ -35,6 +36,16 @@ Deno.serve(async req=>{
  const owns=async(account:string)=>{const {data}=await service.from("connected_execution_accounts").select("id,provider,environment,account_mode").eq("id",account).eq("customer_id",subjectId).maybeSingle();return data};
  const refreshProviderReport=async(accountId:string)=>{const {data:a,error}=await service.from('connected_execution_accounts').select('account_id,provider').eq('id',accountId).eq('customer_id',subjectId).maybeSingle();if(error||!a)throw Error('ACCOUNT_OWNERSHIP_REQUIRED');if(String(a.provider).toUpperCase().startsWith('MT5'))return 'BRIDGE_PUSH';try{const role=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const r=await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/${String(a.provider).toLowerCase()==='binance'?'binance-testnet-monitor':'bybit-testnet-monitor'}`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${role}`,apikey:role},body:JSON.stringify({source:'customer_account_refresh',customer_id:subjectId,account_id:a.account_id}),signal:AbortSignal.timeout(12000)});return r.ok?'REQUESTED':'PENDING'}catch{return 'PENDING'}};
  try{
+  if(action==='admin_gold_turbo_config'||action==='admin_gold_turbo_status'){
+   if(actorProfile?.role!=='admin')return reply({state:'BLOCKED',reason:'ADMIN_REQUIRED'},403);
+   const customer=String(body.customer_id??''),account=String(body.execution_account_id??'');
+   try {
+    if(action==='admin_gold_turbo_config')return reply({state:'SAVED',data:await saveGoldTurboConfig(service,{id:user.id,role:actorProfile.role},customer,account,body.expected_configuration,body.configuration)});
+    const r=await service.from('connected_execution_accounts').select('*').eq('id',account).eq('customer_id',customer).maybeSingle();
+    if(r.error||!r.data)return reply({state:'BLOCKED',reason:'ACCOUNT_OWNERSHIP_REQUIRED'},403);
+    return reply({state:'LOADED',data:await loadGoldTurboStatus(service,r.data)});
+   } catch(e){const code=e instanceof Error?e.message:'';return reply({state:'BLOCKED',reason:/^(TURBO_|ADMIN_REQUIRED|ACCOUNT_OWNERSHIP_REQUIRED)/.test(code)?code:'TURBO_OPERATION_FAILED'},409);}
+  }
   if(action==='activate_all_cost_positive'||action==='activate_growth_product_engines'){if(actorProfile?.role!=='admin')return reply({state:'BLOCKED',reason:'ADMIN_REQUIRED'},403);const {data,error}=await service.rpc('activate_growth_product_engines',{p_actor:user.id});if(error)throw error;return reply(data);}
   if(action==='install_tested_demo_strategies'){
    const {data:profile,error:roleError}=await service.from('profiles').select('role').eq('id',user.id).maybeSingle();if(roleError||profile?.role!=='admin')return reply({state:'BLOCKED',reason:'ADMIN_REQUIRED'},403);

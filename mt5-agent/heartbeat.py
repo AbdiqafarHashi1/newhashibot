@@ -45,6 +45,9 @@ class HeartbeatManager:
             ]
         }
 
+        if getattr(self,'gold_turbo',None) is not None:
+            connection_info['gold_turbo']=self.gold_turbo.summary()
+
         status = "online" if conn_healthy else "degraded"
         success = self.cloud_client.send_heartbeat(status=status, connection_info=connection_info)
         

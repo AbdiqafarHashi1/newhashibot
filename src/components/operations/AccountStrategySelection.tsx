@@ -1,3 +1,4 @@
+import {GoldTurboControls} from './GoldTurboControls';
 import {useEffect,useState} from 'react';
 import {executionStrategyChoices} from '../../../supabase/functions/_shared/execution-strategy-selection';
 import {executionStrategyPresets,executionStrategyDisplayName,executionStrategyEvidence} from '../../../supabase/functions/_shared/execution-strategy-presets';
@@ -35,6 +36,7 @@ export function AccountStrategySelection({account,onSaved}:{account:Account;onSa
   {reviewed.length>0&&<p className="mt-3 text-xs leading-5 text-zinc-400">Historical results use the displayed period and risk. Target R describes the planned reward, not realized returns. Combining selections has different exposure. Exact releases, provider compatibility and account limits still apply to each order.</p>}
   {other.length>0&&<details className="mt-4 rounded border border-zinc-800 p-3"><summary className="cursor-pointer text-sm">Other configurations · {selected.filter(id=>other.some(c=>c.id===id)).length} selected</summary><fieldset disabled={pending} className="mt-3 grid gap-3 sm:grid-cols-2">{other.map(c=><label key={c.id} className="text-sm"><input type="checkbox" checked={selected.includes(c.id)} onChange={e=>toggle(c.id,e.target.checked)}/> {c.label}{c.demoOnly&&<span className="ml-2 text-xs text-zinc-400">Cost-positive hourly reference</span>}</label>)}</fieldset></details>}
   <button disabled={pending||!selected.length} onClick={()=>void save()} className="mt-4 rounded bg-cyan-700 px-4 py-2 text-sm disabled:opacity-40">{pending?'Saving…':'Save selected strategies'}</button>
+  <GoldTurboControls account={account} onSaved={onSaved}/>
   {notice&&<p role="status" className="mt-3 text-sm text-cyan-200">{notice}</p>}
  </section>;
 }

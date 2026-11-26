@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 from gold_turbo.runtime import GoldTurboRuntime, MAGIC
 from gold_turbo.micro import MicroScalper
 from gold_turbo.momentum import MomentumScalper
@@ -185,5 +186,36 @@ class RuntimeTests(unittest.TestCase):
         self.assertFalse(state.windows[-1].available)
         self.assertTrue(state.frames[0].developing.partial_start)
         self.assertTrue(all(c.end_ms<=self.now for f in state.frames for c in f.completed))
+
+    def test_adaptive_ranks_qualified_candidates_while_custom_preserves_selection(self):
+        base=MicroScalper().evaluate(self.snap,__import__('test_gold_turbo_scalpers').COSTS,self.now)
+        stronger=replace(base,strategy_id=MomentumScalper.strategy_id,plan=replace(base.plan,
+            strategy_id=MomentumScalper.strategy_id,planned_net_reward=base.plan.planned_net_reward*2))
+        for sid,decision in ((MicroScalper.strategy_id,base),(MomentumScalper.strategy_id,stronger)):
+            self.runtime.engines[sid]=SimpleNamespace(evaluate=lambda *a,d=decision:d)
+        config=dict(self.lease,strategy_ids=[MicroScalper.strategy_id,MomentumScalper.strategy_id],selection_mode='ADAPTIVE')
+        adaptive=self.runtime._candidates(self.snap,None,config,self.now)
+        self.assertEqual(adaptive[0][0],MomentumScalper.strategy_id)
+        custom=self.runtime._candidates(self.snap,None,dict(config,selection_mode='CUSTOM'),self.now)
+        self.assertEqual(custom[0][0],MicroScalper.strategy_id)
+
+    def test_adaptive_does_not_force_a_close_opposing_choice(self):
+        base=MicroScalper().evaluate(self.snap,__import__('test_gold_turbo_scalpers').COSTS,self.now)
+        opposite=replace(base,strategy_id=MomentumScalper.strategy_id,decision='SHORT')
+        for sid,decision in ((MicroScalper.strategy_id,base),(MomentumScalper.strategy_id,opposite)):
+            self.runtime.engines[sid]=SimpleNamespace(evaluate=lambda *a,d=decision:d)
+        config=dict(self.lease,strategy_ids=[MicroScalper.strategy_id,MomentumScalper.strategy_id],selection_mode='ADAPTIVE')
+        self.assertEqual(self.runtime._candidates(self.snap,None,config,self.now),[])
+        self.assertEqual(self.runtime.last_reason,'ADAPTIVE_DIRECTION_CONFLICT')
+
+    def test_heartbeat_summary_is_bounded_and_does_not_embed_quotes_or_secrets(self):
+        self.runtime.step();self.advance();self.runtime.step()
+        summary=self.runtime.summary()
+        self.assertEqual(summary['account_id'],self.scope['account_id'])
+        self.assertEqual(summary['as_of_ms'],self.now)
+        self.assertLessEqual(len(summary['recent_decisions']),20)
+        self.assertNotIn('ticks',summary);self.assertNotIn('password',summary)
+        summary['last_reason']='mutated copy'
+        self.assertNotEqual(self.runtime.summary()['last_reason'],'mutated copy')
 
 if __name__=='__main__':unittest.main()

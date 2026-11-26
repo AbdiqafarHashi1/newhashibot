@@ -1,5 +1,6 @@
 """Existing-agent demo execution adapter. No ticks leave this local runtime."""
 from dataclasses import asdict, replace
+from collections import deque
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_FLOOR
 import hashlib
@@ -30,6 +31,7 @@ class GoldTurboRuntime:
         self.intelligence=None;self.engines={};self.tick_cursor=None;self.last_refresh=0
         self.books={};self.links={};self.position_states={};self.action_receipts={};self.seen_opportunities=set()
         self._last_saved=None;self._history={};self._history_at=0;self._history_since=0
+        self._observed_at=0;self._summary=None;self._marks={};self.recent_decisions=deque(maxlen=20);self._decision_keys={}
         self.guard={};self._restored_engine_states={};self.last_reason='DISABLED';self.shock_until=0;self._stop=threading.Event()
         if self.path.exists():
             saved=json.loads(self.path.read_text())
@@ -106,6 +108,7 @@ class GoldTurboRuntime:
         for key in ('commission_quote_per_lot_per_side','slippage_quote_per_side'):
             v=value.get(key)
             if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<0:raise ValueError('TURBO_COST_CONFIG_REQUIRED')
+        if value.get('selection_mode','CUSTOM') not in ('SINGLE','CUSTOM','ADAPTIVE') or (value.get('selection_mode')=='SINGLE' and len(value.get('strategy_ids',[]))!=1):raise ValueError('TURBO_SELECTION_MODE_INVALID')
         if not value.get('strategy_ids') or any(s not in FACTORIES for s in value['strategy_ids']) or value.get('hedge_enabled') is not False or value.get('expiry_policy')!='CLOSE':raise ValueError('TURBO_CONFIGURATION_UNSUPPORTED')
         self.subscription_until=value['subscription_until_ms'];self.revoked=False
         self.lease=json.loads(json.dumps(value))
@@ -252,10 +255,58 @@ class GoldTurboRuntime:
         if risk+pending+proposed['loss']>a['equity']*lease['max_open_risk_pct']/100 or proposed['margin']>a['free_margin']:
             raise RuntimeError('TURBO_SHARED_ACCOUNT_RISK_EXCEEDED')
 
+    def summary(self):
+        return json.loads(json.dumps(self._summary)) if self._summary is not None else None
+
+    def _publish_status(self):
+        active=[b for b in self.books.values() if b.state!='CLOSED']
+        marks=[self._marks.get(b.envelope.basket_id) for b in active]
+        known=all(m is not None and m.get('net_money') is not None for m in marks)
+        realized=sum(b.realized_net_money for b in self.books.values())
+        floating=sum(m.get('floating_net_money',0) for m in marks) if known else None
+        self._summary=dict(schema='gold-turbo-status/v1',account_id=self.scope['account_id'],owner_id=self.scope['owner_id'],bridge_id=self.scope['bridge_id'],
+            as_of_ms=self._observed_at,last_reason=self.last_reason,lease_valid=bool(self.lease and self.clock()<self.lease['expires_at_ms']),
+            locked=self.guard.get('locked',False),total_locked=self.guard.get('total_locked',False),realized_net_money=realized,
+            floating_net_money=floating,net_money=realized+floating if floating is not None else None,
+            margin_money=sum(m.get('margin_money',0) for m in marks) if known else None,
+            open_risk_money=sum(m.get('committed_risk_money',0) for m in marks) if known else None,
+            active_baskets=[dict(basket_id=b.envelope.basket_id,strategy_id=b.base_plan.strategy_id,state=b.state,side=b.base_side,
+                positions=sum(p.open_lots>0 for p in b.positions.values()),net_money=self._marks.get(b.envelope.basket_id,{}).get('net_money')) for b in active[:20]],
+            recent_decisions=list(self.recent_decisions))
+
+    def _record_decision(self,decision):
+        key=(decision.decision,decision.entry_model,decision.reasons,decision.opportunity_id)
+        last=self._decision_keys.get(decision.strategy_id)
+        if last and last[0]==key and decision.at_ms-last[1]<5000:return
+        self._decision_keys[decision.strategy_id]=(key,decision.at_ms)
+        row=dict(at_ms=decision.at_ms,strategy_id=decision.strategy_id,decision=decision.decision,
+            entry_model=decision.entry_model,reason=','.join(decision.reasons),opportunity_id=decision.opportunity_id)
+        self.recent_decisions.append(row)
+        event=dict(event='STRATEGY_DECISION',**row,features=dict(decision.features),sampling='STATE_CHANGE_OR_5S')
+        event['event_id']=hashlib.sha256(json.dumps(event,sort_keys=True).encode()).hexdigest()
+        fd=os.open(self.path.with_suffix('.events.jsonl'),os.O_WRONLY|os.O_CREAT|os.O_APPEND,0o600)
+        with os.fdopen(fd,'a',encoding='utf8') as f:f.write(json.dumps(event,allow_nan=False)+'\n')
+
+    def _candidates(self,snap,costs,lease,now):
+        candidates=[]
+        for sid in lease['strategy_ids']:
+            if sid not in self.engines:
+                self.engines[sid]=FACTORIES[sid]()
+                if sid in self._restored_engine_states:self._restore_engine(self.engines[sid],self._restored_engine_states[sid])
+            engine=self.engines[sid];decision=engine.evaluate(snap,costs,now);self._record_decision(decision)
+            if decision.plan:candidates.append((sid,engine,decision))
+        if lease.get('selection_mode')=='ADAPTIVE':
+            score=lambda c:c[2].plan.planned_net_reward/c[2].plan.planned_loss_with_costs
+            candidates.sort(key=lambda c:(-score(c),c[0]))
+            if candidates and any(c[2].decision!=candidates[0][2].decision and score(candidates[0])-score(c)<.1 for c in candidates[1:]):
+                self.last_reason='ADAPTIVE_DIRECTION_CONFLICT';return []
+        return candidates
+
     def step(self):
         if self.lease is None and not self.books:return
         with self.client.native_transaction():
-            return self._step()
+            try:return self._step()
+            finally:self._publish_status()
 
     def _step(self):
         now=self.clock();a=self._identity();lease=self.lease
@@ -286,6 +337,7 @@ class GoldTurboRuntime:
         self.guard['limits']=limits
         calendar=self.calendar_reader();news_clear=bool(calendar and calendar.get('high_impact_in_window') is False)
         facts=self._facts(a,spec,limits,now,news_clear)
+        self.last_reason='ACCOUNT_LOCK' if not allowed else 'ENTRIES_PAUSED' if not lease or now>=lease['expires_at_ms'] else 'NEWS_CONTEXT_BLOCKED' if not news_clear else 'ACTIVE'
         if snap.volatility_shock:self.shock_until=max(self.shock_until,now+60000)
         for book in self.books.values():
             if book.state=='CLOSED':continue
@@ -293,6 +345,7 @@ class GoldTurboRuntime:
             except (ValueError,RuntimeError):book.close_all('PROVIDER_RECONCILIATION_REQUIRED',now)
             if self.revoked or now>=self.subscription_until or not allowed:book.close_all('ACCESS_OR_ACCOUNT_LOCK',now)
             mark=book.evaluate(snap,facts,now)
+            self._marks[book.envelope.basket_id]=mark
             for pid,p in list(book.positions.items()):
                 if p.open_lots<=0 or book.state!='OPEN':continue
                 native=next((n for n in positions if str(n.get('identifier',n['ticket']))==pid),None)
@@ -309,6 +362,7 @@ class GoldTurboRuntime:
                     if qty<p.open_lots and qty>=spec['volume_min'] and p.open_lots-qty>=spec['volume_min']-1e-9:
                         book._action('CLOSE_POSITION',pid,qty,'PARTIAL_PROFIT_CAPTURE')
             self._dispatch(book,positions,now)
+        self._observed_at=now
         self.save()
         if orphaned:self.last_reason='TURBO_UNJOURNALED_POSITION_REQUIRES_RECOVERY'
         if orphaned or not lease or now>=lease['expires_at_ms'] or not allowed or not news_clear or now<self.shock_until:return
@@ -319,16 +373,15 @@ class GoldTurboRuntime:
         risk=sum(self.client.gold_turbo_position_risk(p) for p in positions+orders)
         pending=sum(sum(o.pending_lots*o.unit_risk_money for o in b.orders.values()) for b in self.books.values())
         available=a['equity']*lease['max_open_risk_pct']/100-risk-pending
-        if available<=0 or any(link['status'] in ('SENDING','UNCERTAIN') for link in self.links.values()):return
-        for sid in lease['strategy_ids']:
-            if sid not in self.engines:
-                self.engines[sid]=FACTORIES[sid]()
-                if sid in self._restored_engine_states:self._restore_engine(self.engines[sid],self._restored_engine_states[sid])
-            engine=self.engines[sid]
-            costs=ExecutionCosts(spec['contract_size'],lease['commission_quote_per_lot_per_side'],lease['slippage_quote_per_side'],spec['tick_size'],'Account-admin configured quote-currency costs; live spread observed')
-            decision=engine.evaluate(snap,costs,now)
+        if available<=0:self.last_reason='SHARED_ACCOUNT_RISK_LIMIT';return
+        if any(link['status'] in ('SENDING','UNCERTAIN') for link in self.links.values()):
+            self.last_reason='ENTRY_SUBMISSION_RECONCILIATION_REQUIRED';return
+        costs=ExecutionCosts(spec['contract_size'],lease['commission_quote_per_lot_per_side'],lease['slippage_quote_per_side'],spec['tick_size'],'Account-admin configured quote-currency costs; live spread observed')
+        for sid,engine,decision in self._candidates(snap,costs,lease,now):
             if not decision.plan or decision.opportunity_id in self.seen_opportunities:continue
             plan=decision.plan
+            underlying=dict(decision.features).get('selected_source_opportunity',plan.opportunity_id)
+            if underlying in self.seen_opportunities:continue
             if any(p['symbol']==spec['broker_symbol'] and ((p['side']=='buy')!=(plan.side=='LONG')) for p in positions):continue
             equity_usd=a['equity']/spec['quote_to_account_conversion']
             pct=min(lease['risk_pct'],.25 if equity_usd<=500 else .20 if equity_usd<=5000 else .15)
@@ -349,7 +402,7 @@ class GoldTurboRuntime:
             order=active.reserve(plan,lots,facts,now)
             comment='ht:'+order.order_id[:24]
             self.links[order.order_id]={'book_id':active.envelope.basket_id,'comment':comment,'symbol':spec['broker_symbol'],'status':'SENDING'}
-            self.seen_opportunities.add(plan.opportunity_id);engine.record_admission(decision,now)
+            self.seen_opportunities.add(plan.opportunity_id);self.seen_opportunities.add(underlying);engine.record_admission(decision,now)
             self.save()  # write-ahead: a timeout/crash never repeats this send
             fresh_account=self._identity()
             if self.revoked or self.lease is not lease or self.clock()>=lease['expires_at_ms'] or self.clock()>plan.expires_at_ms or not self._guard(fresh_account,lease,self.clock()):
@@ -372,6 +425,7 @@ class GoldTurboRuntime:
                 try:self.step()
                 except Exception as e:
                     self.last_reason=str(e) if isinstance(e,(ValueError,RuntimeError)) else type(e).__name__
+                    self._publish_status()
                 self._stop.wait(.2)
         self._thread=threading.Thread(target=run,name='gold-turbo-local',daemon=True);self._thread.start()
 

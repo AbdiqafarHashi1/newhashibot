@@ -13,9 +13,10 @@ export function buildGoldTurboLease(account:any, mt5:any, binding:any, entitleme
  if(!Array.isArray(c.strategy_ids)||!c.strategy_ids.length||new Set(c.strategy_ids).size!==c.strategy_ids.length||c.strategy_ids.some((id:string)=>!(TURBO_IDS as readonly string[]).includes(id)))throw Error('TURBO_STRATEGY_SELECTION_REQUIRED');
  const bounded=(key:string,fallback:number,min:number,max:number)=>{const v=c[key]??fallback;if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)throw Error(`TURBO_INVALID_${key}`);return v;};
  const finiteCost=(key:string)=>{const v=c[key];if(typeof v!=='number'||!Number.isFinite(v)||v<0)throw Error('TURBO_EXPLICIT_COSTS_REQUIRED');return v;};
+ if(c.selection_mode!==undefined&&(!['SINGLE','CUSTOM','ADAPTIVE'].includes(c.selection_mode)||(c.selection_mode==='SINGLE'&&c.strategy_ids.length!==1)))throw Error('TURBO_SELECTION_MODE_INVALID');
  if(c.expiry_policy!==undefined&&c.expiry_policy!=='CLOSE')throw Error('TURBO_EXPIRY_POLICY_UNSUPPORTED');
  return {schema:'gold-turbo-lease/v1',owner_id:scope.owner,account_id:scope.account,execution_account_id:account.id,bridge_id:scope.bridge,worker_id:scope.worker,environment:'demo',account_mode:'PERSONAL',server:mt5.server,
- issued_at_ms:now,expires_at_ms:Math.min(now+30000,until),subscription_until_ms:until,strategy_ids:[...c.strategy_ids],
+ issued_at_ms:now,expires_at_ms:Math.min(now+30000,until),subscription_until_ms:until,strategy_ids:[...c.strategy_ids],selection_mode:c.selection_mode??'CUSTOM',
  risk_pct:bounded('risk_pct',.25,.01,.5),daily_loss_pct:bounded('daily_loss_pct',1.5,1,2),total_loss_pct:bounded('total_loss_pct',8,1,10),
  max_open_risk_pct:bounded('max_open_risk_pct',1,.01,2),max_margin_pct:bounded('max_margin_pct',20,1,30),
  session_profit_lock_pct:bounded('session_profit_lock_pct',3,.1,20),session_trailing_pct:bounded('session_trailing_pct',1,.1,5),

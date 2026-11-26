@@ -142,4 +142,4 @@ class BasketScalper:
                        maximum_hold_ms=self.config.maximum_hold_ms)
         return StrategyDecision(self.strategy_id, plan.strategy_version, now_ms, chosen.decision, model, opportunity,
             ('QUALIFIED_RESEARCH_BASKET_CANDIDATE',), chosen.features+(('ranking_score_not_probability', score),
-            ('selected_source_strategy', chosen.strategy_id), ('model_decisions', audit)), plan)
+            ('selected_source_strategy', chosen.strategy_id), ('selected_source_opportunity', chosen.opportunity_id), ('model_decisions', audit)), plan)

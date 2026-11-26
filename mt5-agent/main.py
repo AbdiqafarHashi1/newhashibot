@@ -168,6 +168,7 @@ class MT5AgentDaemon:
             execution_account_id=Config.CUSTOMER_EXECUTION_ACCOUNT_ID,login=Config.ACCOUNT_NUMBER,server=Config.SERVER),
             Config.RUNTIME_DIR,lambda:read_economic_calendar(os.getenv('MT5_NEWS_CONTEXT_PATH',''),Config.ACCOUNT_NUMBER,Config.SERVER))
         self.command_processor.local_turbo = self.gold_turbo
+        self.heartbeat_mgr.gold_turbo = self.gold_turbo
         def refresh():
             while not self.gold_turbo_stop.is_set():
                 try:self.gold_turbo.set_lease(self.cloud_client.gold_turbo_lease())
