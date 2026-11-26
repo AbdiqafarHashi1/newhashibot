@@ -1,0 +1,18 @@
+{
+  "raw_archive": {
+    "filename": "XAUUSD-2026-10.zip",
+    "library_file_id": "libfile_c87f40da699c8191ae2ea2a0fee02f95",
+    "sha256": "a131b2c531a58c5e4470f9b65afea4d7894816d7c7bfd580dba70dbe877dc981"
+  },
+  "derived_M1": {
+    "filename": "XAUUSD-1m-2026-10.json",
+    "library_file_id": "libfile_ef28bfa1fe0481919efe27e167c08e8b"
+  },
+  "manifest": {
+    "filename": "XAUUSD-1m-2026-10.manifest.json",
+    "library_file_id": "libfile_9933553c71fc8191aef3bfd99643d601"
+  },
+  "download_scope": "Only October monthly archive, smallest documented original vendor unit; August/September not downloaded",
+  "raw_quote_count": 5910062,
+  "M1_rows": 30174
+}
