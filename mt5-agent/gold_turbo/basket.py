@@ -13,6 +13,7 @@ import math
 from .contracts import integer, positive
 from .strategy_contracts import EntryPlan, common_rejection
 from .basket_strategy import BASKET_ID
+LOCAL_IDS = {BASKET_ID,'gold.turbo-micro-scalper','gold.turbo-momentum-scalper','gold.turbo-range-scalper','gold.turbo-trend-scalper'}
 
 
 def nonnegative(value, name):
@@ -156,7 +157,7 @@ class BasketBook:
     def __init__(self, plan, envelope, facts, now_ms, config=None):
         self.envelope = envelope
         self.config = config or BasketConfig()
-        if not isinstance(plan, EntryPlan) or plan.strategy_id != BASKET_ID or not isinstance(envelope, BasketEnvelope) or not isinstance(self.config, BasketConfig):
+        if not isinstance(plan, EntryPlan) or plan.strategy_id not in LOCAL_IDS or not isinstance(envelope, BasketEnvelope) or not isinstance(self.config, BasketConfig):
             raise ValueError('BASKET_PLAN_AND_ENVELOPE_REQUIRED')
         if plan.source != envelope.source or not envelope.created_at_ms <= now_ms < envelope.expires_at_ms:
             raise ValueError('BASKET_SCOPE_OR_EXPIRY_INVALID')
@@ -198,7 +199,7 @@ class BasketBook:
         multiplier = facts.contract_size*facts.quote_to_account_rate
         opened = sum((abs(p.entry_price-p.original_stop)+.5*self.orders[p.order_id].plan.fee_slippage_price)*p.open_lots*multiplier
                      for p in self.positions.values())
-        pending = sum(o.pending_lots*o.plan.planned_loss_with_costs*multiplier for o in self.orders.values())
+        pending = sum(o.pending_lots*max(o.unit_risk_money,o.plan.planned_loss_with_costs*multiplier) for o in self.orders.values())
         return self.loss_debit_money+opened+pending
 
     def gross_lots(self):
@@ -211,7 +212,7 @@ class BasketBook:
             raise ValueError('BASKET_NOT_OPEN_OR_EXPIRED')
         if any(a.status != 'RESOLVED' for a in self.actions.values()):
             raise ValueError('BASKET_ACTION_RECONCILIATION_REQUIRED')
-        if plan.strategy_id != BASKET_ID or plan.source != self.envelope.source or not plan.demo_only:
+        if plan.strategy_id not in LOCAL_IDS or plan.source != self.envelope.source or not plan.demo_only:
             raise ValueError('BASKET_PLAN_SCOPE_MISMATCH')
         if not plan.created_at_ms <= now_ms <= plan.expires_at_ms:
             raise ValueError('ENTRY_PLAN_EXPIRED')

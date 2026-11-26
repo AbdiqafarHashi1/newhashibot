@@ -118,7 +118,13 @@ class CommandProcessor:
 
             try:
                 if operation in ["place_order", "place_entry"]:
-                    res = self.managed_positions.execute(cmd_id,payload) if payload.get("certified") else self.mt5_client.place_order(payload)
+                    turbo = getattr(self, 'local_turbo', None)
+                    if turbo is not None:
+                        with self.mt5_client.native_transaction():
+                            turbo.guard_external_entry(payload)
+                            res = self.managed_positions.execute(cmd_id,payload) if payload.get("certified") else self.mt5_client.place_order(payload)
+                    else:
+                        res = self.managed_positions.execute(cmd_id,payload) if payload.get("certified") else self.mt5_client.place_order(payload)
                     success = res.get("success", False)
                     error_code = res.get("error_code")
                     error_message = res.get("error")

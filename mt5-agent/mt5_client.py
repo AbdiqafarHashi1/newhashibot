@@ -272,6 +272,7 @@ class MT5Client:
             side = "buy" if p.type == mt5.ORDER_TYPE_BUY else "sell"
             result.append({
                 "ticket": str(p.ticket),
+                "identifier": str(getattr(p,"identifier",p.ticket)),
                 "symbol": p.symbol,
                 "side": side,
                 "quantity": float(p.volume),
@@ -282,6 +283,7 @@ class MT5Client:
                 "unrealized_pnl": float(p.profit),
                 "magic": p.magic,
                 "comment": p.comment,
+                "swap": float(getattr(p,"swap",0)),
                 "time": p.time
             })
         return result
@@ -574,6 +576,10 @@ class MT5Client:
             "type_filling": mt5.ORDER_FILLING_IOC,
         }
 
+        policies=s_info.get('fill_policies',[])
+        if 'ioc' in policies:request['type_filling']=mt5.ORDER_FILLING_IOC
+        elif 'fok' in policies:request['type_filling']=mt5.ORDER_FILLING_FOK
+        else:return {'success':False,'error_code':'CLOSE_FILL_POLICY_UNAVAILABLE'}
         self.assert_demo_execution_identity()
         result = mt5.order_send(request)
         if result is None:
@@ -584,7 +590,7 @@ class MT5Client:
             return {"success": False, "error": f"Close failed: {result.comment}", "error_code": ret_info["category"], "retcode": result.retcode}
 
         logger.info(f"[MT5Client] Position #{ticket} closed successfully: Volume={close_volume} at {close_price}")
-        return {"success": True, "ticket": ticket, "closed_volume": close_volume, "price": close_price, "retcode": result.retcode}
+        return {"success": True, "ticket": ticket, "closed_volume": close_volume, "price": close_price, "retcode": result.retcode, "provider_order_id": str(result.order) if getattr(result,"order",None) else None, "deal_ticket": str(result.deal) if getattr(result,"deal",None) else None}
 
     def cancel_order(self, ticket: str) -> Dict[str, Any]:
         if not HAS_MT5 or not self.check_connection():
@@ -611,3 +617,71 @@ class MT5Client:
 
         logger.info(f"[MT5Client] Pending order #{ticket} cancelled successfully")
         return {"success": True, "ticket": ticket, "retcode": result.retcode}
+
+    def native_transaction(self):
+        return _terminal_api_lock
+
+    def gold_turbo_history(self, from_ms):
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError('TURBO_HISTORY_UNAVAILABLE')
+        rows=mt5.history_deals_get(datetime.fromtimestamp(from_ms/1000,timezone.utc),datetime.now(timezone.utc))
+        if rows is None:raise RuntimeError('TURBO_HISTORY_UNAVAILABLE')
+        return [{"ticket":str(d.ticket),"order":str(d.order),"symbol":d.symbol,"type":int(d.type),
+            "comment":str(d.comment),"volume":float(d.volume),"price":float(d.price),"profit":float(d.profit),
+            "commission":float(d.commission),"fee":float(d.fee),"swap":float(d.swap),"entry":int(d.entry),
+            "position_id":str(d.position_id),"time":int(d.time)} for d in rows]
+
+    def gold_turbo_ticks(self, symbol, from_ms, maximum=20000):
+        """Actual ordered quote history; no cloud publication or inferred ticks."""
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError('TURBO_TICKS_UNAVAILABLE')
+        start=datetime.fromtimestamp(from_ms/1000,timezone.utc)
+        rows=mt5.copy_ticks_from(symbol,start,maximum,mt5.COPY_TICKS_INFO)
+        if rows is None or len(rows)>=maximum:
+            raise RuntimeError('TURBO_TICK_GAP_OR_BATCH_OVERFLOW')
+        return [dict(time_msc=int(r['time_msc']),bid=float(r['bid']),ask=float(r['ask'])) for r in rows]
+
+    def gold_turbo_native_cost(self, symbol, side, lots, entry, stop):
+        """Broker/account-currency calculations; no contract/leverage guesses."""
+        if not HAS_MT5 or not self.check_connection():
+            raise RuntimeError('TURBO_NATIVE_CALC_UNAVAILABLE')
+        kind=mt5.ORDER_TYPE_BUY if side=='LONG' else mt5.ORDER_TYPE_SELL
+        loss=mt5.order_calc_profit(kind,symbol,lots,entry,stop)
+        margin=mt5.order_calc_margin(kind,symbol,lots,entry)
+        if loss is None or margin is None or not all(math.isfinite(float(x)) for x in (loss,margin)) or loss>=0 or margin<0:
+            raise RuntimeError('TURBO_NATIVE_CALC_INVALID')
+        return {'loss':abs(float(loss)),'margin':float(margin)}
+
+    def gold_turbo_position_risk(self, row):
+        if not HAS_MT5 or not self.check_connection() or not row.get('sl'):
+            raise RuntimeError('TURBO_COMPLETE_ACCOUNT_STOP_EVIDENCE_REQUIRED')
+        kind=mt5.ORDER_TYPE_BUY if str(row.get('side',row.get('type',''))).lower().startswith('buy') else mt5.ORDER_TYPE_SELL
+        loss=mt5.order_calc_profit(kind,row['symbol'],float(row['quantity']),float(row.get('entry_price',row.get('price',0))),float(row['sl']))
+        if loss is None or not math.isfinite(float(loss)):
+            raise RuntimeError('TURBO_ACCOUNT_RISK_UNAVAILABLE')
+        return max(0.0,-float(loss))
+
+    def gold_turbo_order_terminal(self, ticket):
+        if not HAS_MT5 or not self.check_connection():
+            return False
+        rows=mt5.history_orders_get(ticket=int(ticket))
+        return bool(rows) and all(r.state in (mt5.ORDER_STATE_FILLED,mt5.ORDER_STATE_CANCELED,mt5.ORDER_STATE_REJECTED,mt5.ORDER_STATE_EXPIRED) for r in rows)
+
+
+# The terminal API is process-global. Serialize native calls across the existing
+# cloud-control loop and local protection thread, never across cloud HTTP calls.
+from functools import wraps as _wraps
+from threading import RLock as _RLock
+_terminal_api_lock = _RLock()
+def _serialized_native(method):
+    @_wraps(method)
+    def call(*args, **kwargs):
+        with _terminal_api_lock:
+            return method(*args, **kwargs)
+    return call
+for _name in ('initialize','check_connection','get_account_info','get_terminal_info','get_market_data',
+              'get_historical_bars','verify_connection','get_history','get_positions','get_orders',
+              'get_symbol_info','assert_demo_execution_identity','place_order','position_deals',
+              'modify_position','close_position','cancel_order','gold_turbo_ticks','gold_turbo_native_cost',
+              'gold_turbo_position_risk','gold_turbo_order_terminal','gold_turbo_history'):
+    setattr(MT5Client,_name,_serialized_native(getattr(MT5Client,_name)))

@@ -9,6 +9,7 @@ import sys
 import time
 import signal
 import atexit
+import threading
 from config import Config
 from logging_config import setup_logging, logger
 from mt5_client import MT5Client, HAS_MT5
@@ -78,6 +79,8 @@ class MT5AgentDaemon:
         self.symbol_sync_mgr = SymbolSyncManager(self.cloud_client, self.mt5_client)
         self.market_data_publisher = MarketDataPublisher(self.cloud_client, self.mt5_client)
 
+        self.gold_turbo = None
+        self.gold_turbo_stop = threading.Event()
         self.last_heartbeat = 0.0
         self.last_poll = 0.0
         self.last_state_sync = 0.0
@@ -148,10 +151,30 @@ class MT5AgentDaemon:
                 logger.info("operation=terminal_verify error_code=INVESTOR_AUTHENTICATED")
             logger.info("[Daemon] MetaTrader 5 connection established.")
             self.reconnect_backoff = 2.0
+            if Config.GOLD_TURBO_ENABLED and not Config.DATA_ONLY and self.credential_capability == 'master' and proof['account'].get('environment') == 'demo':
+                self._start_gold_turbo()
             return True
         else:
             logger.warning(f"[Daemon] Failed to connect to MT5. Retrying in {self.reconnect_backoff:.1f}s...")
             return False
+
+    def _start_gold_turbo(self):
+        if self.gold_turbo is not None:
+            return
+        from gold_turbo.runtime import GoldTurboRuntime
+        from economic_calendar import read_economic_calendar
+        self.gold_turbo = GoldTurboRuntime(self.mt5_client, dict(account_id=Config.ACCOUNT_ID,
+            owner_id=Config.OWNER_ID,bridge_id=Config.BRIDGE_ID,worker_id=Config.WORKER_ID,
+            execution_account_id=Config.CUSTOMER_EXECUTION_ACCOUNT_ID,login=Config.ACCOUNT_NUMBER,server=Config.SERVER),
+            Config.RUNTIME_DIR,lambda:read_economic_calendar(os.getenv('MT5_NEWS_CONTEXT_PATH',''),Config.ACCOUNT_NUMBER,Config.SERVER))
+        self.command_processor.local_turbo = self.gold_turbo
+        def refresh():
+            while not self.gold_turbo_stop.is_set():
+                try:self.gold_turbo.set_lease(self.cloud_client.gold_turbo_lease())
+                except Exception:self.gold_turbo.set_lease(None)
+                self.gold_turbo_stop.wait(10)
+        threading.Thread(target=refresh,name='gold-turbo-control',daemon=True).start()
+        self.gold_turbo.start()
 
     def run(self):
         self._run_stage("connect", self.connect_mt5)
@@ -223,6 +246,8 @@ class MT5AgentDaemon:
         except Exception as e:
             logger.error(f"[Daemon] Error sending offline heartbeat: {e}")
 
+        self.gold_turbo_stop.set()
+        if self.gold_turbo is not None:self.gold_turbo.stop()
         self._release_single_instance_lock()
         logger.info("[Daemon] HashiBot MT5 Agent stopped gracefully.")
 

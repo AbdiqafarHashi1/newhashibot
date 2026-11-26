@@ -1,3 +1,4 @@
+import {loadGoldTurboLease} from '../_shared/gold-turbo-lease.ts';
 import {closedMt5FeedCandles} from '../_shared/mt5-feed-candles.ts';
 import {collectMt5ProviderOutcomes} from '../_shared/provider-outcome-collector.ts';
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -133,6 +134,14 @@ Deno.serve(async (req: Request) => {
       if(ae||re)throw new Error('BRIDGE_ACCOUNT_SCOPE_MISMATCH');
       return verifyBridgeAccountEvidence({account,registry,accountId,ownerId,bridgeId,workerId,credentialRef,allowStarting:action==='retrieve_credential',now:Date.now()});
     };
+
+    if(action==='gold_turbo_lease') {
+      try {
+        const account=await scopedBridgeAccount('*');
+        const lease=await loadGoldTurboLease(supabase,account,{owner:String(body.owner_id),account:String(body.account_id),bridge:String(body.bridge_id),worker:String(body.worker_id)});
+        return jsonResponse({success:true,lease});
+      } catch(error) {const code=error instanceof Error?error.message:'TURBO_LEASE_DENIED';return jsonResponse({success:false,error_code:code},['TURBO_CONTROL_UNAVAILABLE','BRIDGE_ACCOUNT_SCOPE_MISMATCH'].includes(code)?503:409);}
+    }
 
     if(action==="pair_customer_account"){
       const proof=body.account_proof as Record<string,unknown>|undefined;

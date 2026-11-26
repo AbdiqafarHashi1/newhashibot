@@ -247,3 +247,15 @@ class CloudClient:
             "feed_identity": Config.MARKET_DATA_FEED_ID, "feeds": feeds,
         }, timeout=20)
         return code == 200 and bool(data.get("success"))
+
+    def gold_turbo_lease(self):
+        code, data = self._post(self._bridge_url("gold_turbo_lease"), {
+            "bridge_id":Config.BRIDGE_ID,"account_id":Config.ACCOUNT_ID,
+            "owner_id":Config.OWNER_ID,"worker_id":Config.WORKER_ID}, timeout=3)
+        if code==409 and data.get('error_code') in ('GOLD_TURBO_DISABLED','TURBO_ENTRIES_PAUSED'):
+            return None
+        if code in (403,409):
+            return {'revoked':True}
+        if code != 200 or data.get('success') is not True:
+            return None
+        return data.get('lease')
