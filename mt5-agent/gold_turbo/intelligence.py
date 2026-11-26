@@ -37,6 +37,8 @@ class WindowFeatures:
     maximum_spread: Optional[float] = None
     realized_path: Optional[float] = None
     exhaustion_candidate: bool = False
+    low_bid: Optional[float] = None
+    high_bid: Optional[float] = None
 
 
 @dataclass(frozen=True)
@@ -275,7 +277,8 @@ class MarketIntelligence:
         return WindowFeatures(seconds, True, len(rows), rows[0].at_ms, rows[-1].at_ms, move,
                               move/elapsed, acceleration, move/path if path else 0,
                               median(t.spread for t in rows), max(t.spread for t in rows), path,
-                              abs(early_velocity) > 0 and (early_velocity*late_velocity < 0 or abs(late_velocity) < .35*abs(early_velocity)))
+                              abs(early_velocity) > 0 and (early_velocity*late_velocity < 0 or abs(late_velocity) < .35*abs(early_velocity)),
+                              min(t.bid for t in rows), max(t.bid for t in rows))
 
     @staticmethod
     def _usable_tail(rows):

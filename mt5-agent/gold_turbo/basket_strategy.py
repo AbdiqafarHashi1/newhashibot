@@ -52,10 +52,22 @@ class BasketScalper:
         self.engines = (MicroScalper(), MomentumScalper(), RangeScalper(), TrendScalper())
         self.memory = EntryMemory()
         self.direct_memory = EntryMemory()
+        self._selected = None
 
     def record_admission(self, decision, at_ms):
         if decision.strategy_id != self.strategy_id:
             raise ValueError('STRATEGY_SCOPE_MISMATCH')
+        selected = self._selected
+        if selected is None or dict(decision.features).get('selected_source_opportunity') != selected.opportunity_id:
+            raise ValueError('BASKET_SOURCE_ADMISSION_REQUIRED')
+        blocked = self.memory.admission_rejection(decision.opportunity_id, at_ms, self.config.reentry_cooldown_ms)
+        if blocked:
+            raise ValueError(blocked)
+        child = next((e for e in self.engines if e.strategy_id == selected.strategy_id), None)
+        if child is not None:
+            child.record_admission(selected, at_ms)
+        else:
+            self.direct_memory.record(selected, at_ms, self.config.reentry_cooldown_ms)
         self.memory.record(decision, at_ms, self.config.reentry_cooldown_ms)
 
     def _direct_models(self, snapshot, costs, now_ms):
@@ -85,8 +97,24 @@ class BasketScalper:
             if (inside and side*(previous.close-previous.open) > 0 and side*(price-trigger) > .02*atr
                     and side*(price-trigger) <= .35*atr and side*(forming.close-forming.open) > 0):
                 models.append('PREVIOUS_CANDLE_ANTICIPATION')
+            levels = m5.usable_completed[-6:]
+            support, resistance = min(r.low for r in levels), max(r.high for r in levels)
+            width = resistance-support
+            level = support if side == 1 else resistance
+            shape = m1.developing_shape
+            position = (price-support)/width if width > 0 else .5
+            at_boundary = position <= .25 if side == 1 else position >= .75
+            touched = forming.low <= level+self.config.stop_buffer_atr*atr if side == 1 else forming.high >= level-self.config.stop_buffer_atr*atr
+            if (m5.regime in ('RANGE','TRANSITION','COMPRESSION') and width >= 2*atr
+                    and 0 < position < 1 and at_boundary and touched
+                    and side*(price-level) > self.config.stop_buffer_atr*atr
+                    and shape and shape.rejection == ('LOWER_WICK' if side == 1 else 'UPPER_WICK')
+                    and w5 and side*w5.velocity > .01*atr and side*w5.directional_persistence >= .55):
+                models.append('M5_SUPPORT_RESISTANCE_REJECTION')
             for model in models:
                 extreme = min(previous.low, forming.low) if side == 1 else max(previous.high, forming.high)
+                if model == 'M5_SUPPORT_RESISTANCE_REJECTION':
+                    extreme = min(level,forming.low) if side == 1 else max(level,forming.high)
                 invalidation = extreme-side*self.config.stop_buffer_atr*atr
                 distance = side*(price-invalidation)
                 if not 0 < distance <= self.config.maximum_stop_atr*atr:
@@ -95,7 +123,9 @@ class BasketScalper:
                 candidates.append(propose(self.strategy_id, snapshot, now_ms, costs, self.direct_memory, self.config,
                     side='LONG' if side == 1 else 'SHORT', model=model, anchor=(previous.open_ms, forming.open_ms),
                     stop_distance=max(distance, self.config.minimum_stop_atr*atr), invalidation_bid=invalidation,
-                    atr=atr, features=(('m1_atr', atr), ('m5_regime', m5.regime), ('inside_previous_candle', inside))))
+                    atr=atr, features=(('m1_atr', atr), ('m5_regime', m5.regime), ('inside_previous_candle', inside),
+                        ('m5_support', support), ('m5_resistance', resistance)),
+                    target_move=min(self.config.target_atr*atr,side*((support+resistance)/2-price)) if model == 'M5_SUPPORT_RESISTANCE_REJECTION' else None))
         return candidates or [reject(self.strategy_id, now_ms, 'NO_DIRECT_PRICE_ACTION_MODEL')]
 
     @staticmethod
@@ -130,6 +160,7 @@ class BasketScalper:
             self.memory.clear_setup()
             return reject(self.strategy_id, now_ms, 'NO_QUALIFIED_BASKET_ENTRY', (('model_decisions', audit),))
         score, model, chosen = candidates[0]
+        self._selected = chosen
         opposite = [c for c in candidates if c[2].decision != chosen.decision and regime_fit(snapshot,c[2],now_ms)==regime_fit(snapshot,chosen,now_ms)]
         if opposite and score-opposite[0][0] < self.config.ambiguity_score_gap:
             return reject(self.strategy_id, now_ms, 'AMBIGUOUS_OPPOSING_BASKET_MODELS', (('model_decisions', audit),))

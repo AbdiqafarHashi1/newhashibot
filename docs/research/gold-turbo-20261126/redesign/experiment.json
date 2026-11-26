@@ -1,0 +1,11 @@
+{
+ "version":"scalp-structure-redesign-1",
+ "reference_commit":"bd7a937b595601cedbd09cc11b13b01001fb15f1",
+ "development_dates":["2026-10-06","2026-10-14","2026-10-22"],
+ "additional_dates_fixed_before_results":["2026-10-29","2026-10-30"],
+ "hours_utc":"08:00-16:00",
+ "changes":["Micro burst stop beyond observed 5-second bid extreme, inside original risk allowance", "Momentum completed impulse breakout plus completed retest and live reclaim replaces first-extension chase", "Flagship explicit M5-boundary/M1-wick/tick-confirmed rejection with target capped at range midpoint", "Flagship propagates admission to selected source engine and persists its existing memory", "Trend entry rejects the same opposing M15 swing that its exit already invalidates"],
+ "unchanged":["Range entry model", "five strategy IDs", "holding-time limits", "risk percentages", "maximum account exposure", "basket targets", "commissions", "slippage", "broker scenario", "decision cadence"],
+ "hypothesis":"Improve scalp decision geometry and eliminate contradictory/duplicate decisions; no promise of positive results",
+ "restrictions":"One fixed candidate, no return-based parameter sweeps; preserve all results. Additional days are unused in these redesign decisions but not pristine external validation of a previously researched month."
+}

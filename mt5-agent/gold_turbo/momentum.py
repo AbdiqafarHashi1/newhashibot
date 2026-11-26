@@ -86,19 +86,36 @@ class MomentumScalper:
             return reject(self.strategy_id, now_ms, 'MOMENTUM_CANDLE_DISCONTINUITY')
         shape = candle_shape(prior)
         evidence = (('primary_timeframe_ms', cfg.primary_timeframe_ms), ('primary_atr', atr),
-                    ('impulse_body_fraction', shape.body_fraction), ('impulse_body_atr', abs(shape.signed_body)/atr),
+                    ('latest_body_fraction', shape.body_fraction), ('latest_body_atr', abs(shape.signed_body)/atr),
                     ('m15_regime', context.regime))
         side = model = trigger = invalidation = None
-        impulse_side = 1 if shape.signed_body > 0 else -1
-        wick = shape.upper_wick if impulse_side == 1 else shape.lower_wick
-        span = prior.high-prior.low
-        if abs(shape.signed_body) >= cfg.impulse_body_atr*atr and shape.body_fraction >= cfg.impulse_body_fraction:
-            if span <= 0 or wick/span > cfg.maximum_directional_wick_fraction:
-                return reject(self.strategy_id, now_ms, 'IMPULSE_EXHAUSTION_WICK', evidence)
-            side = impulse_side
-            trigger = prior.high+cfg.breakout_buffer_atr*atr if side == 1 else prior.low-cfg.breakout_buffer_atr*atr
-            invalidation = (prior.open+prior.close)/2-side*cfg.stop_buffer_atr*atr
-            model = 'STRONG_CANDLE_CONTINUATION'
+        # Impulse -> COMPLETED retest -> current reclaim. The old entry
+        # bought/sold the first extension of a single large candle. Two ordered
+        # completed intervals attest the retest without guessing OHLC tick order.
+        if len(rows) >= cfg.compression_bars+2:
+            impulse, retest = rows[-2:]
+            before = rows[-cfg.compression_bars-2:-2]
+            impulse_shape = candle_shape(impulse)
+            impulse_side = 1 if impulse_shape.signed_body > 0 else -1
+            level = max(r.high for r in before) if impulse_side == 1 else min(r.low for r in before)
+            impulse_span = impulse.high-impulse.low
+            wick = impulse_shape.upper_wick if impulse_side == 1 else impulse_shape.lower_wick
+            extreme = retest.low if impulse_side == 1 else retest.high
+            if (impulse.end_ms == retest.open_ms and retest.end_ms == forming.open_ms
+                    and abs(impulse_shape.signed_body) >= cfg.impulse_body_atr*atr
+                    and impulse_shape.body_fraction >= cfg.impulse_body_fraction
+                    and impulse_span > 0 and wick/impulse_span <= cfg.maximum_directional_wick_fraction
+                    and impulse_side*(impulse.close-level) > cfg.breakout_buffer_atr*atr
+                    and abs(extreme-level) <= .20*atr
+                    and impulse_side*(retest.close-level) > 0):
+                side = impulse_side
+                trigger = retest.high+cfg.breakout_buffer_atr*atr if side == 1 else retest.low-cfg.breakout_buffer_atr*atr
+                invalidation = extreme-side*cfg.stop_buffer_atr*atr
+                model = 'STRONG_CANDLE_RETEST_CONTINUATION'
+                evidence += (('impulse_body_fraction', impulse_shape.body_fraction),
+                             ('impulse_body_atr', abs(impulse_shape.signed_body)/atr),
+                             ('breakout_level', level), ('impulse_open_ms', impulse.open_ms),
+                             ('retest_open_ms', retest.open_ms), ('retest_extreme', extreme))
         if model is None and len(rows) >= cfg.compression_bars:
             box = rows[-cfg.compression_bars:]
             if sum(r.high-r.low for r in box)/len(box) <= cfg.compression_range_atr*atr:
@@ -129,12 +146,10 @@ class MomentumScalper:
         w5 = next((w for w in snapshot.windows if w.seconds == 5 and w.available), None)
         if w5 and (side*w5.move < 0 or w5.exhaustion_candidate):
             return reject(self.strategy_id, now_ms, 'MOMENTUM_TICK_FAILURE_OR_EXHAUSTION', evidence, model)
-        if model == 'STRONG_CANDLE_CONTINUATION':
+        if model == 'STRONG_CANDLE_RETEST_CONTINUATION':
             # A large isolated candle is insufficient evidence of follow-through.
-            # Demand actual directional context and observed short tick support;
+            # Demand the ordered retest and observed short tick support;
             # compression expansion keeps its separate entry hypothesis.
-            if context_direction(context) != side:
-                return reject(self.strategy_id, now_ms, 'IMPULSE_WITHOUT_M15_FOLLOW_THROUGH', evidence, model)
             if not w5 or side*w5.directional_persistence < .55:
                 return reject(self.strategy_id, now_ms, 'IMPULSE_WITHOUT_TICK_PERSISTENCE', evidence, model)
         distance = side*(price-invalidation)

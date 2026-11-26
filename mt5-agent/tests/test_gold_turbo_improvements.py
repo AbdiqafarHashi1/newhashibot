@@ -24,10 +24,11 @@ class ImprovementTests(unittest.TestCase):
             s=replace(s,windows=tuple(replace(w,directional_persistence=.1 if side=='LONG' else -.1) if w.seconds==15 else w for w in s.windows))
             d=MicroScalper().evaluate(s,COSTS,s.as_of_ms)
             self.assertEqual(d.reasons,('MICRO_BURST_WITHOUT_15S_PERSISTENCE',))
-    def test_impulse_rejects_isolated_candle_without_directional_context(self):
+    def test_completed_retest_does_not_require_excessive_macro_confirmation(self):
         for side in ('LONG','SHORT'):
             s=neutral_m15(snapshot('impulse',side));d=MomentumScalper().evaluate(s,COSTS,s.as_of_ms)
-            self.assertEqual(d.reasons,('IMPULSE_WITHOUT_M15_FOLLOW_THROUGH',))
+            self.assertEqual(d.decision,side)
+            self.assertEqual(d.entry_model,'STRONG_CANDLE_RETEST_CONTINUATION')
     def test_impulse_requires_observed_tick_persistence(self):
         s=snapshot('impulse');s=replace(s,windows=tuple(replace(w,directional_persistence=.1) if w.seconds==5 else w for w in s.windows))
         self.assertEqual(MomentumScalper().evaluate(s,COSTS,s.as_of_ms).reasons,('IMPULSE_WITHOUT_TICK_PERSISTENCE',))

@@ -24,6 +24,8 @@ def snapshot(style='burst', side='LONG', primary=60_000):
             bar = candle(tf, BASE-(60-i)*tf)
             if style == 'compression' and tf == primary and i >= 55:
                 bar = candle(tf, bar.open_ms, 1999.99, 2000.05, 1999.95, 2000)
+            if style == 'impulse' and tf == primary and i == 59:
+                bar = candle(tf, bar.open_ms, 2000., 2001., 1999.95, 2000.9)
             if tf == 900_000 and i >= 57:
                 bar = candle(tf, bar.open_ms, close=2000+.01*(i-57))
             seeded.append(bar)
@@ -32,8 +34,8 @@ def snapshot(style='burst', side='LONG', primary=60_000):
     for t in range(0, end+1, 1000):
         engine.ingest(Tick('XAUUSD', SOURCE, BASE+t, 2000, 2000.02), BASE+t)
     if style == 'impulse':
-        bar = candle(primary, BASE, 1999.4, 2000.3, 1999.3, 2000.25)
-        price = lambda t:2000.35+.02*(t-end)/1000
+        bar = candle(primary, BASE, 2000.9, 2001., 2000.45, 2000.8)
+        price = lambda t:2001.05+.02*(t-end)/1000
     elif style == 'compression':
         bar = candle(primary, BASE, 1999.99, 2000.05, 1999.95, 2000)
         price = lambda t:1999.95+.05*(t-end)/1000
@@ -88,7 +90,7 @@ class EntryTests(unittest.TestCase):
             self.assertEqual(micro.decision, side, micro)
             self.assertEqual(momentum.decision, side, momentum)
             self.assertEqual(micro.entry_model, 'MICRO_PERSISTENT_BURST')
-            self.assertEqual(momentum.entry_model, 'STRONG_CANDLE_CONTINUATION')
+            self.assertEqual(momentum.entry_model, 'STRONG_CANDLE_RETEST_CONTINUATION')
             self.assertNotEqual(micro.strategy_id, momentum.strategy_id)
             self.assertLess(micro.plan.maximum_hold_ms, momentum.plan.maximum_hold_ms)
             self.assertLess(micro.plan.target-micro.plan.stop if side == 'LONG' else micro.plan.stop-micro.plan.target,

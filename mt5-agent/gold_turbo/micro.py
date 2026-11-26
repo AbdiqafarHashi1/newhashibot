@@ -106,7 +106,10 @@ class MicroScalper:
               and w5.acceleration is not None and side*w5.acceleration >= -cfg.acceleration_tolerance_atr*atr
               and not w5.exhaustion_candidate and side*(forming.close-forming.open) > 0):
             model = 'MICRO_PERSISTENT_BURST'
-            invalidation = snapshot.latest_tick.bid-side*cfg.minimum_stop_atr*atr
+            extreme = w5.low_bid if side == 1 else w5.high_bid
+            if extreme is None:
+                return reject(self.strategy_id, now_ms, 'MICRO_TICK_EXTREMES_REQUIRED', evidence, model)
+            invalidation = extreme-side*cfg.stop_buffer_atr*atr
         if model is None:
             self.memory.clear_setup()
             return reject(self.strategy_id, now_ms, 'NO_QUALIFIED_MICRO_MODEL', evidence)

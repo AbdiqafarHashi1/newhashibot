@@ -86,6 +86,8 @@ class TrendScalper:
         sign = 1 if context.regime == 'TREND_UP' else -1
         opposite = 'TREND_DOWN' if sign == 1 else 'TREND_UP'
         opposite_swing = 'DOWN' if sign == 1 else 'UP'
+        if context.structure.swing_direction == opposite_swing:
+            return reject(self.strategy_id, now_ms, 'TREND_CONTEXT_STRUCTURE_CONFLICT', evidence)
         if primary.regime in (opposite, 'SHOCK') or primary.structure.swing_direction == opposite_swing:
             return reject(self.strategy_id, now_ms, 'TREND_PRIMARY_STRUCTURE_CONFLICT', evidence)
         rows = primary.usable_completed

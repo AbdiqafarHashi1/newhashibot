@@ -83,7 +83,7 @@ class StrategyTests(unittest.TestCase):
         engine = BasketScalper()
         first = engine.evaluate(snap, COSTS, snap.as_of_ms)
         engine.record_admission(first, snap.as_of_ms)
-        self.assertEqual(engine.evaluate(snap, COSTS, snap.as_of_ms).reasons, ('OPPORTUNITY_ALREADY_ADMITTED',))
+        self.assertIsNone(engine.evaluate(snap, COSTS, snap.as_of_ms).plan)
         self.assertEqual(BasketScalper().evaluate(replace(snap, volatility_shock=True), COSTS, snap.as_of_ms).decision, 'NO_TRADE')
         self.assertEqual(BasketScalper().evaluate(snap, None, snap.as_of_ms).decision, 'NO_TRADE')
 
