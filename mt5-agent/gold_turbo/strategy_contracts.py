@@ -54,6 +54,9 @@ class EntryPlan:
     partial_fraction: float
     price_tick: float
     demo_only: bool = True
+    regime_exit_timeframe_ms: Optional[int] = None
+    regime_exit_policy: str = 'NONE'
+    early_failure_velocity_atr_per_second: Optional[float] = .01
 
     def __post_init__(self):
         if self.side not in ('LONG', 'SHORT') or self.symbol != 'XAUUSD' or self.demo_only is not True:
@@ -79,6 +82,12 @@ class EntryPlan:
             raise ValueError('PLAN_PARTIAL_FRACTION_INVALID')
         if self.partial_trigger_r is not None:
             positive(self.partial_trigger_r, 'PLAN_PARTIAL_TRIGGER_INVALID')
+        if self.regime_exit_policy not in ('NONE', 'RANGE', 'TREND'):
+            raise ValueError('REGIME_EXIT_POLICY_INVALID')
+        if self.regime_exit_policy != 'NONE' and (type(self.regime_exit_timeframe_ms) is not int or self.regime_exit_timeframe_ms not in (60_000, 300_000, 900_000)):
+            raise ValueError('REGIME_EXIT_FRAME_REQUIRED')
+        if self.early_failure_velocity_atr_per_second is not None:
+            positive(self.early_failure_velocity_atr_per_second, 'EARLY_FAILURE_THRESHOLD_INVALID')
 
 
 @dataclass(frozen=True)
@@ -207,11 +216,14 @@ def context_direction(frame):
 
 
 def propose(strategy_id, snapshot, now_ms, costs, memory, config, *, side, model,
-            anchor, stop_distance, invalidation_bid, atr, features):
+            anchor, stop_distance, invalidation_bid, atr, features, target_move=None,
+            regime_exit_timeframe_ms=None, regime_exit_policy='NONE',
+            early_failure_velocity_atr_per_second=.01):
     tick = snapshot.latest_tick
     if not isinstance(costs, ExecutionCosts):
         return reject(strategy_id, now_ms, 'EXECUTION_COSTS_UNAVAILABLE', features, model)
-    move = config.target_atr*atr
+    move = config.target_atr*atr if target_move is None else target_move
+    positive(move, 'PROPOSED_TARGET_MOVE_INVALID')
     cost = estimate_cost(tick, costs.contract_size, costs.commission_per_lot_per_side,
                          costs.slippage_per_side, move, costs.assumptions)
     fee_slip = cost.commission_round_trip_price+cost.slippage_round_trip_price
@@ -238,7 +250,9 @@ def propose(strategy_id, snapshot, now_ms, costs, memory, config, *, side, model
                      side, now_ms, now_ms+config.entry_ttl_ms, entry, stop, target, invalidation_bid, atr,
                      tick.spread, fee_slip, reward, risk, config.maximum_hold_ms,
                      config.trailing_trigger_r, config.trailing_distance_atr, config.lock_profit_r,
-                     config.partial_trigger_r, config.partial_fraction, costs.price_tick)
+                     config.partial_trigger_r, config.partial_fraction, costs.price_tick,
+                     regime_exit_timeframe_ms=regime_exit_timeframe_ms, regime_exit_policy=regime_exit_policy,
+                     early_failure_velocity_atr_per_second=early_failure_velocity_atr_per_second)
     return StrategyDecision(strategy_id, plan.strategy_version, now_ms, side, model, opportunity_id,
                             ('QUALIFIED_RESEARCH_CANDIDATE',), evidence, plan)
 

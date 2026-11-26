@@ -1,4 +1,4 @@
-"""Pure management proposals for the two research engines; never provider fills.
+"""Pure management proposals for local research engines; never provider fills.
 
 The caller must reconcile actual stop/partial executions. Returned next_stop and
 close_fraction are requests, not acknowledgements. Broker stops remain required.
@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 import math
 from typing import Optional
 from .contracts import integer, positive
-from .strategy_contracts import EntryPlan, common_rejection
+from .strategy_contracts import EntryPlan, common_rejection, frame_at
 
 
 @dataclass(frozen=True)
@@ -82,9 +82,20 @@ def manage_position(plan, position, snapshot, now_ms, maximum_quote_age_ms=2000)
         return result('CLOSE', 'DIRECTIONAL_INVALIDATION', state, fraction=1, net=net)
     if snapshot.volatility_shock:
         return result('CLOSE', 'VOLATILITY_SHOCK_EXIT', state, fraction=1, net=net)
+    if plan.regime_exit_policy != 'NONE':
+        context = frame_at(snapshot, plan.regime_exit_timeframe_ms, now_ms)
+        if context is not None:
+            if plan.regime_exit_policy == 'RANGE' and context.regime in ('TREND_UP', 'TREND_DOWN', 'SHOCK'):
+                return result('CLOSE', 'RANGE_REGIME_INVALIDATED', state, fraction=1, net=net)
+            opposite = 'TREND_DOWN' if sign == 1 else 'TREND_UP'
+            opposite_swing = 'DOWN' if sign == 1 else 'UP'
+            if plan.regime_exit_policy == 'TREND' and (context.regime in (opposite, 'RANGE', 'SHOCK') or context.structure.swing_direction == opposite_swing):
+                return result('CLOSE', 'TREND_REGIME_INVALIDATED', state, fraction=1, net=net)
     w5 = next((w for w in snapshot.windows if w.seconds == 5 and w.available), None)
-    if (now_ms-position.opened_at_ms >= 3000 and w5 and net < 0
-            and sign*w5.directional_persistence <= -.6 and sign*w5.velocity < -.01*plan.atr_at_entry):
+    if (plan.early_failure_velocity_atr_per_second is not None
+            and now_ms-position.opened_at_ms >= 3000 and w5 and net < 0
+            and sign*w5.directional_persistence <= -.6
+            and sign*w5.velocity < -plan.early_failure_velocity_atr_per_second*plan.atr_at_entry):
         return result('CLOSE', 'EARLY_MOMENTUM_FAILURE', state, fraction=1, net=net)
     initial_risk = sign*(position.entry_price-plan.stop)+plan.fee_slippage_price
     if initial_risk <= 0:
