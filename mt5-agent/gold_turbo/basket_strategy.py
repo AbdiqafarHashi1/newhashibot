@@ -5,6 +5,7 @@ not a calibrated probability or a demonstration that adaptive selection wins.
 """
 from dataclasses import dataclass, replace
 from .contracts import positive
+from .arbitration import regime_fit
 from .micro import MicroScalper
 from .momentum import MomentumScalper
 from .range_scalper import RangeScalper
@@ -124,12 +125,12 @@ class BasketScalper:
             sign = 1 if d.decision == 'LONG' else -1
             score = rr/(1+rr) + (.10 if direction == sign else 0)
             candidates.append((score, self._model(d), d))
-        candidates.sort(key=lambda item:(-item[0], item[1], item[2].strategy_id))
+        candidates.sort(key=lambda item:(-regime_fit(snapshot,item[2],now_ms), -item[0], item[1], item[2].strategy_id))
         if not candidates:
             self.memory.clear_setup()
             return reject(self.strategy_id, now_ms, 'NO_QUALIFIED_BASKET_ENTRY', (('model_decisions', audit),))
         score, model, chosen = candidates[0]
-        opposite = [c for c in candidates if c[2].decision != chosen.decision]
+        opposite = [c for c in candidates if c[2].decision != chosen.decision and regime_fit(snapshot,c[2],now_ms)==regime_fit(snapshot,chosen,now_ms)]
         if opposite and score-opposite[0][0] < self.config.ambiguity_score_gap:
             return reject(self.strategy_id, now_ms, 'AMBIGUOUS_OPPOSING_BASKET_MODELS', (('model_decisions', audit),))
         opportunity = self.memory.opportunity(self.strategy_id, snapshot.source, chosen.decision, model,
@@ -141,5 +142,5 @@ class BasketScalper:
                        entry_model=model, created_at_ms=now_ms, expires_at_ms=now_ms+self.config.entry_ttl_ms,
                        maximum_hold_ms=self.config.maximum_hold_ms)
         return StrategyDecision(self.strategy_id, plan.strategy_version, now_ms, chosen.decision, model, opportunity,
-            ('QUALIFIED_RESEARCH_BASKET_CANDIDATE',), chosen.features+(('ranking_score_not_probability', score),
+            ('QUALIFIED_RESEARCH_BASKET_CANDIDATE',), chosen.features+(('ranking_score_not_probability', score), ('regime_fit_ordinal', regime_fit(snapshot,chosen,now_ms)),
             ('selected_source_strategy', chosen.strategy_id), ('selected_source_opportunity', chosen.opportunity_id), ('model_decisions', audit)), plan)

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -19,11 +20,13 @@ import subprocess
 import time
 import zipfile
 sys.path = [v for v in sys.path if Path(v).resolve() != Path(__file__).resolve().parent]
+from dataclasses import asdict
 import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT/'mt5-agent'))
+AGENT_ROOT=Path(os.environ.get('GOLD_TURBO_AGENT_PATH',str(ROOT/'mt5-agent'))).resolve()
+sys.path.insert(0,str(AGENT_ROOT))
 from gold_turbo import MarketIntelligence, Candle, Tick
 from gold_turbo.runtime import GoldTurboRuntime, FACTORIES, MAGIC
 
@@ -75,10 +78,15 @@ class ScenarioTerminal:
         pos=dict(ticket=n,identifier=n,symbol='XAUUSD',side=p['side'],quantity=q,entry_price=price,sl=p['sl'],tp=p['tp'],magic=MAGIC,comment=p['comment'],time=self.now/1000,opened_ms=self.now,mfe=0.,mae=0.)
         self.positions.append(pos)
         d=dict(ticket='entry'+n,order='order'+n,position_id=n,entry=0,symbol='XAUUSD',comment=p['comment'],volume=q,price=price,commission=-commission,fee=0,profit=0,swap=0,time=self.now/1000)
-        self.deals.append(d);self.fills.append(dict(d));self.completed.add('order'+n)
+        self.deals.append(d)
+        plans=[o.plan for b in self.runtime.books.values() for oid,o in b.orders.items() if self.runtime.links.get(oid,{}).get('comment')==p['comment']] if self.runtime else []
+        self.fills.append(dict(d,entry_plan=asdict(plans[0]) if plans else None));self.completed.add('order'+n)
         return dict(success=True,provider_order_id='order'+n)
     def close_position(self,ticket,volume=None,reason='MANAGEMENT'):
         p=next(p for p in self.positions if p['ticket']==ticket);q=p['quantity'] if volume is None else min(volume,p['quantity'])
+        if reason=='MANAGEMENT' and self.runtime:
+            actions=[a for b in self.runtime.books.values() for a in b.actions.values() if a.kind=='CLOSE_POSITION' and a.target_id==ticket and a.status in ('READY','SENT','UNCERTAIN')]
+            if actions:reason=actions[-1].reason
         sign=1 if p['side']=='buy' else -1;price=(self.bid if sign==1 else self.ask)-sign*self.slip
         profit=(price-p['entry_price'])*sign*q*100;fee=q*3.5
         self.balance+=profit-fee;n=str(len(self.fills));order='close'+n
@@ -148,7 +156,7 @@ def summarize(t,name):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--days',default='06,14,22');p.add_argument('--start-hour',type=int,default=8);p.add_argument('--end-hour',type=int,default=16);p.add_argument('--cadence-ms',type=int,default=5000);p.add_argument('--capitals',default='100,500,1000,25000');p.add_argument('--output',type=Path,default=ROOT/'.tmp/gold-turbo-baseline.json');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--days',default='06,14,22');p.add_argument('--start-hour',type=int,default=8);p.add_argument('--end-hour',type=int,default=16);p.add_argument('--cadence-ms',type=int,default=5000);p.add_argument('--capitals',default='100,500,1000,25000');p.add_argument('--slippage',type=float,default=.02);p.add_argument('--output',type=Path,default=ROOT/'.tmp/gold-turbo-baseline.json');a=p.parse_args()
     data=ROOT/'.tmp/gold-micro/data';archive=data/'XAUUSD-2026-10.zip';manifest=json.loads((data/'XAUUSD-1m-2026-10.manifest.json').read_text());digest=hashlib.sha256(archive.read_bytes()).hexdigest()
     if digest!='a131b2c531a58c5e4470f9b65afea4d7894816d7c7bfd580dba70dbe877dc981' or digest!=manifest['archiveSha256']:raise ValueError('ORIGINAL_ARCHIVE_HASH_MISMATCH')
     allbars=bars(data/'XAUUSD-1m-2026-10.json');ends={tf:[b.end_ms for b in bs] for tf,bs in allbars.items()}
@@ -157,7 +165,7 @@ def main():
     cases=[];temp=tempfile.TemporaryDirectory()
     for name,(ids,mode) in LINEUPS.items():
         for cap in map(float,a.capitals.split(',')):
-            t=ScenarioTerminal(cap);r,lease=runtime(t,ids,mode,Path(temp.name)/f'{name}-{cap}');cases.append((name,t,r,lease))
+            t=ScenarioTerminal(cap,slip=a.slippage);r,lease=runtime(t,ids,mode,Path(temp.name)/f'{name}-{cap}');cases.append((name,t,r,lease))
     eng=None;session=-1;count=0;next_step=0;refresh=-1;quote_count=0;start=time.monotonic();last_progress=start
     with zipfile.ZipFile(archive) as z:
         member=next(n for n in z.namelist() if n.lower().endswith('.csv'))
@@ -192,7 +200,7 @@ def main():
     if eng is not None:finish(cases,snap)
     rows=[summarize(t,name) for name,t,_,_ in cases]
     for row in rows:row['baskets_per_selected_session']=row['independent_baskets']/len(spans)
-    result=dict(schema='gold-turbo-tick-baseline/v1',strategy_code_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),data_manifest=manifest,archive_sha256=digest,sessions=[dict(start=utc(s),end_exclusive=utc(e)) for s,e in spans],processed_original_quotes=quote_count,decision_observations=count,cadence_ms=a.cadence_ms,elapsed_seconds=time.monotonic()-start,assumptions=dict(account_currency='USD',contract_size_oz=100,minimum_lot=.01,lot_step=.01,leverage=100,broker_min_stop_price=.1,commission_per_lot_per_side_usd=3.5,adverse_slippage_price_per_side=.02,execution_latency_ms=0,news_calendar='UNAVAILABLE: explicit clear-news scenario, not news-filter validation',swap='zero: forced flat at each selected session end',monthly_subscription_usd_scenario=100,risk_per_decision_pct='runtime capped .25 <=500, .20 <=5000, .15 above',daily_loss_pct=1.5,peak_loss_pct=8,max_open_risk_pct=1,max_margin_pct=20,basket_target_pct=.2),limitations=['Predeclared October 6/14/22 sessions; October was already used in earlier research, not unseen validation','Scenario broker specs, commission and leverage must be replaced by actual customer broker evidence','5-second decision cadence differs from 200ms live worker; every original quote checks broker stops and targets','Zero order latency, no partial fills/requotes/disconnects; does not qualify live execution','No retained historical economic calendar; production fails closed without one','Selected sessions cannot establish monthly return, profitable-month percentage, survival probability or fee viability','No claim that new strategies are profitable or commercially qualified'],results=rows,closed_baskets={f'{name}:{t.initial:g}':t.baskets for name,t,_,_ in cases},fills={f'{name}:{t.initial:g}':t.fills for name,t,_,_ in cases})
+    result=dict(schema='gold-turbo-tick-baseline/v1',strategy_file_sha256={str(p.relative_to(AGENT_ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((AGENT_ROOT/'gold_turbo').glob('*.py'))},strategy_code_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),data_manifest=manifest,archive_sha256=digest,sessions=[dict(start=utc(s),end_exclusive=utc(e)) for s,e in spans],processed_original_quotes=quote_count,decision_observations=count,cadence_ms=a.cadence_ms,elapsed_seconds=time.monotonic()-start,assumptions=dict(account_currency='USD',contract_size_oz=100,minimum_lot=.01,lot_step=.01,leverage=100,broker_min_stop_price=.1,commission_per_lot_per_side_usd=3.5,adverse_slippage_price_per_side=a.slippage,execution_latency_ms=0,news_calendar='UNAVAILABLE: explicit clear-news scenario, not news-filter validation',swap='zero: forced flat at each selected session end',monthly_subscription_usd_scenario=100,risk_per_decision_pct='runtime capped .25 <=500, .20 <=5000, .15 above',daily_loss_pct=1.5,peak_loss_pct=8,max_open_risk_pct=1,max_margin_pct=20,basket_target_pct=.2),limitations=['Dates are explicit in sessions; October was already used in earlier research, not untouched market validation','Scenario broker specs, commission and leverage must be replaced by actual customer broker evidence','5-second decision cadence differs from 200ms live worker; every original quote checks broker stops and targets','Zero order latency, no partial fills/requotes/disconnects; does not qualify live execution','No retained historical economic calendar; production fails closed without one','Selected sessions cannot establish monthly return, profitable-month percentage, survival probability or fee viability','No claim that new strategies are profitable or commercially qualified'],results=rows,closed_baskets={f'{name}:{t.initial:g}':t.baskets for name,t,_,_ in cases},fills={f'{name}:{t.initial:g}':t.fills for name,t,_,_ in cases})
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(result,indent=2,allow_nan=False)+'\n');print('SAVED',a.output,round(time.monotonic()-start,1),flush=True)
 
 

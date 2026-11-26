@@ -10,8 +10,7 @@ ROOT=Path(__file__).resolve().parents[3]
 FOLDER=ROOT/'docs/research/gold-turbo-20261126'
 
 
-def report():
-    path=ROOT/'.tmp/gold-turbo-baseline.json';raw=path.read_bytes();j=json.loads(raw)
+def audit_run(j):
     table=[]
     for row in j['results']:
         key=f"{row['lineup']}:{row['capital']:g}";fills=j['fills'][key];bs=j['closed_baskets'][key]
@@ -27,6 +26,12 @@ def report():
         for f in fills:
             day=datetime.fromtimestamp(f['time'],timezone.utc).date().isoformat();sessions[day]+=f['profit']+f['commission']
         table.append({k:v for k,v in row.items() if k not in ('entry_reasons','candidate_models')}|dict(selected_session_net_money=dict(sessions),reconciled=True))
+    return table
+
+
+def report():
+    path=ROOT/'.tmp/gold-turbo-baseline.json';raw=path.read_bytes();j=json.loads(raw)
+    table=audit_run(j)
     ledger=ROOT/'src/data/saved-ledger-trades.json';ledger_raw=ledger.read_bytes();trades=json.loads(ledger_raw)['trades']
     result=dict(schema='gold-turbo-baseline-audit/v1',baseline_sha256=hashlib.sha256(raw).hexdigest(),source_strategy_commit=j['strategy_code_commit'],original_ledger=dict(closed_trades=len(trades),configurations=len({t['strategy_id'] for t in trades}),sha256=hashlib.sha256(ledger_raw).hexdigest(),regenerated=False),data=j['data_manifest'],sessions=j['sessions'],processed_quotes=j['processed_original_quotes'],decision_observations=j['decision_observations'],scenario=j['assumptions'],limitations=j['limitations'],results=table)
     (FOLDER/'baseline-summary.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')

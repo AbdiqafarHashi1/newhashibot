@@ -15,6 +15,7 @@ from . import (MarketIntelligence, IntelligenceConfig, Tick, Candle, ExecutionCo
 from .basket import BasketBook, BasketConfig, BasketEnvelope, BrokerFacts
 from .strategy_contracts import EntryPlan
 from .management import PositionObservation, manage_position
+from .arbitration import regime_fit
 
 FACTORIES={c.strategy_id:c for c in (MicroScalper,MomentumScalper,RangeScalper,TrendScalper,BasketScalper)}
 MAGIC=886006
@@ -297,8 +298,8 @@ class GoldTurboRuntime:
             if decision.plan:candidates.append((sid,engine,decision))
         if lease.get('selection_mode')=='ADAPTIVE':
             score=lambda c:c[2].plan.planned_net_reward/c[2].plan.planned_loss_with_costs
-            candidates.sort(key=lambda c:(-score(c),c[0]))
-            if candidates and any(c[2].decision!=candidates[0][2].decision and score(candidates[0])-score(c)<.1 for c in candidates[1:]):
+            candidates.sort(key=lambda c:(-regime_fit(snap,c[2],now),-score(c),c[0]))
+            if candidates and any(c[2].decision!=candidates[0][2].decision and regime_fit(snap,c[2],now)==regime_fit(snap,candidates[0][2],now) and score(candidates[0])-score(c)<.1 for c in candidates[1:]):
                 self.last_reason='ADAPTIVE_DIRECTION_CONFLICT';return []
         return candidates
 

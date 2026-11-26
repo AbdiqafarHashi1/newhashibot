@@ -110,6 +110,13 @@ class MicroScalper:
         if model is None:
             self.memory.clear_setup()
             return reject(self.strategy_id, now_ms, 'NO_QUALIFIED_MICRO_MODEL', evidence)
+        # A five-second straight run inside a two-way 15s path is not persistent
+        # continuation. Reuse the existing confidence threshold; no quota or
+        # fitted return-based threshold. Rejection/pullback models stay distinct.
+        if (model == 'MICRO_PERSISTENT_BURST'
+                and side*w15.directional_persistence < cfg.minimum_persistence):
+            return reject(self.strategy_id, now_ms, 'MICRO_BURST_WITHOUT_15S_PERSISTENCE',
+                          evidence+(('persistence_15s', w15.directional_persistence),), model)
         distance = side*(snapshot.latest_tick.bid-invalidation)
         if distance > cfg.maximum_stop_atr*atr:
             return reject(self.strategy_id, now_ms, 'MICRO_STRUCTURAL_STOP_TOO_WIDE', evidence, model)

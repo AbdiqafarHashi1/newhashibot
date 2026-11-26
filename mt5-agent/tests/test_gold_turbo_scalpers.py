@@ -24,6 +24,8 @@ def snapshot(style='burst', side='LONG', primary=60_000):
             bar = candle(tf, BASE-(60-i)*tf)
             if style == 'compression' and tf == primary and i >= 55:
                 bar = candle(tf, bar.open_ms, 1999.99, 2000.05, 1999.95, 2000)
+            if tf == 900_000 and i >= 57:
+                bar = candle(tf, bar.open_ms, close=2000+.01*(i-57))
             seeded.append(bar)
     engine.seed_completed(seeded, BASE)
     end = primary

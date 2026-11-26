@@ -1,0 +1,13 @@
+{
+  "experiment": "one-focused-change-set-v1",
+  "baseline_commit": "23a4e62310861c286ad712db37dcd7bd5d7a79f8",
+  "baseline_receipts": "../baseline-receipts.json.gz",
+  "development_dates_utc": ["2026-10-06", "2026-10-14", "2026-10-22"],
+  "additional_comparison_dates_utc": ["2026-10-26", "2026-10-27", "2026-10-28"],
+  "session": "08:00-16:00 UTC, one minute local tick warmup",
+  "chronology_caveat": "Additional later dates not used to choose these changes; October itself appeared in previous research and is not a pristine unseen dataset",
+  "unchanged": ["five strategy scope", "Range entry logic", "Trend entry logic", "risk percentages", "position/basket sizing", "daily/account limits", "broker assumptions", "cost scenarios", "exit thresholds"],
+  "changes": ["Micro persistent burst requires 15-second signed path persistence at the existing .55 confidence threshold", "Momentum strong-candle continuation requires directional M15 context and observed 5-second persistence >= .55", "Adaptive and Basket selection rank ordinal regime suitability before planned reward/risk; same-suitability opposing ambiguity remains blocked"],
+  "acceptance": "Report all individual and combined results; lower loss/inactivity alone does not establish profitability. No repeated return-driven parameter sweeps. Preserve baseline and candidate evidence even if unsuccessful.",
+  "monthly_return_goal": "20% monthly remains an aspirational aggressive objective, not a measured expectation or guarantee"
+}

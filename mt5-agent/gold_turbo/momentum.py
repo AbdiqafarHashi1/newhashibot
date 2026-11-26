@@ -129,6 +129,14 @@ class MomentumScalper:
         w5 = next((w for w in snapshot.windows if w.seconds == 5 and w.available), None)
         if w5 and (side*w5.move < 0 or w5.exhaustion_candidate):
             return reject(self.strategy_id, now_ms, 'MOMENTUM_TICK_FAILURE_OR_EXHAUSTION', evidence, model)
+        if model == 'STRONG_CANDLE_CONTINUATION':
+            # A large isolated candle is insufficient evidence of follow-through.
+            # Demand actual directional context and observed short tick support;
+            # compression expansion keeps its separate entry hypothesis.
+            if context_direction(context) != side:
+                return reject(self.strategy_id, now_ms, 'IMPULSE_WITHOUT_M15_FOLLOW_THROUGH', evidence, model)
+            if not w5 or side*w5.directional_persistence < .55:
+                return reject(self.strategy_id, now_ms, 'IMPULSE_WITHOUT_TICK_PERSISTENCE', evidence, model)
         distance = side*(price-invalidation)
         if distance <= 0 or distance > cfg.maximum_stop_atr*atr:
             return reject(self.strategy_id, now_ms, 'MOMENTUM_STRUCTURAL_STOP_INVALID', evidence, model)
