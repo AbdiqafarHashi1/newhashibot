@@ -1,0 +1,23 @@
+{
+  "files": [
+    {
+      "file_id": "file_00000000bb1481fd9ea1603b86bbacf0",
+      "library_file_id": "libfile_3d342406bfac81918840299a5396c64a",
+      "file_name": "XAUUSD-2026-09.zip",
+      "current_version_number": 0
+    },
+    {
+      "file_id": "file_00000000599481fd9666fe661c0eacb1",
+      "library_file_id": "libfile_d3bb667134448191bebd1ece1f97b81f",
+      "file_name": "XAUUSD-1m-2026-09.json",
+      "current_version_number": 0
+    },
+    {
+      "file_id": "file_00000000563c81fd929864ba553198e9",
+      "library_file_id": "libfile_d690cf6879dc81918e824a6ee2cd514f",
+      "file_name": "XAUUSD-1m-2026-09.manifest.json",
+      "current_version_number": 0
+    }
+  ],
+  "source_restoration": "September archive and M1 rows match the exact earlier-research SHA256 digests; October was not downloaded again."
+}

@@ -1,0 +1,75 @@
+{
+  "train": "September 2026 only; labels on real tick paths",
+  "validation": "October 1\u201316",
+  "test": "October 19\u201330",
+  "whole": "Full October account",
+  "query": "First observed quote at least 5s after preceding observation; past tick windows and completed-M1 context only; 08:00\u201315:55 UTC",
+  "features": [
+    "body_atr",
+    "range_atr",
+    "wick_imbalance",
+    "return_3",
+    "return_5",
+    "return_15",
+    "distance_high_20",
+    "distance_low_20",
+    "fast_slow_gap",
+    "distance_fast",
+    "volatility_ratio",
+    "quote_activity",
+    "spread_atr",
+    "hour_sin",
+    "hour_cos",
+    "move_5",
+    "move_15",
+    "move_30",
+    "acceleration",
+    "persistence_5",
+    "range_5",
+    "position_5",
+    "quote_intensity",
+    "spread_relative",
+    "distance_last_close",
+    "developing_body",
+    "developing_wick_imbalance",
+    "minute_fraction"
+  ],
+  "models": {
+    "ridge": {
+      "alpha": 100
+    },
+    "context_tree": {
+      "max_iter": 80,
+      "max_depth": 3,
+      "max_leaf_nodes": 7,
+      "min_samples_leaf": 500,
+      "l2_regularization": 10,
+      "learning_rate": 0.05,
+      "early_stopping": false,
+      "random_state": 7
+    }
+  },
+  "entry": "Higher predicted long/short net R >0.10 and >opposite+0.05; no quota",
+  "stop_atr": 0.6,
+  "reward_r": 1.5,
+  "hold_minutes": 2,
+  "reentry_cooldown_seconds": 5,
+  "risk_pct": [
+    1,
+    2,
+    5
+  ],
+  "capital": [
+    100,
+    500,
+    1000,
+    25000
+  ],
+  "guards": "Observed gap warmup, volatility-shock cooldown and spread spikes; execution stop/cost/margin/volume checks; 15% daily / 60% peak experimental account limits, no default changes",
+  "limitations": [
+    "New features/objective frozen before October results; October has already been used in prior research, not pristine market data.",
+    "Independent native execution screen, not broker-native certification or integrated local runtime profitability.",
+    "Training labels use observed bid/ask barriers or timeout, 200ms delay, adverse rounding/slippage and fees; no future labels calculated for October.",
+    "All quotes are reference Exness data; no historical news calendar, partial-fill or financing qualification. No annualization."
+  ]
+}

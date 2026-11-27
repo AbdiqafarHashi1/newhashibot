@@ -1,0 +1,54 @@
+{
+  "train": "September 2026 only; purge labels crossing October",
+  "validation": "1\u201316 October",
+  "test": "19\u201330 October",
+  "features": [
+    "body_atr",
+    "range_atr",
+    "wick_imbalance",
+    "return_3",
+    "return_5",
+    "return_15",
+    "distance_high_20",
+    "distance_low_20",
+    "fast_slow_gap",
+    "distance_fast",
+    "volatility_ratio",
+    "quote_activity",
+    "spread_atr",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "target": "Independent long/short net R from observed bid/ask tick barrier or five-minute timeout; labels calculated ONLY for training rows",
+  "models": {
+    "ridge": {
+      "alpha": 100
+    }
+  },
+  "entry": "Choose higher predicted long/short net R if >0.10R and exceeds opposite prediction by >0.05R; no quota",
+  "risk_pct": [
+    1,
+    2,
+    5
+  ],
+  "capital": [
+    100,
+    500,
+    1000,
+    25000
+  ],
+  "stop_atr": 1,
+  "target_r": 1.5,
+  "maximum_hold_minutes": 5,
+  "session_utc": "08:00\u201315:50 entries",
+  "execution": "Retained original bid/ask ticks; 200/500ms delays, commission3.5/lot/side, slippage.02/.05, .01 lot floors,100oz contract,100x leverage,50%entrymargin,15%daily/60%peak experimental limits",
+  "acceptance": "At $500/1%: positive net expectancy >=0.15R and PF>=1.4 in BOTH validation and test under base and stressed costs; >=5 decisions per observed weekday in each. These are product screening criteria, never entry quotas.",
+  "limitations": [
+    "October was viewed in earlier research; new model fitting is chronologically separated but market period is not pristine unseen data.",
+    "No feature/threshold/hyperparameter selection using validation or test results. No defaults promotion based on one month.",
+    "Conditional-return estimation does not itself establish a tradeable edge. No annualization or monthly growth guarantee."
+  ],
+  "label_limitations": "Fixed200ms entry delay, adverse .02 tick rounding and .07/oz round-trip commission; timeout first quote after hold+200ms. Independent labels omit account admission and are not exact native broker execution.",
+  "objective_change": "Execution-aligned objective, same fixed feature set, hyperparameters, geometry and dates; prior close-price-target failures preserved.",
+  "reason": "Chronological month-to-month test of the same fixed linear execution-value model; nonlinear model rejected, no hyperparameter retuning. September source restored to the exact previously recorded hash."
+}

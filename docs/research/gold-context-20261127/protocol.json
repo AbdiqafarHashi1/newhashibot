@@ -1,0 +1,61 @@
+{
+  "train": "2026-10-01 through 2026-10-16; purge labels crossing 17 October",
+  "validation": "19\u201323 October",
+  "test": "26\u201330 October",
+  "features": [
+    "body_atr",
+    "range_atr",
+    "wick_imbalance",
+    "return_3",
+    "return_5",
+    "return_15",
+    "distance_high_20",
+    "distance_low_20",
+    "fast_slow_gap",
+    "distance_fast",
+    "volatility_ratio",
+    "quote_activity",
+    "spread_atr",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "target": "Five-minute future BID close movement divided by current ATR; future values used only as training labels",
+  "models": {
+    "ridge": {
+      "alpha": 100
+    },
+    "context_tree": {
+      "max_iter": 80,
+      "max_depth": 3,
+      "max_leaf_nodes": 7,
+      "min_samples_leaf": 150,
+      "l2_regularization": 10,
+      "learning_rate": 0.05,
+      "early_stopping": false,
+      "random_state": 7
+    }
+  },
+  "entry": "Forecast absolute mean exceeds current observed spread + $0.07 commission + $0.10 adverse slippage + 0.05 ATR. No trade quota.",
+  "risk_pct": [
+    1,
+    2,
+    5
+  ],
+  "capital": [
+    100,
+    500,
+    1000,
+    25000
+  ],
+  "stop_atr": 1,
+  "target_r": 1.5,
+  "maximum_hold_minutes": 5,
+  "session_utc": "08:00\u201315:50 entries",
+  "execution": "Retained original bid/ask ticks; 200/500ms delays, commission3.5/lot/side, slippage.02/.05, .01 lot floors,100oz contract,100x leverage,50%entrymargin,15%daily/60%peak experimental limits",
+  "acceptance": "At $500/1%: positive net expectancy >=0.15R and PF>=1.4 in BOTH validation and test under base and stressed costs; >=5 decisions per observed weekday in each. These are product screening criteria, never entry quotas.",
+  "limitations": [
+    "October was viewed in earlier research; new model fitting is chronologically separated but market period is not pristine unseen data.",
+    "No feature/threshold/hyperparameter selection using validation or test results. No defaults promotion based on one month.",
+    "Conditional-return estimation does not itself establish a tradeable edge. No annualization or monthly growth guarantee."
+  ]
+}
