@@ -1,0 +1,2472 @@
+{
+  "schema": "hashibot-21-evidence/v1",
+  "ledger_sha256": "4db5ff71afe6bf0ad07833591471abb8ad6fe97bbc9fa208a1f4076e221961bc",
+  "source_reports_verified": 30,
+  "existing_configurations": 16,
+  "existing_decisions": 1159,
+  "configurations": [
+    {
+      "strategy_id": "crypto.complementary-ema-pullback",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "ETHUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-03-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 104,
+      "net_r": 15.366400792790953,
+      "profit_factor": 1.2950229574405787,
+      "expectancy_r": 0.14775385377683609,
+      "win_rate_pct": 49.03846153846154,
+      "closed_trade_drawdown_r": 12.419994323069664,
+      "average_holding_minutes": 2416.730769230769,
+      "first_chronological_half": {
+        "decisions": 52,
+        "net_r": 11.8502610294719,
+        "profit_factor": 1.4966379061147148,
+        "expectancy_r": 0.2278896351821519,
+        "win_rate_pct": 53.84615384615385,
+        "closed_trade_drawdown_r": 4.763565989909459,
+        "average_holding_minutes": 2480.769230769231
+      },
+      "second_chronological_half": {
+        "decisions": 52,
+        "net_r": 3.5161397633190536,
+        "profit_factor": 1.1245776934643088,
+        "expectancy_r": 0.06761807237152026,
+        "win_rate_pct": 44.23076923076923,
+        "closed_trade_drawdown_r": 12.419994323069666,
+        "average_holding_minutes": 2352.6923076923076
+      },
+      "months": [
+        {
+          "month": "2025-03",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": 2.030877401868327,
+          "profit_factor": 2.401273757268854,
+          "expectancy_r": 0.5077193504670817,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.0345093737251068,
+          "average_holding_minutes": 3675.0
+        },
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 4,
+          "net_r": -1.5178434915413443,
+          "profit_factor": 0.2930126768562678,
+          "expectancy_r": -0.3794608728853361,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 1.5178434915413443,
+          "average_holding_minutes": 2415.0
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": 3.8565628636625107,
+          "profit_factor": null,
+          "expectancy_r": 0.9641407159156277,
+          "win_rate_pct": 100.0,
+          "closed_trade_drawdown_r": 0,
+          "average_holding_minutes": 2685.0
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 5,
+          "net_r": 2.1544207407274887,
+          "profit_factor": 1.9718966606698105,
+          "expectancy_r": 0.43088414814549775,
+          "win_rate_pct": 60.0,
+          "closed_trade_drawdown_r": 1.1196947247413467,
+          "average_holding_minutes": 2064.0
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 5,
+          "net_r": 2.848944500793989,
+          "profit_factor": 2.257982741636515,
+          "expectancy_r": 0.5697889001587978,
+          "win_rate_pct": 60.0,
+          "closed_trade_drawdown_r": 1.193817262231994,
+          "average_holding_minutes": 3156.0
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": 3.1895132346857133,
+          "profit_factor": 1.7246614171781143,
+          "expectancy_r": 0.39868915433571417,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 2.2354250929289896,
+          "average_holding_minutes": 2535.0
+        },
+        {
+          "month": "2025-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 3,
+          "net_r": -0.35347072809523183,
+          "profit_factor": 0.8419166791507064,
+          "expectancy_r": -0.11782357603174394,
+          "win_rate_pct": 33.333333333333336,
+          "closed_trade_drawdown_r": 1.1494495228160728,
+          "average_holding_minutes": 1460.0
+        },
+        {
+          "month": "2025-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": -1.5637225647118471,
+          "profit_factor": 0.7159246085832602,
+          "expectancy_r": -0.1954653205889809,
+          "win_rate_pct": 37.5,
+          "closed_trade_drawdown_r": 4.354123465874404,
+          "average_holding_minutes": 1297.5
+        },
+        {
+          "month": "2025-11",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 2,
+          "net_r": 2.1295537743189836,
+          "profit_factor": null,
+          "expectancy_r": 1.0647768871594918,
+          "win_rate_pct": 100.0,
+          "closed_trade_drawdown_r": 0,
+          "average_holding_minutes": 5100.0
+        },
+        {
+          "month": "2025-12",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 6,
+          "net_r": -0.9323579598711903,
+          "profit_factor": 0.6273915436173277,
+          "expectancy_r": -0.15539299331186504,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.632576840057372,
+          "average_holding_minutes": 2870.0
+        },
+        {
+          "month": "2026-01",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 5,
+          "net_r": 3.8454845316191575,
+          "profit_factor": 4.3758383007366115,
+          "expectancy_r": 0.7690969063238315,
+          "win_rate_pct": 80.0,
+          "closed_trade_drawdown_r": 1.1391198834316407,
+          "average_holding_minutes": 1860.0
+        },
+        {
+          "month": "2026-02",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 28.0,
+          "decisions": 3,
+          "net_r": 2.342474956890343,
+          "profit_factor": 3.2790006144592945,
+          "expectancy_r": 0.7808249856301143,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0278518320830328,
+          "average_holding_minutes": 3060.0
+        },
+        {
+          "month": "2026-03",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 5,
+          "net_r": -1.1951185970802154,
+          "profit_factor": 0.5001640621353314,
+          "expectancy_r": -0.23902371941604308,
+          "win_rate_pct": 40.0,
+          "closed_trade_drawdown_r": 2.391021746427116,
+          "average_holding_minutes": 2304.0
+        },
+        {
+          "month": "2026-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 4,
+          "net_r": 2.053518973978081,
+          "profit_factor": 2.846548862969028,
+          "expectancy_r": 0.5133797434945202,
+          "win_rate_pct": 75.0,
+          "closed_trade_drawdown_r": 1.1120848276260993,
+          "average_holding_minutes": 2625.0
+        },
+        {
+          "month": "2026-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 7,
+          "net_r": -4.392473909749456,
+          "profit_factor": 0.16951290513406936,
+          "expectancy_r": -0.6274962728213509,
+          "win_rate_pct": 14.285714285714286,
+          "closed_trade_drawdown_r": 4.392473909749457,
+          "average_holding_minutes": 3377.1428571428573
+        },
+        {
+          "month": "2026-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 7,
+          "net_r": -0.7503390005710956,
+          "profit_factor": 0.8353567987189766,
+          "expectancy_r": -0.1071912857958708,
+          "win_rate_pct": 28.571428571428573,
+          "closed_trade_drawdown_r": 3.4004324003761095,
+          "average_holding_minutes": 2100.0
+        },
+        {
+          "month": "2026-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": -4.84313199295339,
+          "profit_factor": 0.27832976005850196,
+          "expectancy_r": -0.6053914991191738,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 4.84313199295339,
+          "average_holding_minutes": 2212.5
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 6,
+          "net_r": 1.327743111097225,
+          "profit_factor": 1.3729566579242711,
+          "expectancy_r": 0.22129051851620418,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 2.4340494197957234,
+          "average_holding_minutes": 1920.0
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 8,
+          "net_r": 2.753648941325506,
+          "profit_factor": 1.7700217253781272,
+          "expectancy_r": 0.34420611766568826,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 2.3806643131590435,
+          "average_holding_minutes": 1927.5
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 2,
+          "net_r": 2.3821160063974,
+          "profit_factor": null,
+          "expectancy_r": 1.1910580031987,
+          "win_rate_pct": 100.0,
+          "closed_trade_drawdown_r": 0,
+          "average_holding_minutes": 2100.0
+        }
+      ],
+      "complete_months": 20,
+      "positive_complete_months": 12,
+      "median_complete_month_r": 2.042198187923204,
+      "worst_complete_month_r": -4.84313199295339,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "crypto.launch-rsi2-48-3-3-h72",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "ADAUSDT",
+        "AVAXUSDT",
+        "BNBUSDT",
+        "BTCUSDT",
+        "DOGEUSDT",
+        "ETHUSDT",
+        "LINKUSDT",
+        "LTCUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-05-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        },
+        {
+          "start": "2026-08-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 86,
+      "net_r": 8.409375347111062,
+      "profit_factor": 1.1788048867045204,
+      "expectancy_r": 0.09778343426873329,
+      "win_rate_pct": 43.02325581395349,
+      "closed_trade_drawdown_r": 13.613811329418217,
+      "average_holding_minutes": 10296.627890310077,
+      "first_chronological_half": {
+        "decisions": 43,
+        "net_r": 4.42827554346602,
+        "profit_factor": 1.1731612320875984,
+        "expectancy_r": 0.10298315217362838,
+        "win_rate_pct": 39.53488372093023,
+        "closed_trade_drawdown_r": 13.613811329418217,
+        "average_holding_minutes": 9619.534867054263
+      },
+      "second_chronological_half": {
+        "decisions": 43,
+        "net_r": 3.9810998036450425,
+        "profit_factor": 1.1855308977751333,
+        "expectancy_r": 0.09258371636383819,
+        "win_rate_pct": 46.51162790697674,
+        "closed_trade_drawdown_r": 9.378234736046629,
+        "average_holding_minutes": 10973.72091356589
+      },
+      "months": [
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": 7.226272375952483,
+          "profit_factor": 2.9438805025231676,
+          "expectancy_r": 0.7226272375952483,
+          "win_rate_pct": 60.0,
+          "closed_trade_drawdown_r": 2.0544287153307126,
+          "average_holding_minutes": 10838.499983333333
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 14,
+          "net_r": -9.374498286518923,
+          "profit_factor": 0.17052413220907633,
+          "expectancy_r": -0.6696070204656374,
+          "win_rate_pct": 21.428571428571427,
+          "closed_trade_drawdown_r": 9.374498286518921,
+          "average_holding_minutes": 9438.57141190476
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 13,
+          "net_r": 11.979053960240625,
+          "profit_factor": 3.325387613274333,
+          "expectancy_r": 0.9214656892492789,
+          "win_rate_pct": 61.53846153846154,
+          "closed_trade_drawdown_r": 3.0580580373387045,
+          "average_holding_minutes": 8741.153829487179
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 14,
+          "net_r": -6.195836594553749,
+          "profit_factor": 0.35009670531837805,
+          "expectancy_r": -0.44255975675383924,
+          "win_rate_pct": 14.285714285714286,
+          "closed_trade_drawdown_r": 7.604944126622529,
+          "average_holding_minutes": 11548.57141190476
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 7,
+          "net_r": 3.3180027444029787,
+          "profit_factor": 2.0081862854890713,
+          "expectancy_r": 0.4740003920575684,
+          "win_rate_pct": 57.142857142857146,
+          "closed_trade_drawdown_r": 2.1970048263406996,
+          "average_holding_minutes": 10833.57141190476
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 16,
+          "net_r": 0.2729275972151699,
+          "profit_factor": 1.0291022356442125,
+          "expectancy_r": 0.01705797482594812,
+          "win_rate_pct": 43.75,
+          "closed_trade_drawdown_r": 9.378234736046629,
+          "average_holding_minutes": 8744.687483333333
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 12,
+          "net_r": 1.1834535503724775,
+          "profit_factor": 1.2540874547697174,
+          "expectancy_r": 0.09862112919770645,
+          "win_rate_pct": 58.333333333333336,
+          "closed_trade_drawdown_r": 4.657662266108558,
+          "average_holding_minutes": 12826.66665
+        }
+      ],
+      "complete_months": 7,
+      "positive_complete_months": 5,
+      "median_complete_month_r": 1.1834535503724775,
+      "worst_complete_month_r": -9.374498286518923,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "crypto.launch-trend-pullback-48-1.5-5",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "ADAUSDT",
+        "AVAXUSDT",
+        "BNBUSDT",
+        "BTCUSDT",
+        "DOGEUSDT",
+        "ETHUSDT",
+        "LINKUSDT",
+        "LTCUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-05-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        },
+        {
+          "start": "2026-08-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 109,
+      "net_r": 42.446846876791724,
+      "profit_factor": 1.4868100380235605,
+      "expectancy_r": 0.3894206135485479,
+      "win_rate_pct": 24.770642201834864,
+      "closed_trade_drawdown_r": 20.356434260830056,
+      "average_holding_minutes": 5938.165120948012,
+      "first_chronological_half": {
+        "decisions": 54,
+        "net_r": 20.034730446604065,
+        "profit_factor": 1.4688209167397266,
+        "expectancy_r": 0.37101352678896415,
+        "win_rate_pct": 24.074074074074073,
+        "closed_trade_drawdown_r": 12.708917601779842,
+        "average_holding_minutes": 6114.907390740741
+      },
+      "second_chronological_half": {
+        "decisions": 55,
+        "net_r": 22.41211643018766,
+        "profit_factor": 1.5041010827452999,
+        "expectancy_r": 0.407493026003412,
+        "win_rate_pct": 25.454545454545453,
+        "closed_trade_drawdown_r": 20.35643426083006,
+        "average_holding_minutes": 5764.636346969697
+      },
+      "months": [
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 15,
+          "net_r": 7.452129153487296,
+          "profit_factor": 1.6362405693739361,
+          "expectancy_r": 0.4968086102324864,
+          "win_rate_pct": 26.666666666666668,
+          "closed_trade_drawdown_r": 5.2018234164602255,
+          "average_holding_minutes": 4986.66665
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 15,
+          "net_r": 2.6933691992609687,
+          "profit_factor": 1.226824684592362,
+          "expectancy_r": 0.1795579466173979,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 8.722904591254792,
+          "average_holding_minutes": 9165.999983333333
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 21,
+          "net_r": 13.146919093676564,
+          "profit_factor": 1.8273904523634326,
+          "expectancy_r": 0.6260437663655507,
+          "win_rate_pct": 28.571428571428573,
+          "closed_trade_drawdown_r": 9.55758899790705,
+          "average_holding_minutes": 4354.761888095238
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": 6.963768870636965,
+          "profit_factor": 1.9299384252496392,
+          "expectancy_r": 0.6963768870636965,
+          "win_rate_pct": 30.0,
+          "closed_trade_drawdown_r": 4.230732320810663,
+          "average_holding_minutes": 6914.999983333333
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 16,
+          "net_r": -11.791323750025118,
+          "profit_factor": 0.27392063233771186,
+          "expectancy_r": -0.7369577343765699,
+          "win_rate_pct": 6.25,
+          "closed_trade_drawdown_r": 11.79132375002512,
+          "average_holding_minutes": 5022.499983333333
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 18,
+          "net_r": 27.501959520400316,
+          "profit_factor": 3.538691138289926,
+          "expectancy_r": 1.5278866400222397,
+          "win_rate_pct": 44.44444444444444,
+          "closed_trade_drawdown_r": 6.498747236569336,
+          "average_holding_minutes": 5164.4444277777775
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 14,
+          "net_r": -3.5199752106452675,
+          "profit_factor": 0.7324432127597051,
+          "expectancy_r": -0.25142680076037627,
+          "win_rate_pct": 14.285714285714286,
+          "closed_trade_drawdown_r": 13.155992964902627,
+          "average_holding_minutes": 7217.857126190476
+        }
+      ],
+      "complete_months": 7,
+      "positive_complete_months": 5,
+      "median_complete_month_r": 6.963768870636965,
+      "worst_complete_month_r": -11.791323750025118,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "crypto.launch-trend-pullback-48-2-3-h72",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "ADAUSDT",
+        "AVAXUSDT",
+        "BNBUSDT",
+        "BTCUSDT",
+        "DOGEUSDT",
+        "ETHUSDT",
+        "LINKUSDT",
+        "LTCUSDT",
+        "SOLUSDT",
+        "XRPUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "4h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-05-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        },
+        {
+          "start": "2026-08-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 116,
+      "net_r": 14.575245721486501,
+      "profit_factor": 1.180767757797929,
+      "expectancy_r": 0.12564867001281466,
+      "win_rate_pct": 31.896551724137932,
+      "closed_trade_drawdown_r": 15.06480818420457,
+      "average_holding_minutes": 6058.706879885057,
+      "first_chronological_half": {
+        "decisions": 58,
+        "net_r": 11.582001203340539,
+        "profit_factor": 1.2968515338392153,
+        "expectancy_r": 0.19968967591966444,
+        "win_rate_pct": 32.758620689655174,
+        "closed_trade_drawdown_r": 14.461993671146182,
+        "average_holding_minutes": 6004.655155747127
+      },
+      "second_chronological_half": {
+        "decisions": 58,
+        "net_r": 2.993244518145963,
+        "profit_factor": 1.071929589807783,
+        "expectancy_r": 0.05160766410596487,
+        "win_rate_pct": 31.03448275862069,
+        "closed_trade_drawdown_r": 15.06480818420457,
+        "average_holding_minutes": 6112.758604022988
+      },
+      "months": [
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 21,
+          "net_r": -2.6189354628400094,
+          "profit_factor": 0.8319158942574544,
+          "expectancy_r": -0.12471121251619094,
+          "win_rate_pct": 28.571428571428573,
+          "closed_trade_drawdown_r": 7.422488736792864,
+          "average_holding_minutes": 5155.238078571429
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 14,
+          "net_r": 5.017318344673414,
+          "profit_factor": 1.526746427063842,
+          "expectancy_r": 0.3583798817623867,
+          "win_rate_pct": 35.714285714285715,
+          "closed_trade_drawdown_r": 7.402195801001671,
+          "average_holding_minutes": 6234.285697619048
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 17,
+          "net_r": 6.568414485900461,
+          "profit_factor": 1.6145654211675688,
+          "expectancy_r": 0.3863773227000271,
+          "win_rate_pct": 35.294117647058826,
+          "closed_trade_drawdown_r": 7.508014364203887,
+          "average_holding_minutes": 5923.5293950980395
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 17,
+          "net_r": 1.1282606971665574,
+          "profit_factor": 1.0975144903137717,
+          "expectancy_r": 0.06636827630391513,
+          "win_rate_pct": 29.41176470588235,
+          "closed_trade_drawdown_r": 7.325210432230391,
+          "average_holding_minutes": 7063.5293950980395
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 16,
+          "net_r": -5.682831681449143,
+          "profit_factor": 0.592789453230367,
+          "expectancy_r": -0.3551769800905714,
+          "win_rate_pct": 18.75,
+          "closed_trade_drawdown_r": 7.055192981783459,
+          "average_holding_minutes": 5696.874983333333
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 15,
+          "net_r": 12.522687350494682,
+          "profit_factor": 2.63429291121336,
+          "expectancy_r": 0.8348458233663121,
+          "win_rate_pct": 46.666666666666664,
+          "closed_trade_drawdown_r": 5.557306442578765,
+          "average_holding_minutes": 5660.66665
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 16,
+          "net_r": -2.3596680124594607,
+          "profit_factor": 0.7974084430894702,
+          "expectancy_r": -0.1474792507787163,
+          "win_rate_pct": 31.25,
+          "closed_trade_drawdown_r": 10.96084389789997,
+          "average_holding_minutes": 6901.874983333333
+        }
+      ],
+      "complete_months": 7,
+      "positive_complete_months": 4,
+      "median_complete_month_r": 1.1282606971665574,
+      "worst_complete_month_r": -5.682831681449143,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "LTCUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 48,
+      "net_r": 4.568826476307731,
+      "profit_factor": 1.3125343857427958,
+      "expectancy_r": 0.09518388492307772,
+      "win_rate_pct": 52.083333333333336,
+      "closed_trade_drawdown_r": 3.3811420261912337,
+      "average_holding_minutes": 283.7499833333333,
+      "first_chronological_half": {
+        "decisions": 24,
+        "net_r": -0.5739886277375036,
+        "profit_factor": 0.9287962716553029,
+        "expectancy_r": -0.02391619282239598,
+        "win_rate_pct": 50.0,
+        "closed_trade_drawdown_r": 3.3811420261912337,
+        "average_holding_minutes": 297.70831666666663
+      },
+      "second_chronological_half": {
+        "decisions": 24,
+        "net_r": 5.142815104045234,
+        "profit_factor": 1.7842741349986786,
+        "expectancy_r": 0.21428396266855143,
+        "win_rate_pct": 54.166666666666664,
+        "closed_trade_drawdown_r": 3.0832762020130753,
+        "average_holding_minutes": 269.79165
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 10,
+          "net_r": -0.9296213324497996,
+          "profit_factor": 0.6551087380489012,
+          "expectancy_r": -0.09296213324497996,
+          "win_rate_pct": 40.0,
+          "closed_trade_drawdown_r": 2.255787802460185,
+          "average_holding_minutes": 332.4999833333333
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 13,
+          "net_r": 1.4226714073903022,
+          "profit_factor": 1.3309482455987198,
+          "expectancy_r": 0.10943626210694632,
+          "win_rate_pct": 61.53846153846154,
+          "closed_trade_drawdown_r": 2.156268363923949,
+          "average_holding_minutes": 266.15382948717945
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 3,
+          "net_r": 0.8245097256946989,
+          "profit_factor": 1.7727083597112094,
+          "expectancy_r": 0.2748365752315663,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0670387026780062,
+          "average_holding_minutes": 268.33331666666663
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 9,
+          "net_r": -0.2749683322858678,
+          "profit_factor": 0.9273334834966261,
+          "expectancy_r": -0.030552036920651976,
+          "win_rate_pct": 44.44444444444444,
+          "closed_trade_drawdown_r": 3.0832762020130753,
+          "average_holding_minutes": 267.22220555555555
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 13,
+          "net_r": 3.526235007958397,
+          "profit_factor": 2.2714279742477426,
+          "expectancy_r": 0.2712488467660305,
+          "win_rate_pct": 53.84615384615385,
+          "closed_trade_drawdown_r": 2.658138753290352,
+          "average_holding_minutes": 278.8461371794872
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 3,
+      "median_complete_month_r": 0.8245097256946989,
+      "worst_complete_month_r": -0.9296213324497996,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "DOGEUSDT"
+      ],
+      "markets": [
+        "CRYPTO"
+      ],
+      "timeframes": [
+        "5m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-06-01T00:00:00+00:00"
+        },
+        {
+          "start": "2026-08-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 47,
+      "net_r": 3.9365951563627886,
+      "profit_factor": 1.224848572941772,
+      "expectancy_r": 0.08375734375239975,
+      "win_rate_pct": 55.319148936170215,
+      "closed_trade_drawdown_r": 3.250610141260575,
+      "average_holding_minutes": 44.574451418439715,
+      "first_chronological_half": {
+        "decisions": 23,
+        "net_r": 0.7080017559319236,
+        "profit_factor": 1.0737494565925734,
+        "expectancy_r": 0.03078268504051842,
+        "win_rate_pct": 52.17391304347826,
+        "closed_trade_drawdown_r": 3.250610141260575,
+        "average_holding_minutes": 41.521722463768114
+      },
+      "second_chronological_half": {
+        "decisions": 24,
+        "net_r": 3.228593400430865,
+        "profit_factor": 1.408286474062549,
+        "expectancy_r": 0.1345247250179527,
+        "win_rate_pct": 58.333333333333336,
+        "closed_trade_drawdown_r": 2.4761384924746803,
+        "average_holding_minutes": 47.49998333333333
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 15,
+          "net_r": 2.4539454187830074,
+          "profit_factor": 1.4237815246274503,
+          "expectancy_r": 0.1635963612522005,
+          "win_rate_pct": 53.333333333333336,
+          "closed_trade_drawdown_r": 3.250610141260575,
+          "average_holding_minutes": 40.99998333333333
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 18,
+          "net_r": 0.27426835489615,
+          "profit_factor": 1.0358424802873307,
+          "expectancy_r": 0.015237130827563889,
+          "win_rate_pct": 55.55555555555556,
+          "closed_trade_drawdown_r": 2.190642276935697,
+          "average_holding_minutes": 40.55553888888889
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": 2.1689937199455045,
+          "profit_factor": 2.2980624253866098,
+          "expectancy_r": 0.27112421499318806,
+          "win_rate_pct": 62.5,
+          "closed_trade_drawdown_r": 1.515526155212807,
+          "average_holding_minutes": 53.74998333333333
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 5,
+          "net_r": 0.12814554848817017,
+          "profit_factor": 1.09816436843894,
+          "expectancy_r": 0.025629109697634034,
+          "win_rate_pct": 60.0,
+          "closed_trade_drawdown_r": 1.305418152492663,
+          "average_holding_minutes": 59.99998333333333
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 1,
+          "net_r": -1.0887578857500435,
+          "profit_factor": 0.0,
+          "expectancy_r": -1.0887578857500435,
+          "win_rate_pct": 0.0,
+          "closed_trade_drawdown_r": 1.0887578857500435,
+          "average_holding_minutes": 19.999983333333333
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 4,
+      "median_complete_month_r": 0.27426835489615,
+      "worst_complete_month_r": -1.0887578857500435,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "forex.complementary-ema-pullback",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-03-01T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 73,
+      "net_r": 10.45334983510827,
+      "profit_factor": 1.2614730899840247,
+      "expectancy_r": 0.14319657308367492,
+      "win_rate_pct": 46.57534246575342,
+      "closed_trade_drawdown_r": 8.985290505801201,
+      "average_holding_minutes": 3394.5205479452056,
+      "first_chronological_half": {
+        "decisions": 36,
+        "net_r": 4.5752831508606375,
+        "profit_factor": 1.217189051726434,
+        "expectancy_r": 0.1270911986350177,
+        "win_rate_pct": 44.44444444444444,
+        "closed_trade_drawdown_r": 8.985290505801201,
+        "average_holding_minutes": 3130.0
+      },
+      "second_chronological_half": {
+        "decisions": 37,
+        "net_r": 5.8780666842476315,
+        "profit_factor": 1.3107986304183783,
+        "expectancy_r": 0.15886666714182787,
+        "win_rate_pct": 48.648648648648646,
+        "closed_trade_drawdown_r": 5.43523428054119,
+        "average_holding_minutes": 3651.891891891892
+      },
+      "months": [
+        {
+          "month": "2025-03",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 3,
+          "net_r": 2.888344814031151,
+          "profit_factor": 3.773939421802677,
+          "expectancy_r": 0.9627816046770502,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0412429310205074,
+          "average_holding_minutes": 3060.0
+        },
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 3,
+          "net_r": 2.4938639356212255,
+          "profit_factor": 3.4320260344944655,
+          "expectancy_r": 0.8312879785404085,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0254264963654527,
+          "average_holding_minutes": 5120.0
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 5,
+          "net_r": -0.6383695708953533,
+          "profit_factor": 0.808117657370894,
+          "expectancy_r": -0.12767391417907065,
+          "win_rate_pct": 40.0,
+          "closed_trade_drawdown_r": 2.2926956879744953,
+          "average_holding_minutes": 3072.0
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 3,
+          "net_r": -3.1499436235779585,
+          "profit_factor": 0.0,
+          "expectancy_r": -1.0499812078593196,
+          "win_rate_pct": 0.0,
+          "closed_trade_drawdown_r": 3.1499436235779585,
+          "average_holding_minutes": 660.0
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 6,
+          "net_r": -0.30425585938760347,
+          "profit_factor": 0.9270640889003904,
+          "expectancy_r": -0.05070930989793391,
+          "win_rate_pct": 33.333333333333336,
+          "closed_trade_drawdown_r": 4.171550814962437,
+          "average_holding_minutes": 1790.0
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": -2.46170827910165,
+          "profit_factor": 0.22336584637512863,
+          "expectancy_r": -0.6154270697754125,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 2.46170827910165,
+          "average_holding_minutes": 4635.0
+        },
+        {
+          "month": "2025-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 7,
+          "net_r": 3.6094866938566637,
+          "profit_factor": 2.15198411628772,
+          "expectancy_r": 0.5156409562652376,
+          "win_rate_pct": 57.142857142857146,
+          "closed_trade_drawdown_r": 1.0521970859399894,
+          "average_holding_minutes": 3145.714285714286
+        },
+        {
+          "month": "2025-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": 1.9050854299936706,
+          "profit_factor": 1.9302788287294348,
+          "expectancy_r": 0.47627135749841765,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.0315778496531667,
+          "average_holding_minutes": 2655.0
+        },
+        {
+          "month": "2025-11",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 2,
+          "net_r": 2.198159193698445,
+          "profit_factor": null,
+          "expectancy_r": 1.0990795968492224,
+          "win_rate_pct": 100.0,
+          "closed_trade_drawdown_r": 0,
+          "average_holding_minutes": 5520.0
+        },
+        {
+          "month": "2025-12",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": -2.775060494300669,
+          "profit_factor": 0.0976309045621228,
+          "expectancy_r": -0.6937651235751673,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 2.7750604943006687,
+          "average_holding_minutes": 3450.0
+        },
+        {
+          "month": "2026-01",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 3,
+          "net_r": 2.927213203768967,
+          "profit_factor": 3.847722319717977,
+          "expectancy_r": 0.9757377345896557,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0279138466207136,
+          "average_holding_minutes": 3740.0
+        },
+        {
+          "month": "2026-02",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 28.0,
+          "decisions": 1,
+          "net_r": 1.388349259298001,
+          "profit_factor": null,
+          "expectancy_r": 1.388349259298001,
+          "win_rate_pct": 100.0,
+          "closed_trade_drawdown_r": 0,
+          "average_holding_minutes": 8820.0
+        },
+        {
+          "month": "2026-03",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 5,
+          "net_r": 1.995419662529318,
+          "profit_factor": 1.9834570528522713,
+          "expectancy_r": 0.3990839325058636,
+          "win_rate_pct": 60.0,
+          "closed_trade_drawdown_r": 2.028985055058685,
+          "average_holding_minutes": 3648.0
+        },
+        {
+          "month": "2026-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 3,
+          "net_r": 1.6648894926260174,
+          "profit_factor": 2.625392433271209,
+          "expectancy_r": 0.5549631642086724,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0243000142896679,
+          "average_holding_minutes": 3920.0
+        },
+        {
+          "month": "2026-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 2,
+          "net_r": -0.6134660350598584,
+          "profit_factor": 0.3968236698738995,
+          "expectancy_r": -0.3067330175299292,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.0170591988110786,
+          "average_holding_minutes": 6240.0
+        },
+        {
+          "month": "2026-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 5,
+          "net_r": 0.25787077022975313,
+          "profit_factor": 1.0839175024510248,
+          "expectancy_r": 0.05157415404595063,
+          "win_rate_pct": 40.0,
+          "closed_trade_drawdown_r": 3.0729080668272974,
+          "average_holding_minutes": 2520.0
+        },
+        {
+          "month": "2026-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 3,
+          "net_r": 0.1836606298131675,
+          "profit_factor": 1.1242712663699939,
+          "expectancy_r": 0.0612202099377225,
+          "win_rate_pct": 33.333333333333336,
+          "closed_trade_drawdown_r": 1.0165850033976525,
+          "average_holding_minutes": 5980.0
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 2,
+          "net_r": 0.6466240633447904,
+          "profit_factor": 1.628412301911657,
+          "expectancy_r": 0.3233120316723952,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.0289805934379905,
+          "average_holding_minutes": 4950.0
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 5,
+          "net_r": -2.1617361782756377,
+          "profit_factor": 0.4763938663679968,
+          "expectancy_r": -0.43234723565512756,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 3.088140890381891,
+          "average_holding_minutes": 1956.0
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 3,
+          "net_r": 0.3989227268958294,
+          "profit_factor": 1.3869749794323316,
+          "expectancy_r": 0.1329742422986098,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.030874728596212,
+          "average_holding_minutes": 2140.0
+        }
+      ],
+      "complete_months": 20,
+      "positive_complete_months": 13,
+      "median_complete_month_r": 0.52277339512031,
+      "worst_complete_month_r": -3.1499436235779585,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "forex.native-band-reentry-60-12-2-5",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "USDJPY"
+      ],
+      "markets": [
+        "FOREX"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 43,
+      "net_r": 10.276740200404454,
+      "profit_factor": 1.3756063430478587,
+      "expectancy_r": 0.23899395814894078,
+      "win_rate_pct": 34.883720930232556,
+      "closed_trade_drawdown_r": 7.51033938049087,
+      "average_holding_minutes": 1861.3953356589147,
+      "first_chronological_half": {
+        "decisions": 21,
+        "net_r": 1.6934467341444155,
+        "profit_factor": 1.1161096165292128,
+        "expectancy_r": 0.0806403206735436,
+        "win_rate_pct": 33.333333333333336,
+        "closed_trade_drawdown_r": 7.51033938049087,
+        "average_holding_minutes": 1372.8571285714286
+      },
+      "second_chronological_half": {
+        "decisions": 22,
+        "net_r": 8.583293466260038,
+        "profit_factor": 1.6718555317078443,
+        "expectancy_r": 0.39014970301181995,
+        "win_rate_pct": 36.36363636363637,
+        "closed_trade_drawdown_r": 3.781644559901377,
+        "average_holding_minutes": 2327.7272606060606
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 8,
+          "net_r": 0.9565896178938613,
+          "profit_factor": 1.1838983768340852,
+          "expectancy_r": 0.11957370223673267,
+          "win_rate_pct": 37.5,
+          "closed_trade_drawdown_r": 3.129525088106532,
+          "average_holding_minutes": 1511.2499854166667
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 9,
+          "net_r": 4.936046092339433,
+          "profit_factor": 1.9521734365114871,
+          "expectancy_r": 0.5484495658154925,
+          "win_rate_pct": 44.44444444444444,
+          "closed_trade_drawdown_r": 5.183977942530938,
+          "average_holding_minutes": 1454.999987037037
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 8,
+          "net_r": -2.692989839271766,
+          "profit_factor": 0.5742809159619598,
+          "expectancy_r": -0.33662372990897077,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 6.325743759777362,
+          "average_holding_minutes": 1974.9999875
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": 10.858738889344302,
+          "profit_factor": 3.3507651460362458,
+          "expectancy_r": 1.3573423611680377,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 3.560354003940809,
+          "average_holding_minutes": 2484.9999875
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": -3.7816445599013755,
+          "profit_factor": 0.37283184246381285,
+          "expectancy_r": -0.37816445599013754,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 3.781644559901375,
+          "average_holding_minutes": 1917.4999866666667
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 3,
+      "median_complete_month_r": 0.9565896178938613,
+      "worst_complete_month_r": -3.7816445599013755,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "GBPUSD"
+      ],
+      "markets": [
+        "FOREX"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 37,
+      "net_r": 12.464612178095337,
+      "profit_factor": 1.9051070182482301,
+      "expectancy_r": 0.3368814102187929,
+      "win_rate_pct": 51.351351351351354,
+      "closed_trade_drawdown_r": 4.068527659471796,
+      "average_holding_minutes": 382.16214594594595,
+      "first_chronological_half": {
+        "decisions": 18,
+        "net_r": 9.565714244545953,
+        "profit_factor": 2.5944922841370697,
+        "expectancy_r": 0.5314285691414419,
+        "win_rate_pct": 55.55555555555556,
+        "closed_trade_drawdown_r": 2.703955019402833,
+        "average_holding_minutes": 301.1110944444444
+      },
+      "second_chronological_half": {
+        "decisions": 19,
+        "net_r": 2.898897933549384,
+        "profit_factor": 1.372982884201411,
+        "expectancy_r": 0.15257357544996758,
+        "win_rate_pct": 47.36842105263158,
+        "closed_trade_drawdown_r": 4.068527659471796,
+        "average_holding_minutes": 458.94735263157895
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 18,
+          "net_r": 9.565714244545953,
+          "profit_factor": 2.5944922841370697,
+          "expectancy_r": 0.5314285691414419,
+          "win_rate_pct": 55.55555555555556,
+          "closed_trade_drawdown_r": 2.703955019402833,
+          "average_holding_minutes": 301.1110944444444
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 4,
+          "net_r": 2.132369587102008,
+          "profit_factor": 2.6242481156020787,
+          "expectancy_r": 0.533092396775502,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.312834884411473,
+          "average_holding_minutes": 297.4999833333333
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 6,
+          "net_r": 3.722858376273681,
+          "profit_factor": 2.760442769690734,
+          "expectancy_r": 0.6204763960456136,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 1.0627094320328618,
+          "average_holding_minutes": 276.66665
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 6,
+          "net_r": -3.453117406048814,
+          "profit_factor": 0.15126116987069432,
+          "expectancy_r": -0.5755195676748024,
+          "win_rate_pct": 16.666666666666668,
+          "closed_trade_drawdown_r": 4.068527659471796,
+          "average_holding_minutes": 337.4999833333333
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 3,
+          "net_r": 0.49678737622250846,
+          "profit_factor": 2.7992372210151872,
+          "expectancy_r": 0.1655957920741695,
+          "win_rate_pct": 66.66666666666667,
+          "closed_trade_drawdown_r": 0.27610999284586,
+          "average_holding_minutes": 1281.6666555555555
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 4,
+      "median_complete_month_r": 2.132369587102008,
+      "worst_complete_month_r": -3.453117406048814,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "USDJPY"
+      ],
+      "markets": [
+        "FOREX"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-03-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 48,
+      "net_r": 5.966722708988809,
+      "profit_factor": 1.3389427662047486,
+      "expectancy_r": 0.12430672310393352,
+      "win_rate_pct": 56.25,
+      "closed_trade_drawdown_r": 4.315106550358322,
+      "average_holding_minutes": 149.68748333333332,
+      "first_chronological_half": {
+        "decisions": 24,
+        "net_r": 5.657041610317364,
+        "profit_factor": 1.959832352461477,
+        "expectancy_r": 0.23571006709655684,
+        "win_rate_pct": 62.5,
+        "closed_trade_drawdown_r": 1.916688704422993,
+        "average_holding_minutes": 161.66664999999998
+      },
+      "second_chronological_half": {
+        "decisions": 24,
+        "net_r": 0.3096810986714449,
+        "profit_factor": 1.0264455434684139,
+        "expectancy_r": 0.012903379111310205,
+        "win_rate_pct": 50.0,
+        "closed_trade_drawdown_r": 4.315106550358321,
+        "average_holding_minutes": 137.70831666666666
+      },
+      "months": [
+        {
+          "month": "2025-03",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": -0.5241824284697514,
+          "profit_factor": 0.7656462117747027,
+          "expectancy_r": -0.06552280355871892,
+          "win_rate_pct": 62.5,
+          "closed_trade_drawdown_r": 1.067224302762615,
+          "average_holding_minutes": 149.37498333333332
+        },
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 2,
+          "net_r": 0.020001636013354362,
+          "profit_factor": 1.018623188945136,
+          "expectancy_r": 0.010000818006677181,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 1.0740177781731794,
+          "average_holding_minutes": 112.49998333333332
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 7,
+          "net_r": 2.716174535349612,
+          "profit_factor": 2.8612393977746318,
+          "expectancy_r": 0.38802493362137314,
+          "win_rate_pct": 57.142857142857146,
+          "closed_trade_drawdown_r": 1.0626936407553964,
+          "average_holding_minutes": 173.5714119047619
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 9,
+          "net_r": 1.6922627737179723,
+          "profit_factor": 1.5883066782134665,
+          "expectancy_r": 0.1880291970797747,
+          "win_rate_pct": 55.55555555555556,
+          "closed_trade_drawdown_r": 1.7527850937061769,
+          "average_holding_minutes": 167.7777611111111
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 12,
+          "net_r": 1.6411904112465079,
+          "profit_factor": 1.350077945931767,
+          "expectancy_r": 0.13676586760387566,
+          "win_rate_pct": 58.333333333333336,
+          "closed_trade_drawdown_r": 2.2137812176922047,
+          "average_holding_minutes": 129.16665
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": 0.4212757811311139,
+          "profit_factor": 1.079949301087681,
+          "expectancy_r": 0.042127578113111394,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 2.222447658201676,
+          "average_holding_minutes": 148.99998333333332
+        }
+      ],
+      "complete_months": 6,
+      "positive_complete_months": 5,
+      "median_complete_month_r": 1.031233096188811,
+      "worst_complete_month_r": -0.5241824284697514,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "USDJPY"
+      ],
+      "markets": [
+        "FOREX"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 46,
+      "net_r": 3.2985093029919015,
+      "profit_factor": 1.0911220081795172,
+      "expectancy_r": 0.07170672397808481,
+      "win_rate_pct": 23.91304347826087,
+      "closed_trade_drawdown_r": 11.697085338770291,
+      "average_holding_minutes": 1647.1738978260869,
+      "first_chronological_half": {
+        "decisions": 23,
+        "net_r": 0.7677459549278947,
+        "profit_factor": 1.0405892067934488,
+        "expectancy_r": 0.033380258909908464,
+        "win_rate_pct": 21.73913043478261,
+        "closed_trade_drawdown_r": 11.697085338770291,
+        "average_holding_minutes": 1542.8260710144928
+      },
+      "second_chronological_half": {
+        "decisions": 23,
+        "net_r": 2.530763348064007,
+        "profit_factor": 1.14642406229639,
+        "expectancy_r": 0.11003318904626117,
+        "win_rate_pct": 26.08695652173913,
+        "closed_trade_drawdown_r": 8.686999523257768,
+        "average_holding_minutes": 1751.5217246376812
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 6,
+          "net_r": 2.6153591971701253,
+          "profit_factor": 1.636104846708247,
+          "expectancy_r": 0.4358931995283542,
+          "win_rate_pct": 33.333333333333336,
+          "closed_trade_drawdown_r": 2.0365428539947876,
+          "average_holding_minutes": 1230.8333194444444
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": -0.40640269751447566,
+          "profit_factor": 0.951587110030001,
+          "expectancy_r": -0.040640269751447564,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 5.288094535144733,
+          "average_holding_minutes": 1625.9999833333334
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 8,
+          "net_r": 1.147531985022966,
+          "profit_factor": 1.1790503404020816,
+          "expectancy_r": 0.14344149812787074,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 6.408990803625559,
+          "average_holding_minutes": 2245.6249854166667
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 12,
+          "net_r": -4.014234061856101,
+          "profit_factor": 0.6000636574189719,
+          "expectancy_r": -0.3345195051546751,
+          "win_rate_pct": 16.666666666666668,
+          "closed_trade_drawdown_r": 8.686999523257768,
+          "average_holding_minutes": 1478.3333180555555
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": 3.9562548801693866,
+          "profit_factor": 1.5459454828731671,
+          "expectancy_r": 0.39562548801693864,
+          "win_rate_pct": 30.0,
+          "closed_trade_drawdown_r": 4.103950551061931,
+          "average_holding_minutes": 1641.999985
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 3,
+      "median_complete_month_r": 1.147531985022966,
+      "worst_complete_month_r": -4.014234061856101,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "gold.frontier-compression-15-24-1.5-5-h96",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2026-05-05T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 83,
+      "net_r": 5.3673132189415105,
+      "profit_factor": 1.0831842156228877,
+      "expectancy_r": 0.06466642432459652,
+      "win_rate_pct": 24.096385542168676,
+      "closed_trade_drawdown_r": 9.889338890457141,
+      "average_holding_minutes": 758.9156475903615,
+      "first_chronological_half": {
+        "decisions": 41,
+        "net_r": -1.9230376931628061,
+        "profit_factor": 0.9391687593440291,
+        "expectancy_r": -0.04690335836982454,
+        "win_rate_pct": 24.390243902439025,
+        "closed_trade_drawdown_r": 9.889338890457141,
+        "average_holding_minutes": 1016.5853520325203
+      },
+      "second_chronological_half": {
+        "decisions": 42,
+        "net_r": 7.290350912104317,
+        "profit_factor": 1.221520169922245,
+        "expectancy_r": 0.17357978362153134,
+        "win_rate_pct": 23.80952380952381,
+        "closed_trade_drawdown_r": 8.749702801511992,
+        "average_holding_minutes": 507.3809361111111
+      },
+      "months": [
+        {
+          "month": "2026-05",
+          "complete_market_time_coverage": false,
+          "coverage_calendar_days": 27.0,
+          "decisions": 12,
+          "net_r": 0.260866743291136,
+          "profit_factor": 1.0285228680059448,
+          "expectancy_r": 0.021738895274261334,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 5.058019732169563,
+          "average_holding_minutes": 464.9999833333333
+        },
+        {
+          "month": "2026-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 12,
+          "net_r": 2.1921644885426734,
+          "profit_factor": 1.2620408443794369,
+          "expectancy_r": 0.18268037404522278,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 7.356256410680187,
+          "average_holding_minutes": 1017.0833194444444
+        },
+        {
+          "month": "2026-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 13,
+          "net_r": -4.803884840320865,
+          "profit_factor": 0.5611226229065287,
+          "expectancy_r": -0.36952960310160504,
+          "win_rate_pct": 15.384615384615385,
+          "closed_trade_drawdown_r": 8.876675904847517,
+          "average_holding_minutes": 1162.692294871795
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 14,
+          "net_r": -0.7740525340611492,
+          "profit_factor": 0.9322063347196922,
+          "expectancy_r": -0.055289466718653514,
+          "win_rate_pct": 28.571428571428573,
+          "closed_trade_drawdown_r": 4.151733270889702,
+          "average_holding_minutes": 1179.999986904762
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 18,
+          "net_r": 10.59961256444277,
+          "profit_factor": 1.7959198618951897,
+          "expectancy_r": 0.5888673646912651,
+          "win_rate_pct": 27.77777777777778,
+          "closed_trade_drawdown_r": 8.244141730463003,
+          "average_holding_minutes": 398.61109444444446
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 14,
+          "net_r": -2.1073932029530544,
+          "profit_factor": 0.8140077915677406,
+          "expectancy_r": -0.15052808592521819,
+          "win_rate_pct": 21.428571428571427,
+          "closed_trade_drawdown_r": 8.749702801511992,
+          "average_holding_minutes": 456.78569761904765
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 2,
+      "median_complete_month_r": -0.7740525340611492,
+      "worst_complete_month_r": -4.803884840320865,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "gold.native-band-reentry-15-48-3-5",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 47,
+      "net_r": 13.648033672597272,
+      "profit_factor": 1.4332907398344612,
+      "expectancy_r": 0.2903836951616441,
+      "win_rate_pct": 34.04255319148936,
+      "closed_trade_drawdown_r": 9.723205306132952,
+      "average_holding_minutes": 1553.7233918439717,
+      "first_chronological_half": {
+        "decisions": 23,
+        "net_r": 8.839885615535929,
+        "profit_factor": 1.606605844114719,
+        "expectancy_r": 0.3843428528493882,
+        "win_rate_pct": 39.130434782608695,
+        "closed_trade_drawdown_r": 5.323797057408762,
+        "average_holding_minutes": 1688.0434666666667
+      },
+      "second_chronological_half": {
+        "decisions": 24,
+        "net_r": 4.808148057061343,
+        "profit_factor": 1.2840711672695828,
+        "expectancy_r": 0.20033950237755596,
+        "win_rate_pct": 29.166666666666668,
+        "closed_trade_drawdown_r": 9.72320530613295,
+        "average_holding_minutes": 1424.9999868055556
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 7,
+          "net_r": -1.6405797041544625,
+          "profit_factor": 0.6982106744266452,
+          "expectancy_r": -0.2343685291649232,
+          "win_rate_pct": 28.571428571428573,
+          "closed_trade_drawdown_r": 3.364600922537546,
+          "average_holding_minutes": 2072.1428476190476
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 9,
+          "net_r": 4.713558998315902,
+          "profit_factor": 1.9309801369653445,
+          "expectancy_r": 0.5237287775906557,
+          "win_rate_pct": 44.44444444444444,
+          "closed_trade_drawdown_r": 2.030176301551382,
+          "average_holding_minutes": 1534.999988888889
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 10,
+          "net_r": 2.702413489522442,
+          "profit_factor": 1.378594727006385,
+          "expectancy_r": 0.2702413489522442,
+          "win_rate_pct": 30.0,
+          "closed_trade_drawdown_r": 5.106340812937274,
+          "average_holding_minutes": 1169.9999850000002
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 9,
+          "net_r": 9.688039441186213,
+          "profit_factor": 3.341147095442932,
+          "expectancy_r": 1.076448826798468,
+          "win_rate_pct": 55.55555555555556,
+          "closed_trade_drawdown_r": 1.726921058067614,
+          "average_holding_minutes": 1872.7777666666666
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 12,
+          "net_r": -1.8153985522728222,
+          "profit_factor": 0.813292171139516,
+          "expectancy_r": -0.15128321268940184,
+          "win_rate_pct": 16.666666666666668,
+          "closed_trade_drawdown_r": 9.723205306132952,
+          "average_holding_minutes": 1345.8333194444444
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 3,
+      "median_complete_month_r": 2.702413489522442,
+      "worst_complete_month_r": -1.8153985522728222,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "gold.native-momentum-15-48-2-5",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 101,
+      "net_r": 32.37453607706978,
+      "profit_factor": 1.4357256000119185,
+      "expectancy_r": 0.3205399611591067,
+      "win_rate_pct": 27.722772277227723,
+      "closed_trade_drawdown_r": 9.774758690317174,
+      "average_holding_minutes": 879.9504798679868,
+      "first_chronological_half": {
+        "decisions": 50,
+        "net_r": 15.152283625968767,
+        "profit_factor": 1.3966773156845793,
+        "expectancy_r": 0.30304567251937536,
+        "win_rate_pct": 24.0,
+        "closed_trade_drawdown_r": 9.774758690317174,
+        "average_holding_minutes": 730.5999846666667
+      },
+      "second_chronological_half": {
+        "decisions": 51,
+        "net_r": 17.222252451101014,
+        "profit_factor": 1.477040633000819,
+        "expectancy_r": 0.3376912245313924,
+        "win_rate_pct": 31.372549019607842,
+        "closed_trade_drawdown_r": 8.028328293879065,
+        "average_holding_minutes": 1026.3725339869281
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 20,
+          "net_r": -1.182799901529565,
+          "profit_factor": 0.9269104898388483,
+          "expectancy_r": -0.05913999507647824,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 9.774758690317174,
+          "average_holding_minutes": 748.499985
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 19,
+          "net_r": 10.023296860314462,
+          "profit_factor": 1.7277429357018996,
+          "expectancy_r": 0.5275419400165506,
+          "win_rate_pct": 26.31578947368421,
+          "closed_trade_drawdown_r": 4.142748418933385,
+          "average_holding_minutes": 876.5789324561404
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 24,
+          "net_r": 6.624668553949762,
+          "profit_factor": 1.363363864857735,
+          "expectancy_r": 0.2760278564145734,
+          "win_rate_pct": 25.0,
+          "closed_trade_drawdown_r": 6.858611620480333,
+          "average_holding_minutes": 720.2083180555555
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 21,
+          "net_r": 18.956248702253202,
+          "profit_factor": 2.4046304329438235,
+          "expectancy_r": 0.9026785096311047,
+          "win_rate_pct": 38.095238095238095,
+          "closed_trade_drawdown_r": 4.173945755635364,
+          "average_holding_minutes": 807.857126984127
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 17,
+          "net_r": -2.046878137918079,
+          "profit_factor": 0.8377710450448627,
+          "expectancy_r": -0.12040459634812231,
+          "win_rate_pct": 29.41176470588235,
+          "closed_trade_drawdown_r": 8.028328293879062,
+          "average_holding_minutes": 1352.9411617647058
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 3,
+      "median_complete_month_r": 6.624668553949762,
+      "worst_complete_month_r": -2.046878137918079,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "gold.native-momentum-60-24-2-5",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "1h"
+      ],
+      "coverage": [
+        {
+          "start": "2025-04-01T00:00:00+00:00",
+          "end_exclusive": "2025-09-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 37,
+      "net_r": 17.051409675976796,
+      "profit_factor": 1.780919654625654,
+      "expectancy_r": 0.46084891016153506,
+      "win_rate_pct": 40.54054054054054,
+      "closed_trade_drawdown_r": 4.254482702443157,
+      "average_holding_minutes": 3078.783768918919,
+      "first_chronological_half": {
+        "decisions": 18,
+        "net_r": 17.101560147768236,
+        "profit_factor": 2.6796079095841354,
+        "expectancy_r": 0.9500866748760131,
+        "win_rate_pct": 44.44444444444444,
+        "closed_trade_drawdown_r": 3.071587033196634,
+        "average_holding_minutes": 2805.5555407407405
+      },
+      "second_chronological_half": {
+        "decisions": 19,
+        "net_r": -0.05015047179143847,
+        "profit_factor": 0.9956964060769021,
+        "expectancy_r": -0.002639498515338867,
+        "win_rate_pct": 36.8421052631579,
+        "closed_trade_drawdown_r": 4.254482702443154,
+        "average_holding_minutes": 3337.6315640350876
+      },
+      "months": [
+        {
+          "month": "2025-04",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 5,
+          "net_r": 0.07403312336624013,
+          "profit_factor": 1.0183282889144527,
+          "expectancy_r": 0.014806624673248026,
+          "win_rate_pct": 20.0,
+          "closed_trade_drawdown_r": 3.031746345403448,
+          "average_holding_minutes": 1373.9999833333334
+        },
+        {
+          "month": "2025-05",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 8,
+          "net_r": 12.693275097186786,
+          "profit_factor": 4.105171885228025,
+          "expectancy_r": 1.5866593871483483,
+          "win_rate_pct": 50.0,
+          "closed_trade_drawdown_r": 3.071587033196634,
+          "average_holding_minutes": 2993.1249854166667
+        },
+        {
+          "month": "2025-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 7,
+          "net_r": 3.5892654527537906,
+          "profit_factor": 2.1690669827350813,
+          "expectancy_r": 0.5127522075362558,
+          "win_rate_pct": 57.142857142857146,
+          "closed_trade_drawdown_r": 1.031600245603695,
+          "average_holding_minutes": 3675.7142714285715
+        },
+        {
+          "month": "2025-07",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 7,
+          "net_r": 0.10293855165349433,
+          "profit_factor": 1.030954070608581,
+          "expectancy_r": 0.014705507379070618,
+          "win_rate_pct": 42.857142857142854,
+          "closed_trade_drawdown_r": 2.4365660212252056,
+          "average_holding_minutes": 3759.2856976190474
+        },
+        {
+          "month": "2025-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 10,
+          "net_r": 0.591897451016486,
+          "profit_factor": 1.0809460276708858,
+          "expectancy_r": 0.05918974510164861,
+          "win_rate_pct": 30.0,
+          "closed_trade_drawdown_r": 4.207569176161284,
+          "average_holding_minutes": 3105.4999866666667
+        }
+      ],
+      "complete_months": 5,
+      "positive_complete_months": 5,
+      "median_complete_month_r": 0.591897451016486,
+      "worst_complete_month_r": 0.07403312336624013,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    },
+    {
+      "strategy_id": "gold.rsi-trailing-15-48-1.5-5-h96",
+      "evidence_type": "RETAINED_COSTED_TRADE_LEDGER_NOT_NEW_ENTRY_BACKTEST",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "markets": [
+        "METALS"
+      ],
+      "timeframes": [
+        "15m"
+      ],
+      "coverage": [
+        {
+          "start": "2026-05-05T00:00:00+00:00",
+          "end_exclusive": "2026-07-01T00:00:00+00:00"
+        },
+        {
+          "start": "2026-07-05T00:00:00+00:00",
+          "end_exclusive": "2026-11-01T00:00:00+00:00"
+        }
+      ],
+      "decisions": 134,
+      "net_r": 22.58841296062615,
+      "profit_factor": 1.277098940978682,
+      "expectancy_r": 0.16857024597482204,
+      "win_rate_pct": 40.298507462686565,
+      "closed_trade_drawdown_r": 10.08649454107334,
+      "average_holding_minutes": 513.5820754975124,
+      "first_chronological_half": {
+        "decisions": 67,
+        "net_r": 9.597462332458079,
+        "profit_factor": 1.226408085748901,
+        "expectancy_r": 0.1432457064545982,
+        "win_rate_pct": 41.791044776119406,
+        "closed_trade_drawdown_r": 7.173527299519091,
+        "average_holding_minutes": 550.522373880597
+      },
+      "second_chronological_half": {
+        "decisions": 67,
+        "net_r": 12.990950628168074,
+        "profit_factor": 1.3320167441401296,
+        "expectancy_r": 0.19389478549504588,
+        "win_rate_pct": 38.80597014925373,
+        "closed_trade_drawdown_r": 10.08649454107334,
+        "average_holding_minutes": 476.64177711442784
+      },
+      "months": [
+        {
+          "month": "2026-05",
+          "complete_market_time_coverage": false,
+          "coverage_calendar_days": 27.0,
+          "decisions": 18,
+          "net_r": 6.806196201004487,
+          "profit_factor": 1.752886790881611,
+          "expectancy_r": 0.37812201116691596,
+          "win_rate_pct": 55.55555555555556,
+          "closed_trade_drawdown_r": 2.944851772794279,
+          "average_holding_minutes": 823.0555425925926
+        },
+        {
+          "month": "2026-06",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 17,
+          "net_r": 0.1287808605719329,
+          "profit_factor": 1.0125945281221727,
+          "expectancy_r": 0.007575344739525465,
+          "win_rate_pct": 41.1764705882353,
+          "closed_trade_drawdown_r": 5.075279447889694,
+          "average_holding_minutes": 660.5882205882353
+        },
+        {
+          "month": "2026-07",
+          "complete_market_time_coverage": false,
+          "coverage_calendar_days": 27.0,
+          "decisions": 26,
+          "net_r": 1.570164930776438,
+          "profit_factor": 1.089305542220571,
+          "expectancy_r": 0.06039095887601685,
+          "win_rate_pct": 34.61538461538461,
+          "closed_trade_drawdown_r": 5.099441625856251,
+          "average_holding_minutes": 261.5384467948718
+        },
+        {
+          "month": "2026-08",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 25,
+          "net_r": 5.283964547100387,
+          "profit_factor": 1.3519367568619498,
+          "expectancy_r": 0.21135858188401546,
+          "win_rate_pct": 40.0,
+          "closed_trade_drawdown_r": 5.219335937552387,
+          "average_holding_minutes": 549.9999873333334
+        },
+        {
+          "month": "2026-09",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 30.0,
+          "decisions": 26,
+          "net_r": 3.9575151953644863,
+          "profit_factor": 1.2446002852429348,
+          "expectancy_r": 0.1522121228986341,
+          "win_rate_pct": 38.46153846153846,
+          "closed_trade_drawdown_r": 10.08649454107334,
+          "average_holding_minutes": 458.4615243589744
+        },
+        {
+          "month": "2026-10",
+          "complete_market_time_coverage": true,
+          "coverage_calendar_days": 31.0,
+          "decisions": 22,
+          "net_r": 4.8417912258084215,
+          "profit_factor": 1.3592685868553516,
+          "expectancy_r": 0.22008141935492825,
+          "win_rate_pct": 36.36363636363637,
+          "closed_trade_drawdown_r": 5.00948198229827,
+          "average_holding_minutes": 468.40907575757575
+        }
+      ],
+      "complete_months": 4,
+      "positive_complete_months": 4,
+      "median_complete_month_r": 4.399653210586454,
+      "worst_complete_month_r": 0.1287808605719329,
+      "qualification": "Historical source evidence positive; forward execution and customer-specific economics not established by this ledger"
+    }
+  ],
+  "turbo": {
+    "configurations": 5,
+    "evidence_type": "NATIVE_QUOTE_SCENARIO_REPLAY_NOT_LIVE_FILLS",
+    "source": "docs/research/gold-turbo-20261126/redesign/comparison.json",
+    "period": {
+      "sessions": [
+        {
+          "start": "2026-10-29T08:00:00+00:00",
+          "end_exclusive": "2026-10-29T16:00:00+00:00"
+        },
+        {
+          "start": "2026-10-30T08:00:00+00:00",
+          "end_exclusive": "2026-10-30T16:00:00+00:00"
+        }
+      ],
+      "processed_original_quotes": 316054,
+      "cadence_ms": 5000,
+      "assumptions": {
+        "account_currency": "USD",
+        "contract_size_oz": 100,
+        "minimum_lot": 0.01,
+        "lot_step": 0.01,
+        "leverage": 100,
+        "broker_min_stop_price": 0.1,
+        "commission_per_lot_per_side_usd": 3.5,
+        "adverse_slippage_price_per_side": 0.02,
+        "execution_latency_ms": 0,
+        "news_calendar": "UNAVAILABLE: explicit clear-news scenario, not news-filter validation",
+        "swap": "zero: forced flat at each selected session end",
+        "monthly_subscription_usd_scenario": 100,
+        "risk_per_decision_pct": "runtime capped .25 <=500, .20 <=5000, .15 above",
+        "daily_loss_pct": 1.5,
+        "peak_loss_pct": 8,
+        "max_open_risk_pct": 1,
+        "max_margin_pct": 20,
+        "basket_target_pct": 0.2
+      },
+      "elapsed_seconds": 120.16353514099956
+    },
+    "results_at_25000": [
+      {
+        "lineup": "micro-scalper",
+        "capital": 25000.0,
+        "final_equity": 24935.132000000005,
+        "net_return_pct": -0.2594719999999828,
+        "maximum_drawdown_pct": 0.6492676349101149,
+        "maximum_margin_pct": 9.990958530052124,
+        "independent_baskets": 7,
+        "individual_orders": 7,
+        "win_rate_pct": 42.857142857142854,
+        "profit_factor": 0.4548403633948839,
+        "expectancy_money": -9.26685714285764,
+        "average_holding_minutes": 0.3641981355932203,
+        "commission_money": 20.65,
+        "account_survived": true,
+        "subscription_adjusted_net_at_100_usd": -164.86799999999494,
+        "monthly_statistics": null,
+        "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+        "baskets_per_selected_session": 3.5,
+        "selected_session_net_money": {
+          "2026-10-29": -54.91299999998657,
+          "2026-10-30": -9.95500000001691
+        },
+        "reconciled": true
+      },
+      {
+        "lineup": "momentum-scalper",
+        "capital": 25000.0,
+        "final_equity": 24986.932000000004,
+        "net_return_pct": -0.05227199999998655,
+        "maximum_drawdown_pct": 0.1560353903993594,
+        "maximum_margin_pct": 1.9153894069825537,
+        "independent_baskets": 1,
+        "individual_orders": 1,
+        "win_rate_pct": 0.0,
+        "profit_factor": 0.0,
+        "expectancy_money": -13.067999999997337,
+        "average_holding_minutes": 4.096166666666667,
+        "commission_money": 0.84,
+        "account_survived": true,
+        "subscription_adjusted_net_at_100_usd": -113.06799999999566,
+        "monthly_statistics": null,
+        "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+        "baskets_per_selected_session": 0.5,
+        "selected_session_net_money": {
+          "2026-10-30": -13.067999999997337
+        },
+        "reconciled": true
+      },
+      {
+        "lineup": "range-scalper",
+        "capital": 25000.0,
+        "final_equity": 24890.292000000027,
+        "net_return_pct": -0.4388319999998891,
+        "maximum_drawdown_pct": 0.513542350236521,
+        "maximum_margin_pct": 8.645925571463776,
+        "independent_baskets": 9,
+        "individual_orders": 9,
+        "win_rate_pct": 33.333333333333336,
+        "profit_factor": 0.4139655135574844,
+        "expectancy_money": -12.189777777775216,
+        "average_holding_minutes": 0.447163112745098,
+        "commission_money": 19.04,
+        "account_survived": true,
+        "subscription_adjusted_net_at_100_usd": -209.70799999997325,
+        "monthly_statistics": null,
+        "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+        "baskets_per_selected_session": 4.5,
+        "selected_session_net_money": {
+          "2026-10-29": -1.6980000000038729,
+          "2026-10-30": -108.00999999997308
+        },
+        "reconciled": true
+      },
+      {
+        "lineup": "trend-scalper",
+        "capital": 25000.0,
+        "final_equity": 25210.328000000005,
+        "net_return_pct": 0.8413120000000163,
+        "maximum_drawdown_pct": 0.6505403371534335,
+        "maximum_margin_pct": 3.03367519191583,
+        "independent_baskets": 8,
+        "individual_orders": 8,
+        "win_rate_pct": 87.5,
+        "profit_factor": 7.177033773861731,
+        "expectancy_money": 26.2909999999999,
+        "average_holding_minutes": 28.410716666666666,
+        "commission_money": 2.5900000000000003,
+        "account_survived": true,
+        "subscription_adjusted_net_at_100_usd": 110.32800000000498,
+        "monthly_statistics": null,
+        "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+        "baskets_per_selected_session": 4.0,
+        "selected_session_net_money": {
+          "2026-10-30": 210.32799999999926
+        },
+        "reconciled": true
+      },
+      {
+        "lineup": "price-action-basket",
+        "capital": 25000.0,
+        "final_equity": 24937.03000000003,
+        "net_return_pct": -0.2518799999998711,
+        "maximum_drawdown_pct": 0.5108642851207039,
+        "maximum_margin_pct": 4.994139261530067,
+        "independent_baskets": 29,
+        "individual_orders": 32,
+        "win_rate_pct": 48.275862068965516,
+        "profit_factor": 0.7184792424825635,
+        "expectancy_money": -2.1713793103441876,
+        "average_holding_minutes": 0.7363288034188035,
+        "commission_money": 27.3,
+        "account_survived": true,
+        "subscription_adjusted_net_at_100_usd": -162.96999999996842,
+        "monthly_statistics": null,
+        "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+        "baskets_per_selected_session": 14.5,
+        "selected_session_net_money": {
+          "2026-10-29": -2.7139999999881255,
+          "2026-10-30": -60.25599999999328
+        },
+        "reconciled": true
+      }
+    ]
+  },
+  "limitations": [
+    "All 16 were previously selected; selection bias and shared signals remain. Positive source R does not establish future edge.",
+    "Complete-month metrics are NET R, not percent returns. No compounding, subscription subtraction or customer equity performance is invented.",
+    "Closed-trade R drawdown excludes unrealized drawdown, gaps, shared-account margin and capital sizing.",
+    "Chronological halves are descriptive, not fresh unseen validation.",
+    "Market grouping follows actual symbols; forex.complementary-ema-pullback trades XAUUSD."
+  ]
+}

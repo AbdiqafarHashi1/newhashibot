@@ -1,0 +1,13 @@
+{
+  "schema": "edge-evidence-audit/v1",
+  "verified_source_reports": 30,
+  "retained_trade_count": 1159,
+  "existing_configuration_count": 16,
+  "turbo_configuration_count": 5,
+  "real_tick_count": 5910062,
+  "account_cases": 96,
+  "monthly_r_reconciled": true,
+  "account_cash_reconciled": true,
+  "production_source_unchanged": true,
+  "activation": false
+}

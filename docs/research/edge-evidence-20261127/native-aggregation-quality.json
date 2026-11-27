@@ -1,0 +1,12 @@
+{
+  "15": {
+    "observed_buckets": 2016,
+    "buckets_with_fewer_than_m_M1_rows": 29,
+    "policy": "Every nonempty bucket aggregates actual native quotes; no empty bucket is created. Exchange session-edge buckets need not contain a quote in every wall-clock minute. Production market-calendar continuity checks remain active."
+  },
+  "60": {
+    "observed_buckets": 504,
+    "buckets_with_fewer_than_m_M1_rows": 28,
+    "policy": "Every nonempty bucket aggregates actual native quotes; no empty bucket is created. Exchange session-edge buckets need not contain a quote in every wall-clock minute. Production market-calendar continuity checks remain active."
+  }
+}
