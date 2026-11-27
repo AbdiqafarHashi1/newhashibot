@@ -162,7 +162,7 @@ class GoldTurboRuntime:
         conversion=spec.get('quote_to_account_conversion')
         if not conversion or conversion<=0:raise RuntimeError('TURBO_QUOTE_CONVERSION_UNAVAILABLE')
         native=self.client.gold_turbo_native_cost(spec['broker_symbol'],'LONG',spec['volume_min'],spec['ask'],spec['bid']-max(spec['tick_size'],spec['ask']-spec['bid']))
-        return BrokerFacts(self.scope['account_id'],now,a['equity'],a['free_margin'],spec['contract_size'],conversion,
+        return BrokerFacts(self.scope['account_id'],now,a['equity'],max(0,a['free_margin']),spec['contract_size'],conversion,
             native['margin']/spec['volume_min'],spec['volume_min'],spec['volume_step'],spec['volume_max'],'HEDGING',
             news_clear=news_clear,account_risk_permitted=not(self.guard.get('locked') or self.guard.get('total_locked')))
 
@@ -233,11 +233,15 @@ class GoldTurboRuntime:
         small=self.client.gold_turbo_native_cost(spec['broker_symbol'],plan.side,minimum,entry,plan.stop)
         friction=plan.fee_slippage_price*spec['contract_size']*conversion
         unit=small['loss']/minimum+friction
-        raw=min(budget/unit,spec['volume_max'])
+        pending_margin=sum(o.pending_lots*o.unit_margin_money for b in self.books.values() for o in b.orders.values())
+        margin_room=min(a['free_margin'],max(0,a['equity']*lease['max_margin_pct']/100-a.get('margin',0)-pending_margin))
+        unit_margin=small['margin']/minimum
+        if not math.isfinite(unit_margin) or unit_margin<=0:return None
+        raw=min(budget/unit,spec['volume_max'],margin_room/unit_margin)
         if raw<minimum:return None
         step=Decimal(str(spec['volume_step']));lots=float((Decimal(str(raw))/step).to_integral_value(rounding=ROUND_FLOOR)*step)
         calc=self.client.gold_turbo_native_cost(spec['broker_symbol'],plan.side,lots,entry,plan.stop)
-        if calc['loss']+lots*friction>budget+1e-8 or calc['margin']>min(a['free_margin'],a['equity']*lease['max_margin_pct']/100):return None
+        if calc['loss']+lots*friction>budget+1e-8 or calc['margin']>margin_room:return None
         return lots,calc['loss']+lots*friction
 
     def guard_external_entry(self,payload):

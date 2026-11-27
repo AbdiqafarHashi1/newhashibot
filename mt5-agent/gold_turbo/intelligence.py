@@ -12,7 +12,7 @@ from typing import Optional, Tuple
 from .contracts import (VERSION, FRAMES, Candle, IntelligenceConfig, Tick,
                         identity, integer, positive)
 from .features import (CandleShape, Indicators, Structure, candle_shape,
-                       classify_regime, indicators, structure)
+                       classify_regime, indicators, structure, price_event)
 
 
 @dataclass(frozen=True)
@@ -320,8 +320,9 @@ class MarketIntelligence:
             if tf not in self._cache:
                 tail = self._usable_tail(completed)
                 feats = indicators(tail)
-                self._cache[tf] = (tail, feats, classify_regime(tail, feats))
-            tail, feats, regime = self._cache[tf]
+                self._cache[tf] = (tail, feats, classify_regime(tail, feats),
+                                   structure(tail, None, feats.atr14, self.config.price_tick))
+            tail, feats, regime, closed_structure = self._cache[tf]
             forming = self._forming.get(tf)
             flags = []
             if forming and forming.end_ms <= as_of_ms:
@@ -346,7 +347,8 @@ class MarketIntelligence:
                     flags.append('TICK_VELOCITY_SHOCK'); shock = True
             shock = shock or bar_shock or regime == 'SHOCK'
             frames.append(FrameSnapshot(tf, completed, forming, len(tail), feats,
-                                       structure(tail, active, prior_atr, self.config.price_tick), regime,
+                                       replace(closed_structure, developing_event=price_event(active, closed_structure.support,
+                                           closed_structure.resistance, max(self.config.price_tick, (prior_atr or 0)*.15))), regime,
                                        candle_shape(forming) if forming else None, tuple(flags)))
         if shock:
             quality.append('VOLATILITY_SHOCK')

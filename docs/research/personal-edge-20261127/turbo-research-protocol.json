@@ -1,0 +1,19 @@
+{
+  "purpose": "PERSONAL_FAKE_TERMINAL_RESEARCH_ONLY",
+  "production_runtime_sha256": "4ff666007bba95587587a58baefe1b35dbe4fc9d56dc5ff8eed2a853e9566f1b",
+  "research_runtime_sha256": "3f7d05b09c06d75e8b65a151d86f7e0b100126c6c8ac771d4a463f5461f631d8",
+  "risk_pct": [
+    1,
+    2,
+    3,
+    5
+  ],
+  "daily": 15,
+  "peak": 60,
+  "open": 15,
+  "margin": 50,
+  "basket_target": 0.2,
+  "session_profit_lock": 20,
+  "session_trailing": 5,
+  "limitations": "Source copy accepts only ScenarioTerminal; no bridge authorization or live/account defaults are modified. Higher loss allowances are experimental, not recommended customer defaults."
+}

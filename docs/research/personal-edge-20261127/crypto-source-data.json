@@ -1,0 +1,6 @@
+{
+  "sha256": "2719f4ba0e0f296b6b327671643eb65b0eaaebb13aa68466b01fcb23ffc7ca25",
+  "files": 65,
+  "restore": "python3 scripts/research/gold-turbo/restore_crypto_validation.py",
+  "scope": "Exact public responses and source manifests. No additional download is required."
+}

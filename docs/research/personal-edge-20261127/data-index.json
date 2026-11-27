@@ -1,0 +1,614 @@
+{
+  "validation_start_ms": 1793491200000,
+  "validation_end_exclusive_ms": 1795737600000,
+  "manifests": [
+    {
+      "kind": "klines",
+      "symbol": "BTCUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "724bc60ff44cc802385b4c522951e236e0509c381f4c32ff5c71e365c72b7d30",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-BTCUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "BTCUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793318400000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2688,
+      "rows_sha256": "413ef478326465ab55d40c1c5380dda3da8a26a9064b078f7cb29a8ac00e5ccf",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&startTime=1793318400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&startTime=1794218400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&startTime=1795118400000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-BTCUSDT-15m-1793318400000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "BTCUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "8b045760862762e1d9bbc0623da05993868d33ca2f3c215a0bd522f43896f0e2",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-BTCUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ETHUSDT",
+      "timeframe": "4h",
+      "start_ms": 1789862400000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 252,
+      "rows_sha256": "0769edaa6377c9ac5933e346f94adb893bae26f9ccb9ef42b121de99b72e2d19",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1789862400000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ETHUSDT-4h-1789862400000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ETHUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793318400000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2688,
+      "rows_sha256": "8434e9be4b0406efa8dbf67596c39f8dd543a8e6cd1c37bd3db50878ce71a25f",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1793318400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1794218400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1795118400000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ETHUSDT-15m-1793318400000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "ETHUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "362beff0ece80c5124cf22866d48df672f71c987eeb7be33a2b343999bb3ae1b",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=ETHUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-ETHUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "SOLUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "09cb8b2621893895c31b5a91bef89c28e717d5aa15a6df2ce60724ef7e97096d",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=SOLUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-SOLUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "SOLUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793318400000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2688,
+      "rows_sha256": "fbe8406ca40766316335f942846931f607eb87ab0a1e31270bc236b716f9489c",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=SOLUSDT&startTime=1793318400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=SOLUSDT&startTime=1794218400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=SOLUSDT&startTime=1795118400000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-SOLUSDT-15m-1793318400000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "SOLUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "9c7b991b7266e2688f7d2d491d7d66844fcefcb5d75b1e55169dcee4feaa65db",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=SOLUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-SOLUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "BNBUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "0157de898689610b330d91b907a235d0d15ac07f76d3f5ddd3293c05abfd922c",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BNBUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-BNBUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "BNBUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2496,
+      "rows_sha256": "62a964fe640a05c905155a75ced18ca2c6127a048320d8e5d799be481408a690",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BNBUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BNBUSDT&startTime=1794391200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=BNBUSDT&startTime=1795291200000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-BNBUSDT-15m-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "BNBUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "6345076262e854f6bfcc861d3c568a300ad99cd05e2333d185c698c681486e08",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=BNBUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-BNBUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "XRPUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "670b7a6226a64c50df29ed161b44fcc3b7826be0a5b7f311733af923d2d3d493",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=XRPUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-XRPUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "XRPUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2496,
+      "rows_sha256": "5ccc65f81422cb59ce8723f7a9de4c3bd4d1eb5b47c83d68bd57c3f24fd38142",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=XRPUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=XRPUSDT&startTime=1794391200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=XRPUSDT&startTime=1795291200000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-XRPUSDT-15m-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "XRPUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "5b3f767cfd10f5ebad1e0d5582d3a22f6a12a33a35c4a9b08f0330c3023ea5f1",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=XRPUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-XRPUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ADAUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "d59717acd7aa758bd4ab64ef5bb90aa4b82b8ab8de6c2d4ce8d1c25ead9cd619",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ADAUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ADAUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ADAUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2496,
+      "rows_sha256": "b872d9f31bf43ab82aea492e19a60208d0aad9b2c1e4a354df899fd210e491a7",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ADAUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ADAUSDT&startTime=1794391200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ADAUSDT&startTime=1795291200000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ADAUSDT-15m-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "ADAUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "a14f5b7821606eeb24349ea0535bd7b4f80fa26f595488799a4a82ff458c0ac9",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=ADAUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-ADAUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "DOGEUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "8f72afee8bc64cfd2f5d49982a9273a3e2bb5ac7e7dca4bd25270e32c8c8b578",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-DOGEUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "DOGEUSDT",
+      "timeframe": "5m",
+      "start_ms": 1793404800000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 7776,
+      "rows_sha256": "2a8f4b4c4ad8b18732d6d1ab25179538630205e73113a60047bc17172b594e99",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1793404800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1793704800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1794004800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1794304800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1794604800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1794904800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1795204800000&endTime=1795737599999&limit=1000&interval=5m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=DOGEUSDT&startTime=1795504800000&endTime=1795737599999&limit=1000&interval=5m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-DOGEUSDT-5m-1793404800000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "DOGEUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "a3870fe9912573c159be34f54153f24b63c202ed8972e47e5009614533c3c11c",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=DOGEUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-DOGEUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "LINKUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "25c0b6d08f8f66d3645d1a1a3f12e3d7c9c40a4e352462266cdad3a06c09b66f",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LINKUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-LINKUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "LINKUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2496,
+      "rows_sha256": "3c5b37cec0e362ac5f604b2e2d600c20175a07999de59a37d1b0db1c82e54f33",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LINKUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LINKUSDT&startTime=1794391200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LINKUSDT&startTime=1795291200000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-LINKUSDT-15m-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "LINKUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "c34c1ef87577ed04b57a8b63d700cc60d9537dc3886268ed0146a6d9a16049d3",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=LINKUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-LINKUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "AVAXUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "f8d7d51de49d035ccb1076a553baebc12e0641261b8b62a71a20a40c2bc17010",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=AVAXUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-AVAXUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "AVAXUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2496,
+      "rows_sha256": "513df04cc5aa0671777607ebbe84218b1103f8468e98775f46ff890a8a775c1a",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=AVAXUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=AVAXUSDT&startTime=1794391200000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=AVAXUSDT&startTime=1795291200000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-AVAXUSDT-15m-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "AVAXUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "56d5cab763d4874317f9b694b66ed77d74be5ec0c89d23cfe01a1f2648f093d0",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=AVAXUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-AVAXUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "LTCUSDT",
+      "timeframe": "4h",
+      "start_ms": 1790812800000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 186,
+      "rows_sha256": "446893c712a2285b0ed74103d6bd81d6a8cbfe36bff298ced08791a4f852e369",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LTCUSDT&startTime=1790812800000&endTime=1793491199999&limit=1000&interval=4h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-LTCUSDT-4h-1790812800000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "LTCUSDT",
+      "timeframe": "15m",
+      "start_ms": 1793318400000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 2688,
+      "rows_sha256": "833af96f41ee779a522ffd9151d18b555cd9a26ac30a71a52e9ec9e3d0423380",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LTCUSDT&startTime=1793318400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LTCUSDT&startTime=1794218400000&endTime=1795737599999&limit=1000&interval=15m",
+        "https://fapi.binance.com/fapi/v1/klines?symbol=LTCUSDT&startTime=1795118400000&endTime=1795737599999&limit=1000&interval=15m"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-LTCUSDT-15m-1793318400000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "funding",
+      "symbol": "LTCUSDT",
+      "timeframe": "rates",
+      "start_ms": 1793491200000,
+      "end_exclusive_ms": 1795737600000,
+      "rows": 78,
+      "rows_sha256": "8de780dc880456b0781fe84069fef83381247eb65cb22b1aa7d33b94c3d16345",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/fundingRate?symbol=LTCUSDT&startTime=1793491200000&endTime=1795737599999&limit=1000"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/funding-LTCUSDT-rates-1793491200000-1795737600000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "start_ms": 1792454400000,
+      "end_exclusive_ms": 1793491200000,
+      "rows": 288,
+      "rows_sha256": "04bf44b56cfce2d898033625cacfb666818879fc2c458105c3b7a6f69a6a8fbe",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1792454400000&endTime=1793491199999&limit=1000&interval=1h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ETHUSDT-1h-1792454400000-1793491200000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    },
+    {
+      "kind": "klines",
+      "symbol": "ETHUSDT",
+      "timeframe": "1h",
+      "start_ms": 1789862400000,
+      "end_exclusive_ms": 1792454400000,
+      "rows": 720,
+      "rows_sha256": "2075887234133e6d129774547c3489c1cb83f01ad5679a1c16b195c7e1879d3f",
+      "source_urls": [
+        "https://fapi.binance.com/fapi/v1/klines?symbol=ETHUSDT&startTime=1789862400000&endTime=1792454399999&limit=1000&interval=1h"
+      ],
+      "path": "docs/research/personal-edge-20261127/data/klines-ETHUSDT-1h-1789862400000-1792454400000.json.gz",
+      "source": "BINANCE_USDM_PUBLIC_API",
+      "limitations": [
+        "OHLC/funding records, not historical bid/ask ticks or fills",
+        "API retrieval hash is local provenance, not a vendor-signed checksum"
+      ]
+    }
+  ],
+  "exchange_specs": {
+    "path": "docs/research/personal-edge-20261127/data/exchange-info.json.gz",
+    "source_url": "https://fapi.binance.com/fapi/v1/exchangeInfo",
+    "rows_sha256": "e36cedf306a3808143cd1f50c74b899f2c60bfc8253cdc8c5843b0693460ca1e",
+    "historical": false,
+    "limitation": "Current retrieved volume/tick/min-notional requirements are a scenario for historical November; historical maintenance tiers unavailable"
+  }
+}
