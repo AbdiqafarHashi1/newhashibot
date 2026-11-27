@@ -4,7 +4,7 @@ import {SCANNER_PRODUCT_STRATEGIES,PERSONAL_GROWTH_STRATEGIES,productEntryQualit
 import {VIP_CONFIG_IDS} from '../../supabase/functions/_shared/vip-signal-policy.ts';
 import {rotationEntry} from '../../supabase/functions/_shared/conditional-market.ts';
 test('eight-engine product roster has explicit independent IDs and Gold quality cannot use future or unknown volume',()=>{
- assert.equal(SCANNER_PRODUCT_STRATEGIES.length,13);assert.equal(new Set(PERSONAL_GROWTH_STRATEGIES).size,8);assert.deepEqual(VIP_CONFIG_IDS,PERSONAL_GROWTH_STRATEGIES);
+ assert.equal(SCANNER_PRODUCT_STRATEGIES.length,8);assert.equal(new Set(PERSONAL_GROWTH_STRATEGIES).size,8);assert.deepEqual(VIP_CONFIG_IDS,PERSONAL_GROWTH_STRATEGIES);
  const strategy='gold.rsi-trailing-15-48-1.5-5-h96',setup={strategy,fillAt:'2026-11-18T12:00:00Z',intelligence:{observedAt:'2026-11-18T11:59:00Z',volumeRatio:1}};
  assert.equal(productEntryQuality(strategy,{...setup,fillAt:undefined},'2026-11-18T12:00:00Z'),true);assert.equal(productEntryQuality(strategy,{...setup,fillAt:undefined},'2026-11-18T11:58:00Z'),false);
  assert.equal(productEntryQuality(strategy,setup),true);assert.equal(productEntryQuality(strategy,undefined),false);

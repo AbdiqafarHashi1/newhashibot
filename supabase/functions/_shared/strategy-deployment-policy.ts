@@ -1,18 +1,18 @@
 import {COST_POSITIVE_CONFIG_IDS} from './cost-positive-configs.ts';
 /** Product selection overlay; original evaluator IDs, releases and Prop permissions remain distinct. */
-export const STRATEGY_DEPLOYMENT_VERSION='personal-signal-growth/20261118' as const;
+export const STRATEGY_DEPLOYMENT_VERSION='customer-lineups/20261127' as const;
 export const PERSONAL_CRYPTO_STRATEGIES=[
  'crypto.launch-trend-pullback-48-1.5-5',
  'crypto.launch-trend-pullback-48-2-3-h72',
  'crypto.complementary-ema-pullback',
- 'crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006',
+ 'crypto.launch-rsi2-48-3-3-h72',
 ] as const;
 export const PERSONAL_CRYPTO_DEFAULT_STRATEGIES=[PERSONAL_CRYPTO_STRATEGIES[0]] as const;
 export const PERSONAL_FOREX_STRATEGIES=[
  'gold.native-momentum-15-48-2-5',
  'gold.native-band-reentry-15-48-3-5',
- 'forex.native-squeeze-15-48-2-3-usdjpy-h12',
- 'gold.rsi-trailing-15-48-1.5-5-h96',
+ 'forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008',
+ 'forex.native-band-reentry-60-12-2-5',
 ] as const;
 export const PERSONAL_GROWTH_STRATEGIES:readonly string[]=[...PERSONAL_CRYPTO_STRATEGIES,...PERSONAL_FOREX_STRATEGIES];
 /** Snapshot clock and feature source match the saved-ledger active-volume experiment. */
@@ -31,4 +31,4 @@ export async function loadProductEntryQuality(db:any,signal:any){
  return r.data?.state?.symbol===signal.symbol&&r.data?.state?.timeframe===signal.timeframe&&productEntryQuality(signal.strategy_id,r.data.state);
 }
 
-export const SCANNER_PRODUCT_STRATEGIES=COST_POSITIVE_CONFIG_IDS.filter(id=>PERSONAL_GROWTH_STRATEGIES.includes(id)||!id.startsWith('crypto.')&&!['gold.rsi-trailing-15-48-1.5-5-h96','gold.frontier-compression-15-24-1.5-5-h96'].includes(id));
+export const SCANNER_PRODUCT_STRATEGIES=COST_POSITIVE_CONFIG_IDS.filter(id=>PERSONAL_GROWTH_STRATEGIES.includes(id));

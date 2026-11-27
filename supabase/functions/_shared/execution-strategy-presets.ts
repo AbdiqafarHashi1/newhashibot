@@ -6,6 +6,7 @@ import {EXECUTION_CANONICAL_REVIEWS} from './execution-canonical-reviews.ts';
 import {FRONTIER_CANONICAL_REVIEWS} from './frontier-canonical-reviews.ts';
 import {executionStrategyChoices} from './execution-strategy-selection.ts';
 import {PROP_STRATEGY_BUNDLES} from './prop-strategy-bundles.ts';
+import {PROP_CURATED_STRATEGIES,strategyPlacement} from './strategy-placement-policy.ts';
 
 /** Selection shortcuts only. Never alter risk, symbols, releases or account authorization. */
 export function executionStrategyPresets(provider:string,environment:string,mode=provider.toUpperCase()==='MT5_PROP'?'PROP_EVALUATION':'PERSONAL'){
@@ -26,7 +27,7 @@ export function executionStrategyPresets(provider:string,environment:string,mode
   {id:'crypto-intraday',label:'Crypto · reviewed reversal intraday',ids:productReviewed.filter(id=>id.startsWith('crypto.native-'))},
   {id:'prop-intraday',label:'Prop · intraday comparison',ids:provider.toUpperCase()==='MT5_PROP'?PROP_STRATEGY_BUNDLES.INTRADAY.ids.filter(id=>reviewed.includes(id)):[]},
  ];
- return definitions.filter(p=>p.ids.length>0);
+ return definitions.map(p=>mode.startsWith('PROP')&&p.id!=='all-reviewed-comparison'?{...p,ids:p.ids.filter(id=>(PROP_CURATED_STRATEGIES as readonly string[]).includes(id))}:p).filter(p=>p.ids.length>0);
 }
 const friendlyNames:Record<string,string>={
  [GOLD_RSI_TRAILING]:'Gold RSI trailing · 15m · one ATR after 2R',
@@ -44,5 +45,5 @@ const friendlyNames:Record<string,string>={
  'forex.native-squeeze-15-48-2-3-usdjpy-h12':'USDJPY compression breakout · 15m · 3R',
  'forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008':'GBPUSD RSI reversal · 15m · 5R',
 };
-export function executionStrategyDisplayName(id:string,fallback:string){return friendlyNames[id]??fallback;}
+export function executionStrategyDisplayName(id:string,fallback:string){const p=strategyPlacement(id);return (friendlyNames[id]??fallback)+(p?' · '+({CORE:'Core',ALTERNATIVE:'Alternative',PAUSED:'Paused',REBUILD:'Development'}[p.status]):'');}
 export function executionStrategyEvidence(id:string){return EXECUTION_CANONICAL_REVIEWS.find(r=>r.strategyId===id)??null;}

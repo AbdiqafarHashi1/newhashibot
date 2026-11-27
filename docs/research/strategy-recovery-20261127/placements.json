@@ -1,0 +1,208 @@
+{
+  "version": "customer-lineups/20261127",
+  "source_sha256": "5a2201d434243c3b96ff565be01a6201800169e1371c81e993352413717af16e",
+  "lineups": {
+    "CRYPTO_PERSONAL": [
+      "crypto.launch-trend-pullback-48-1.5-5"
+    ],
+    "FOREX_GOLD_PERSONAL": [
+      "gold.native-momentum-15-48-2-5",
+      "gold.native-band-reentry-15-48-3-5",
+      "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "forex.native-band-reentry-60-12-2-5"
+    ],
+    "PROP_CHALLENGE": [
+      "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "forex.native-band-reentry-60-12-2-5"
+    ],
+    "PROP_FUNDED": [
+      "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "forex.native-band-reentry-60-12-2-5"
+    ],
+    "VIP_SIGNALS": [
+      "crypto.launch-trend-pullback-48-1.5-5",
+      "crypto.launch-trend-pullback-48-2-3-h72",
+      "crypto.complementary-ema-pullback",
+      "crypto.launch-rsi2-48-3-3-h72",
+      "gold.native-momentum-15-48-2-5",
+      "gold.native-band-reentry-15-48-3-5",
+      "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "forex.native-band-reentry-60-12-2-5"
+    ]
+  },
+  "rows": [
+    {
+      "strategy_id": "crypto.launch-trend-pullback-48-1.5-5",
+      "status": "CORE",
+      "destination": "CRYPTO_PERSONAL_SIGNALS",
+      "decision": "Keep primary: positive chronological halves and fresh costed November screen.",
+      "default_for": [
+        "CRYPTO_PERSONAL",
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "crypto.launch-trend-pullback-48-2-3-h72",
+      "status": "ALTERNATIVE",
+      "destination": "CRYPTO_PERSONAL_SIGNALS",
+      "decision": "Compare against the primary; do not assume two correlated variants diversify.",
+      "default_for": [
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "crypto.launch-rsi2-48-3-3-h72",
+      "status": "ALTERNATIVE",
+      "destination": "CRYPTO_PERSONAL_SIGNALS",
+      "decision": "Replace LTC in the optional roster; fresh positive screen with material drawdown.",
+      "default_for": [
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "crypto.complementary-ema-pullback",
+      "status": "ALTERNATIVE",
+      "destination": "CRYPTO_PERSONAL_SIGNALS",
+      "decision": "Slower Personal option; perpetual execution screen differs from older spot ledger.",
+      "default_for": [
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006",
+      "status": "ALTERNATIVE",
+      "destination": "ADMIN_COMPARISON",
+      "decision": "Retain; only two fresh decisions, insufficient evidence for default promotion.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006",
+      "status": "PAUSED",
+      "destination": "ADMIN_COMPARISON",
+      "decision": "Remove from commercial presets; fresh screen negative.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008",
+      "status": "CORE",
+      "destination": "FOREX_PERSONAL_PROP_SIGNALS",
+      "decision": "Curated Forex candidate; fresh FX and firm-rule qualification remain required.",
+      "default_for": [
+        "FOREX_GOLD_PERSONAL",
+        "PROP_CHALLENGE",
+        "PROP_FUNDED",
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "forex.native-band-reentry-60-12-2-5",
+      "status": "CORE",
+      "destination": "FOREX_PERSONAL_PROP_SIGNALS",
+      "decision": "USDJPY H1 reversal; use with GBPUSD under shared account limits.",
+      "default_for": [
+        "FOREX_GOLD_PERSONAL",
+        "PROP_CHALLENGE",
+        "PROP_FUNDED",
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "forex.complementary-ema-pullback",
+      "status": "ALTERNATIVE",
+      "destination": "FOREX_PERSONAL",
+      "decision": "Actually XAUUSD H1; do not count as independent FX diversification.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "forex.native-squeeze-15-48-2-3-usdjpy-h12",
+      "status": "ALTERNATIVE",
+      "destination": "ADMIN_COMPARISON",
+      "decision": "Remove from defaults; second chronological half only +0.31R.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "forex.native-sweep-retest-60-16-2-5-usdjpy-h72",
+      "status": "PAUSED",
+      "destination": "ADMIN_COMPARISON",
+      "decision": "PF 1.09 leaves thin cost headroom; retain baseline rather than sell it.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.native-momentum-15-48-2-5",
+      "status": "CORE",
+      "destination": "GOLD_PERSONAL_SIGNALS",
+      "decision": "Retain primary Gold trend rule; positive halves and October tick screen.",
+      "default_for": [
+        "FOREX_GOLD_PERSONAL",
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "gold.native-band-reentry-15-48-3-5",
+      "status": "CORE",
+      "destination": "GOLD_PERSONAL_SIGNALS",
+      "decision": "Retain complementary reversal rule; October positive before unverified financing.",
+      "default_for": [
+        "FOREX_GOLD_PERSONAL",
+        "VIP_SIGNALS"
+      ]
+    },
+    {
+      "strategy_id": "gold.native-momentum-60-24-2-5",
+      "status": "ALTERNATIVE",
+      "destination": "FOREX_PERSONAL",
+      "decision": "Older second half approximately flat; do not promote on aggregate alone.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.rsi-trailing-15-48-1.5-5-h96",
+      "status": "ALTERNATIVE",
+      "destination": "FOREX_PERSONAL",
+      "decision": "Retain existing source-bound activity guard; exclude from default Prop and signals.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.frontier-compression-15-24-1.5-5-h96",
+      "status": "PAUSED",
+      "destination": "ADMIN_COMPARISON",
+      "decision": "PF 1.08; replace only if a simpler challenger beats the preserved baseline.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.turbo-micro-scalper",
+      "status": "REBUILD",
+      "destination": "TURBO_DEMO",
+      "decision": "Repair production-cadence execution/entry evidence; no default promotion.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.turbo-momentum-scalper",
+      "status": "REBUILD",
+      "destination": "TURBO_DEMO",
+      "decision": "Challenge restrictive retest entry with simple bounded intraday models.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.turbo-range-scalper",
+      "status": "REBUILD",
+      "destination": "TURBO_DEMO",
+      "decision": "Participation exists; improve reversal classification and payoff.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.turbo-trend-scalper",
+      "status": "REBUILD",
+      "destination": "TURBO_DEMO",
+      "decision": "Isolate native exits from shared equity-target clipping; preserve scalp horizon.",
+      "default_for": []
+    },
+    {
+      "strategy_id": "gold.turbo-price-action-basket",
+      "status": "REBUILD",
+      "destination": "TURBO_DEMO",
+      "decision": "Keep accounting/protections; qualify entry models separately before combining.",
+      "default_for": []
+    }
+  ],
+  "scope": "Code defaults for new/explicit Admin preset assignments only. Existing customer selections are not silently rewritten. Release, certification, entitlement, risk and live gates are unchanged."
+}

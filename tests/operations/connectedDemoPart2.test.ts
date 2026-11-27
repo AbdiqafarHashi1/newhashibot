@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {runSmoke,smokeMode,liveSmokeConfig,telegramSmoke} from '../../scripts/run_connected_demo_smoke.ts';
 import {defaultTierStrategies,requireTradingAdmin,PROP_DEFAULT_EXCLUSIONS} from '../../supabase/functions/_shared/execution-tier-presets.ts';
 import {executionStrategyChoices} from '../../supabase/functions/_shared/execution-strategy-selection.ts';
+import {PROP_CURATED_STRATEGIES} from '../../supabase/functions/_shared/strategy-placement-policy.ts';
 import {customerTradingActionAllowed} from '../../supabase/functions/_shared/customer-trading-access.ts';
 import {VIP_CONFIG_IDS,VIP_RISK_FOOTER,assertVipStrategy,vipSetupTag} from '../../supabase/functions/_shared/vip-signal-policy.ts';
 import {renderCanonicalVipSignal} from '../../supabase/functions/_shared/telegram-product.ts';
@@ -11,7 +12,7 @@ import {renderCanonicalVipSignal} from '../../supabase/functions/_shared/telegra
 test('Personal defaults use one Crypto core and four Forex/Gold engines; Prop retains its independent reviewed lineup',()=>{
  const personal=defaultTierStrategies('MT5_PERSONAL','demo','PERSONAL');assert.equal(personal.length,4);
  assert.equal(defaultTierStrategies('BINANCE','testnet','PERSONAL').length,1);
- for(const mode of ['PROP_EVALUATION','PROP_FUNDED']){const prop=defaultTierStrategies('MT5_PROP','demo',mode);assert.equal(prop.length,8);for(const id of PROP_DEFAULT_EXCLUSIONS){assert.ok(!prop.includes(id));assert.ok(executionStrategyChoices('MT5_PROP','demo').some(c=>c.id===id));}}
+ for(const mode of ['PROP_EVALUATION','PROP_FUNDED']){const prop=defaultTierStrategies('MT5_PROP','demo',mode);assert.deepEqual(prop,[...PROP_CURATED_STRATEGIES]);for(const id of PROP_DEFAULT_EXCLUSIONS){assert.ok(!prop.includes(id));assert.ok(executionStrategyChoices('MT5_PROP','demo').some(c=>c.id===id));}}
 });
 test('Admin onboarding and mutation authority remain Admin-only; customer report actions remain readable',()=>{
  requireTradingAdmin('admin');for(const role of ['customer','owner',undefined])assert.throws(()=>requireTradingAdmin(role),/ADMIN_REQUIRED/);
