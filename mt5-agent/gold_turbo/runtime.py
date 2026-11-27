@@ -399,12 +399,21 @@ class GoldTurboRuntime:
             sized=self._size(plan,spec,a,lease,allocation)
             if sized is None:continue
             lots,native_budget=sized
-            if active is None:
+            new_book=active is None
+            if new_book:
                 bid=hashlib.sha256((self.scope['account_id']+plan.opportunity_id).encode()).hexdigest()
                 env=BasketEnvelope(self.scope['owner_id'],self.scope['account_id'],bid,self.scope['account_id'],now,self.subscription_until,a['equity'],headroom,a['equity']*lease['max_margin_pct']/100,spec['volume_max'],a['currency'])
                 active=BasketBook(plan,env,facts,now,BasketConfig(profit_target_equity_pct=lease['basket_target_pct'],maximum_age_ms=plan.maximum_hold_ms))
                 self.books[bid]=active
-            order=active.reserve(plan,lots,facts,now)
+            try:order=active.reserve(plan,lots,facts,now)
+            except ValueError as error:
+                # Account headroom can exceed an older basket's frozen envelope.
+                # Reservation is authoritative; never enlarge it to fit sizing.
+                if str(error) not in ('BASKET_MARGIN_EXCEEDED','ORIGINAL_BASKET_RISK_EXCEEDED','GROSS_EXPOSURE_EXCEEDED','OPERATIONAL_ORDER_LIMIT','OPERATIONAL_POSITION_LIMIT'):
+                    raise
+                if new_book:self.books.pop(active.envelope.basket_id,None)
+                self.last_reason=str(error)
+                continue
             comment='ht:'+order.order_id[:24]
             self.links[order.order_id]={'book_id':active.envelope.basket_id,'comment':comment,'symbol':spec['broker_symbol'],'status':'SENDING'}
             self.seen_opportunities.add(plan.opportunity_id);self.seen_opportunities.add(underlying);engine.record_admission(decision,now)

@@ -112,7 +112,7 @@ class ScenarioTerminal:
         r=self.runtime
         for key,b in list(r.books.items()):
             if b.state!='CLOSED':continue
-            self.baskets.append(dict(basket_id=key,strategy_id=b.base_plan.strategy_id,entry_model=b.base_plan.entry_model,opened_at_ms=b.envelope.created_at_ms,closed_at_ms=self.now,net=b.realized_net_money,orders=len(b.orders)))
+            self.baskets.append(dict(basket_id=key,strategy_id=b.base_plan.strategy_id,entry_model=b.base_plan.entry_model,opened_at_ms=b.envelope.created_at_ms,closed_at_ms=self.now,net=b.realized_net_money,orders=len(b.orders),filled_orders=sum(o.filled_lots>0 for o in b.orders.values())))
             for oid in b.orders:r.links.pop(oid,None)
             for pid in b.positions:r.position_states.pop(pid,None)
             r.books.pop(key);r._marks.pop(key,None)
@@ -150,7 +150,7 @@ def runtime(terminal,ids,mode,directory):
 
 
 def summarize(t,name):
-    net=[b['net'] for b in t.baskets if b['orders'] and abs(b['net'])>1e-10];wins=[v for v in net if v>0];losses=[v for v in net if v<0]
+    net=[b['net'] for b in t.baskets if b['filled_orders']];wins=[v for v in net if v>0];losses=[v for v in net if v<0]
     entries=[f for f in t.fills if f['entry']==0];exits=[f for f in t.fills if f['entry']==1]
     return dict(lineup=name,capital=t.initial,final_equity=t.equity(),net_return_pct=100*(t.equity()/t.initial-1),maximum_drawdown_pct=t.dd,maximum_margin_pct=t.max_margin,independent_baskets=len(net),individual_orders=len(entries),win_rate_pct=100*len(wins)/len(net) if net else None,profit_factor=sum(wins)/-sum(losses) if losses else None,expectancy_money=sum(net)/len(net) if net else None,average_holding_minutes=sum(f['holding_ms']*f['volume'] for f in exits)/sum(f['volume'] for f in exits)/60000 if exits else None,commission_money=-sum(f['commission'] for f in t.fills),account_survived=t.equity()>0,subscription_adjusted_net_at_100_usd=t.equity()-t.initial-100,monthly_statistics=None,monthly_statistics_reason='Selected intraday sessions only; not a complete calendar month or continuous account history',entry_reasons=dict(t.reasons),candidate_models=dict(t.entry_models))
 

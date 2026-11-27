@@ -77,6 +77,15 @@ class RuntimeTests(unittest.TestCase):
         book=next(iter(self.runtime.books.values()))
         self.assertTrue(book.positions);self.assertEqual(book.state,'OPEN')
         self.assertEqual(len(self.terminal.sends),1)
+    def test_frozen_basket_reservation_rejection_never_sends_or_aborts_management(self):
+        with patch('gold_turbo.runtime.BasketBook.reserve',side_effect=ValueError('BASKET_MARGIN_EXCEEDED')):
+            self.runtime.step()
+        self.assertFalse(self.terminal.sends)
+        self.assertFalse(self.runtime.books)
+        self.assertFalse(self.runtime.seen_opportunities)
+        self.assertEqual(self.runtime.last_reason,'BASKET_MARGIN_EXCEEDED')
+        self.runtime.step()
+        self.assertEqual(len(self.terminal.sends),1)
     def test_expiry_closes_only_journal_owned_positions(self):
         self.runtime.step();self.advance();self.runtime.step()
         self.terminal.positions.append(dict(ticket='foreign',identifier='foreign',symbol='EURUSD',side='buy',quantity=.1,entry_price=1.1,sl=1,tp=1.2,magic=9,comment='manual',time=self.now//1000))

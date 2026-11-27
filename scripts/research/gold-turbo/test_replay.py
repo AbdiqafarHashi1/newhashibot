@@ -37,6 +37,13 @@ class ReplayTests(unittest.TestCase):
         t=m.ScenarioTerminal(1000);t.quote(100000,2000,2000.1)
         r=t.place_order(dict(volume=.01,side='buy',sl=1999,tp=2002,comment='x',authorized_risk_amount=.1))
         self.assertFalse(r['success']);self.assertFalse(t.fills);self.assertFalse(t.positions)
+    def test_breakeven_filled_basket_counts_but_unfilled_rejection_does_not(self):
+        t=m.ScenarioTerminal(1000)
+        t.baskets=[dict(net=0.,orders=1,filled_orders=1),dict(net=0.,orders=1,filled_orders=0),dict(net=2.,orders=2,filled_orders=2)]
+        r=m.summarize(t,'fixture')
+        self.assertEqual(r['independent_baskets'],2)
+        self.assertEqual(r['win_rate_pct'],50.)
+        self.assertEqual(r['expectancy_money'],1.)
     def test_completed_context_never_releases_future_bar(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'synthetic-bars.json'

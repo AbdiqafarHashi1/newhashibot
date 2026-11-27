@@ -1,7 +1,7 @@
 {
   "purpose": "PERSONAL_FAKE_TERMINAL_RESEARCH_ONLY",
-  "production_runtime_sha256": "4ff666007bba95587587a58baefe1b35dbe4fc9d56dc5ff8eed2a853e9566f1b",
-  "research_runtime_sha256": "3f7d05b09c06d75e8b65a151d86f7e0b100126c6c8ac771d4a463f5461f631d8",
+  "production_runtime_sha256": "315dc96f4b2ef961cda8bccecf9a797d66145d119320999bcff08b1fde5546a3",
+  "research_runtime_sha256": "e3a7219b3611b773a8f7403ff5e499ab07581c814b3cf82543f30188397e7722",
   "risk_pct": [
     1,
     2,
