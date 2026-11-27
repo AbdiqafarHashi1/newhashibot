@@ -1,0 +1,24 @@
+{
+  "schema": "personal-edge-verification/v1",
+  "cash_reconciled_scenarios": {
+    "crypto_accounts": 576,
+    "gold_standard_accounts": 96,
+    "turbo_accounts": 72,
+    "target_accounts": 24,
+    "cadence_accounts": 2
+  },
+  "total_cash_reconciled": 770,
+  "tests": {
+    "agent": 158,
+    "crypto": 9,
+    "replay": 6,
+    "native": 9
+  },
+  "catalogue_configurations": 21,
+  "source_archive_sha256": "2719f4ba0e0f296b6b327671643eb65b0eaaebb13aa68466b01fcb23ffc7ca25",
+  "limitations": [
+    "Cash audits do not establish a market edge or native execution parity",
+    "No full repository tests, real broker session or MT5 native compilation performed",
+    "No paid/live activation; no Prop changes"
+  ]
+}

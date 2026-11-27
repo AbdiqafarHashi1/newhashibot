@@ -1,5 +1,7 @@
 {
   "schema": "fresh-crypto-personal-ohcl-screen/v1",
+  "execution_engine_sha256": "a1119cbc59dd07ccd254fb91a764fa27beae707b3776b22d0698a89c51fa1cfe",
+  "normalized_input_sha256": "5751ae93464bdb00e86a7655b1dc0d35e4171063bc9766e110e6a69dbbb9c695",
   "start": 1793491200000,
   "end_exclusive": 1795737600000,
   "signal_counts": {
@@ -20036,8 +20038,11 @@
     "Drawdown is close-sampled account equity, not a verified intrabar maximum. Daily/peak guards act at sampled observations and can overshoot.",
     "Current retrieved lot/notional filters and fixed .5% maintenance scenario are not verified historical margin tiers. Liquidation-before-stop rejection is approximate.",
     "Observed funding uses recorded marks when supplied. Funding/fees reduce equity; no assumption that leverage multiplies returns on unchanged positions.",
+    "Combination admission ranks reward/risk with deterministic ties under shared limits; this research router is not production Smart Account Brain parity.",
     "One November-to-date period cannot establish median monthly returns, profitable-month percentage, future account survival or venue qualification.",
     "Source data includes warmup outside November; signals/positions are restricted to November 1\u201327 exclusive.",
+    "Original full decision risk remains reserved until final closure, including after partial exits; this is a conservative reservation model.",
+    "Terminal positions are costed at the cutoff; the terminal audit separates their decision cash from natural closures.",
     "All scenarios are Personal research, no defaults/Prop/live activation; aggressive cases allow severe drawdowns.",
     "Full $100 monthly subscription is an external cost sensitivity, not withdrawn from trading collateral.",
     "The ETH complementary rule is newly screened on perpetual candles, unlike the earlier spot-reference ledger."

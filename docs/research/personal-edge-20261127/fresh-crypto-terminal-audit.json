@@ -1,0 +1,4037 @@
+{
+  "meaning": "Decomposition of costed total decision cash. Includes allocated entry fees/funding. Natural vs terminal close is not a separate investable portfolio.",
+  "cases": [
+    {
+      "case": "crypto.complementary-ema-pullback:100:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 5.019695171132557,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:1:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 4.322719224768585,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:1:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 5.019695171132557,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:1:10:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 4.322719224768585,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 7.049929041886811,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 6.584236890873523,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 10.489158994938794,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 9.170777350759277,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:3:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 7.432831456358156,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:3:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 6.900989896818638,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 16.100682247084663,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 14.034973294461873,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:5:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 7.432831456358156,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:5:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 6.900989896818638,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:5:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 27.18814448335228,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:100:5:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 23.72952054733575,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 25.992100697458497,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:1:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 22.983495872293727,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:1:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 25.992100697458497,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:1:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 22.983495872293727,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 36.951483923422714,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 33.78142284324625,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 52.97679668786454,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 46.40826541525916,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:3:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 38.26627759606803,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:3:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 35.561089773462115,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 80.3648272657578,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 70.16284394708201,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:5:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 38.26627759606803,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:5:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 35.561089773462115,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:5:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 136.635389063449,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:500:5:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 119.26986254163444,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 52.23731557697465,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:1:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 45.98254564908364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:1:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 52.23731557697465,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:1:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 45.98254564908364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 73.69338156150542,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 67.76154348604966,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 105.8996581975353,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 93.04995262899781,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:3:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 76.51155750541241,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:3:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 71.28814789626098,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 160.62684640668166,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 140.67153147794215,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:5:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 76.51155750541241,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:5:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 71.28814789626098,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:5:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 273.6357988951977,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:1000:5:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 238.29338251664598,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1309.3955919893963,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:1:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1153.369626303205,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:1:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1309.3955919893963,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:1:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1153.369626303205,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1847.2812125854382,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1695.133959454145,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 2649.91201441041,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 2327.642958935364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:3:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1918.4889359619654,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:3:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1782.1161604669683,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 4019.73708151788,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 3521.4537031575223,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:5:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1918.4889359619654,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:5:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 1782.1161604669683,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:5:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 6843.064810780645,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.complementary-ema-pullback:25000:5:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 5962.39226186366,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 5.575344633543475,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 1.9944714160336068
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:1:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 5.2380542041582325,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 1.9170851532899864
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:1:10:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 10.636270178125606,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 2.391099806878663
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:1:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 10.438251281950391,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 2.220938568541346
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:2:1:False",
+      "naturally_closed_decisions": 3,
+      "naturally_closed_net_money": 6.177947282497902,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 1.391530924643207
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:2:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 5.88558896320229,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 1.3067845153511688
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:2:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 24.984855480365216,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 3.6636953190454786
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:2:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 20.971153399366727,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1.9712266844921407
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.903361440771851,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 1.317251790057359
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.76970134553885,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 1.2472371821624835
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 17.837926807250817,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 3.532639200639718
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 16.97729839500896,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 3.235764701671824
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.903361440771851,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 1.1946479230271265
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.76970134553885,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 1.1221832566271281
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:5:10:False",
+      "naturally_closed_decisions": 3,
+      "naturally_closed_net_money": 22.53417991902984,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 6.985723629294355
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:100:5:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 12.218280737258368,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 2.2296065554787576
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:1:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 32.898345779865586,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 6.8840585170309625
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:1:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 32.321307475469716,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 6.330246056428171
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 84.81331282700312,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 11.877532230787986
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 81.35481193547541,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 11.106602573845539
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 30.141102294011173,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 9.861411844872766
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 30.598310187039427,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 9.55266777021379
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 88.95403712596752,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 21.710918333702587
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 86.09046772165073,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 19.20894167577444
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:3:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 30.237901621476524,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 8.03735139685594
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:3:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 29.509848053884024,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 7.766935470178511
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 89.25235371804176,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 17.665175950780622
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 84.77927258105208,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 16.181369571524833
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:5:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 30.586221502359948,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 5.849547060590038
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:5:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 29.872347142072673,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 5.4777412085500465
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 83.30241676123825,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 12.369053812641104
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:500:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 76.66442905800716,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 11.461431289208068
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:1:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 63.145289688702,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 14.281201227956473
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:1:1:True",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 61.788619319608685,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 13.15504805313022
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 168.67001482940344,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 23.781178253937963
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 161.43391634072444,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 22.36947899306072
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:2:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 62.90308109537975,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 19.72682070875009
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:2:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 61.64028010310254,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 19.11215747840376
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 181.94146778970872,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 43.587791140795964
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 174.3973447727328,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 38.49964342550593
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:3:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 60.84689759639953,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 16.075886871222867
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:3:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 59.40056360650291,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 15.502818581242996
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 175.76632115476812,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 35.255209309001735
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 166.71876082892507,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 32.29196061618216
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 61.543537358166375,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 11.879609816713202
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 60.125561782880204,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 10.184079692647257
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 166.61025887377426,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 24.742796425059556
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:1000:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 153.87892591982836,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 22.93181682161083
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:1:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 1468.2716496673127,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 338.0029834613282
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:1:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 1425.7104032359343,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 309.7718320310925
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 4404.125865416889,
+      "terminal_closed_decisions": 9,
+      "terminal_closed_net_money": 611.0373534281864
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 4187.85903073366,
+      "terminal_closed_decisions": 9,
+      "terminal_closed_net_money": 578.4064213227844
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:2:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 1591.2474803528771,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 329.43693774175097
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:2:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 1561.8084847459204,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 311.5141606949506
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:2:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 4656.704829813405,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1093.8238434850828
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:2:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 4405.65742931667,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 964.7915110281039
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:3:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 1519.3181533587979,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 306.5350649643192
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:3:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 1483.4847950817145,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 288.9664858794695
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 4352.478434762352,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 880.2180606042077
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 4161.830521080631,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 807.2232687072212
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 1535.11259162443,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 280.48864623646324
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 1499.8086410560343,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 261.82890474243106
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 4174.641445231803,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 618.8090394151337
+    },
+    {
+      "case": "crypto.launch-rsi2-48-3-3-h72:25000:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 3854.7640671352474,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 573.519276620138
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:1:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 10.49579065791962,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.02316447107483926
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:1:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 10.199719488545723,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.06747374755101285
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:1:10:False",
+      "naturally_closed_decisions": 16,
+      "naturally_closed_net_money": 35.409311040306605,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 2.144422638897368
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:1:10:True",
+      "naturally_closed_decisions": 16,
+      "naturally_closed_net_money": 33.51072625257903,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 1.8422805981794603
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:2:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.469013527205266,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:2:1:True",
+      "naturally_closed_decisions": 3,
+      "naturally_closed_net_money": 7.929653554973539,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:2:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 34.14799027773996,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 0.8354535926189186
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:2:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 32.84183168582277,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 0.4995939161960026
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.663644161343185,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.522241214413178,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 48.07691100483995,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.2129390826721001
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 46.40761386239697,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.4686246322795148
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.663644161343185,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.522241214413178,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:5:10:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 26.538864120637427,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:100:5:10:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 23.954116765370014,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:1:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 36.5445256592459,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.11225736008023132
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:1:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 37.391528351113024,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.3284003455167578
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:1:10:False",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 196.94811644630536,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 12.728224901174395
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:1:10:True",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 185.43902204793815,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 10.753409107077934
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 40.886735597251715,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.009140396020829524
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:2:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 39.87743916101831,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.047334254652911
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:2:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 174.22200115284113,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 4.182755913447015
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:2:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 162.60611128461002,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 2.4971906735821836
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:3:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 40.771057071111436,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:3:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 40.05351290491422,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 245.35407845216625,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -1.0719170487544802
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 230.45005398434796,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -2.3402866766745665
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 40.771057071111436,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 40.05351290491422,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:5:10:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 132.5649899955419,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:500:5:10:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 122.72961631874392,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:1:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 73.2431904700302,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.22465946316794588
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:1:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 70.90647846878241,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.6544495496772992
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:1:10:False",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 404.9729571959639,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 27.26122228729599
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:1:10:True",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 381.6601543766349,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 22.6123164070507
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:2:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 82.2395968781823,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.01828079204165905
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:2:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 80.18518652586945,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.094668509305822
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:2:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 347.83603348378176,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 8.987449651483425
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:2:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 325.70665634113755,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 4.993857269178238
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:3:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 81.56518493185551,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:3:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 80.1000825827207,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 490.79590345718816,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -2.1439788405164437
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 462.31695492517997,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -4.685715449662907
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 81.56518493185551,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 80.1000825827207,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:5:10:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 264.77971004133644,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:1000:5:10:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 246.68359075890402,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:1:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 1834.1650424220613,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -5.516349159986533
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:1:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 1787.889136129327,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -16.280915180261463
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:1:10:False",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 10234.588159872252,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 685.6768481183399
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:1:10:True",
+      "naturally_closed_decisions": 17,
+      "naturally_closed_net_money": 9593.479399228454,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 575.8802196615992
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:2:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 2040.0361337461122,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.4579338406435592
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:2:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 1989.212855607123,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -2.3649152293043003
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:2:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 8683.60068508474,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 332.9621250311261
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:2:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 8137.340031113851,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 233.4759099669112
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:3:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 2040.087732374252,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:3:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 2002.8251093779763,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:3:10:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 12284.378481844626,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -53.62435808932476
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:3:10:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 11592.104434232795,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -117.25732452045014
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:5:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 2040.087732374252,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:5:1:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 2002.8251093779763,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:5:10:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 6636.433639169983,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-1.5-5:25000:5:10:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 6164.8902489207285,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 6.59969155564621,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.5487723872523027
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:1:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 6.493872983383165,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.47940539184379743
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:1:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 19.935660437026733,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 0.5853255087342909
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:1:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 19.210183490405896,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": -0.036136572645423554
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:2:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 12.63072767384417,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 0.048353240526654725
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 12.219564050062893,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.02382135338104123
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:2:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 25.75811465061592,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1.1683900481917715
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:2:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 24.774013192084784,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 0.6499267789748392
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 16.56525386971222,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.08829323456478527
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 16.436716156296225,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.16470730945253173
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 27.07762851352596,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.885538010776858
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 24.384035948678566,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.616787445405501
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 16.56525386971222,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.08930643561716806
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 16.436716156296225,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.17079732761716318
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 41.17878226127586,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 1.067281306315995
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:100:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 39.71142875154792,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 0.906109479499899
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 39.58030472183964,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 1.5894677158874282
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:1:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 39.00589994823111,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 1.3227957113402884
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 135.22027250471655,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 5.406955114024101
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 121.22235620029724,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 3.4393081783288526
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:2:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 63.24967548966661,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.5286407565278695
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:2:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 60.941681671020305,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.16577210332322292
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:2:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 137.81680590321483,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1.2612265063648014
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:2:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 130.32834593049182,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": -0.7656549303260388
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:3:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 41.6715939687519,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.4107806552374764
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:3:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 41.357815878108035,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.7284957931257682
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 135.15131361945237,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 5.049435465052793
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 129.19192742456914,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 3.0884136876941715
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:5:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 41.6715939687519,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.4154124314769405
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:5:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 41.357815878108035,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.7944705514769178
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 208.69103233841963,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 6.37927472095355
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:500:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 198.51171941696123,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 4.561202314169082
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:1:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 80.21258904070115,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 2.5727581278692564
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:1:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 77.77068598745609,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 1.842354471606189
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 271.5719937675894,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 11.098353649842487
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 253.25354835240995,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 7.896452419692836
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 126.56452472514952,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 1.3443008099578184
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 122.98118792546015,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 0.6194848309807455
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:2:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 275.96930312096663,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 2.5200864129466103
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:2:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 262.52322253900326,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": -1.0139436358724465
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:3:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 82.11709541593522,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.7873781040749338
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:3:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 81.47808161139892,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -1.4558395691389856
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 270.24212406618176,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 10.098704320324702
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 258.3318628324768,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 6.714385992201022
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:5:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 82.11709541593522,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.8299564049089815
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:5:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 81.47808161139892,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -1.587280188908936
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 417.3215615041163,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 12.758694184914583
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:1000:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 397.61975627765054,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 9.128615057716278
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:1:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 2007.0497901541846,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 66.03371939363288
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:1:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 1960.616672292044,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 47.200379652217435
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:1:10:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 6868.193396498825,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 282.5872402778851
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:1:10:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 6518.45039215293,
+      "terminal_closed_decisions": 8,
+      "terminal_closed_net_money": 212.85857758736623
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:2:1:False",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 3189.3178472552054,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 32.665853842915396
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:2:1:True",
+      "naturally_closed_decisions": 7,
+      "naturally_closed_net_money": 3093.648150428354,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 15.236063351276439
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:2:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 6925.7699067718595,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 64.20143090790283
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:2:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 6572.747214756078,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 462.8666549918298
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:3:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 2056.185667581645,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": -20.288795079464343
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:3:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 2039.6260990336807,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": -35.71803496251412
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 6782.490139596073,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 253.76928216970794
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 6477.982274879454,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 176.46829621756018
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 2056.185667581645,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -21.90011028423466
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 2039.6260990336807,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -40.97393379276393
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:5:10:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 10468.999837881602,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 319.5055796189561
+    },
+    {
+      "case": "crypto.launch-trend-pullback-48-2-3-h72:25000:5:10:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 9959.490877424752,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": 228.3963093518945
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.6022555256329716,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:1:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.8555505924849658,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:1:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.6022555256329716,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:1:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.8555505924849658,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:2:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.9586203882654667,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.3064396795599569,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:2:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.2283453825494437,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:2:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.7299486633999315,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:3:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.9586203882654667,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:3:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.3064396795599569,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.8786908028244143,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -2.622487162514897,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:5:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -0.9586203882654667,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:5:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1.3064396795599569,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:5:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -3.2455631165678565,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:100:5:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.455037352434828,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -3.014445140547359,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:1:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.284477054964829,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:1:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -3.014445140547359,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:1:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.284477054964829,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:2:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.7936151992898335,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.536505264244784,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:2:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.145195203155216,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:2:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -8.654750778589658,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:3:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.7936151992898335,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:3:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.536505264244784,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -9.393718184096574,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -13.112519901874485,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:5:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -4.7936151992898335,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:5:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.536505264244784,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:5:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -16.23341964553078,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:500:5:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -22.27953045834915,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.028727323037716,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:1:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -8.568260894434658,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:1:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -6.028727323037716,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:1:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -8.568260894434658,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:2:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -9.58855112873417,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -13.072054937869568,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:2:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -12.292166750545926,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:2:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -17.311196077839313,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:3:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -9.58855112873417,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:3:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -13.072054937869568,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -18.78634542600715,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -26.22632559432897,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:5:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -9.58855112873417,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:5:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -13.072054937869568,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:5:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -32.46899436336458,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:1000:5:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -44.56037858708829,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:1:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -150.7240395923704,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:1:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -214.2141188713364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:1:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -150.7240395923704,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:1:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -214.2141188713364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:2:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -239.72983902425025,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -326.8164645011892,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:2:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -307.29788745811226,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:2:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -432.7816473623428,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:3:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -239.72983902425025,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:3:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -326.8164645011892,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:3:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -469.68224049101065,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:3:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -655.6488109653791,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:5:1:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -239.72983902425025,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:5:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -326.8164645011892,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:5:10:False",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -811.7219183051192,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006:25000:5:10:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": -1114.0347265911817,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:1:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.6325876708180022,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:1:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.4944690517950095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:1:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.7700691325225033,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:1:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.534843325350012,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:2:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.6325876708180022,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:2:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.4944690517950095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:2:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 1.5282424557010068,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:2:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 1.058386147200024,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.6325876708180022,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.4944690517950095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:3:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.2759910337560108,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:3:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 1.5716484411450364,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.6325876708180022,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 0.4944690517950095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:5:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.7350731856975177,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:100:5:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.565059623500061,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:1:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.1665921467200113,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:1:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.473933190025048,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:1:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.8521725589275166,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:1:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.6749005175200598,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:2:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.1665921467200113,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:2:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.473933190025048,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:2:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.645609559219033,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:2:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.294654577960119,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.1665921467200113,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.473933190025048,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:3:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 11.38068274491655,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:3:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.859262181320181,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 3.1665921467200113,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 2.473933190025048,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:5:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 18.676093504624085,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:500:5:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 12.824962032675304,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:1:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 6.332812549398023,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:1:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 4.947414359910095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:1:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 7.703973373813034,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:1:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 5.3493490149001195,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:2:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 6.332812549398023,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:2:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 4.947414359910095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:2:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 15.29231843861657,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:2:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 10.58987711137524,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 6.332812549398023,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 4.947414359910095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:3:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 22.76209306596961,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:3:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 15.719544338235362,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 6.332812549398023,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 4.947414359910095,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:5:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 37.35181526520617,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:1000:5:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 25.649924065350607,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:1:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 158.34118490639457,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:1:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 123.7088184364374,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:1:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 192.61472482782483,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:1:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 133.747100990553,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:2:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 158.34118490639457,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:2:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 123.7088184364374,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:2:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 382.30417987720426,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:2:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 264.74727559032607,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:3:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 158.34118490639457,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:3:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 123.7088184364374,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:3:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 569.0657947637392,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:3:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 393.0010917547741,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:5:1:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 158.34118490639457,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:5:1:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 123.7088184364374,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:5:10:False",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 933.812115881294,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006:25000:5:10:True",
+      "naturally_closed_decisions": 2,
+      "naturally_closed_net_money": 641.2660208954555,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:1:1:False",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -6.914633984325514,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:1:1:True",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -9.05757953648422,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:1:10:False",
+      "naturally_closed_decisions": 66,
+      "naturally_closed_net_money": -22.374350248359388,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:1:10:True",
+      "naturally_closed_decisions": 64,
+      "naturally_closed_net_money": -25.74244215059316,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:2:1:False",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -6.911290782795514,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:2:1:True",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -9.058361072934218,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:2:10:False",
+      "naturally_closed_decisions": 69,
+      "naturally_closed_net_money": -38.82643616176559,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:2:10:True",
+      "naturally_closed_decisions": 69,
+      "naturally_closed_net_money": -42.98643595239135,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:3:1:False",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -6.911290782795514,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:3:1:True",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -9.058361072934218,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:3:10:False",
+      "naturally_closed_decisions": 65,
+      "naturally_closed_net_money": -45.533687974984524,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:3:10:True",
+      "naturally_closed_decisions": 66,
+      "naturally_closed_net_money": -55.41042818677131,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:5:1:False",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -6.911290782795514,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:5:1:True",
+      "naturally_closed_decisions": 34,
+      "naturally_closed_net_money": -9.058361072934218,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:5:10:False",
+      "naturally_closed_decisions": 58,
+      "naturally_closed_net_money": -54.476163632274165,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:100:5:10:True",
+      "naturally_closed_decisions": 42,
+      "naturally_closed_net_money": -59.96146860350954,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:1:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -39.47436741424848,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:1:1:True",
+      "naturally_closed_decisions": 55,
+      "naturally_closed_net_money": -54.201161257595416,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:1:10:False",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -116.19535002952826,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:1:10:True",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -137.63010128001602,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:2:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -39.46873828860848,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:2:1:True",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -54.347927794805415,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:2:10:False",
+      "naturally_closed_decisions": 69,
+      "naturally_closed_net_money": -191.15117678156645,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:2:10:True",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -230.73059865929272,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:3:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -39.46873828860848,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:3:1:True",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -54.347927794805415,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:3:10:False",
+      "naturally_closed_decisions": 65,
+      "naturally_closed_net_money": -228.20090108934298,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:3:10:True",
+      "naturally_closed_decisions": 67,
+      "naturally_closed_net_money": -280.03922281829966,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:5:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -39.46873828860848,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:5:1:True",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -54.347927794805415,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:5:10:False",
+      "naturally_closed_decisions": 58,
+      "naturally_closed_net_money": -282.652219984382,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:500:5:10:True",
+      "naturally_closed_decisions": 40,
+      "naturally_closed_net_money": -301.6222474121612,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:1:1:False",
+      "naturally_closed_decisions": 55,
+      "naturally_closed_net_money": -79.93620465383047,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:1:1:True",
+      "naturally_closed_decisions": 57,
+      "naturally_closed_net_money": -110.03183255618548,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:1:10:False",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -231.68380411926407,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:1:10:True",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -278.7430877401356,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:2:1:False",
+      "naturally_closed_decisions": 55,
+      "naturally_closed_net_money": -79.91940296154547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:2:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -110.33405898752547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:2:10:False",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -382.3295246646198,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:2:10:True",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -460.59061959966806,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:3:1:False",
+      "naturally_closed_decisions": 55,
+      "naturally_closed_net_money": -79.91940296154547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:3:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -110.33405898752547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:3:10:False",
+      "naturally_closed_decisions": 65,
+      "naturally_closed_net_money": -457.78925348427595,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:3:10:True",
+      "naturally_closed_decisions": 67,
+      "naturally_closed_net_money": -560.2517726748058,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:5:1:False",
+      "naturally_closed_decisions": 55,
+      "naturally_closed_net_money": -79.91940296154547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:5:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -110.33405898752547,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:5:10:False",
+      "naturally_closed_decisions": 57,
+      "naturally_closed_net_money": -565.7212629542576,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:1000:5:10:True",
+      "naturally_closed_decisions": 39,
+      "naturally_closed_net_money": -603.6451967252887,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:1:1:False",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -1997.8093058996815,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:1:1:True",
+      "naturally_closed_decisions": 58,
+      "naturally_closed_net_money": -2757.7801328846554,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:1:10:False",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -5868.610034022507,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:1:10:True",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -7017.5925001845235,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:2:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -1998.8557223677494,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:2:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -2759.7975722256474,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:2:10:False",
+      "naturally_closed_decisions": 70,
+      "naturally_closed_net_money": -9584.07218890192,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:2:10:True",
+      "naturally_closed_decisions": 69,
+      "naturally_closed_net_money": -11545.269085012755,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:3:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -1998.8557223677494,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:3:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -2759.7975722256474,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:3:10:False",
+      "naturally_closed_decisions": 67,
+      "naturally_closed_net_money": -11488.334002035084,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:3:10:True",
+      "naturally_closed_decisions": 67,
+      "naturally_closed_net_money": -14039.151220820004,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:5:1:False",
+      "naturally_closed_decisions": 54,
+      "naturally_closed_net_money": -1998.8557223677494,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:5:1:True",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -2759.7975722256474,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:5:10:False",
+      "naturally_closed_decisions": 56,
+      "naturally_closed_net_money": -14124.954676731357,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "research.crypto-compression-sprint-15m-v1:25000:5:10:True",
+      "naturally_closed_decisions": 35,
+      "naturally_closed_net_money": -15121.473117523117,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:1:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 13.17384131308828,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 1.7766641978340239
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:1:1:True",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 12.823090834203592,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1.6056828845931066
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:1:10:False",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 39.28287239363378,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 4.061829870241367
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:1:10:True",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 36.32115854879789,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 3.683930161632362
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:2:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 11.367224531759565,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 2.1626051303238585
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:2:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 10.650217291692448,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 2.082498350623738
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:2:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 48.67054641012477,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 5.366001135234567
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:2:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 38.76977226341477,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 4.438603542306314
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:3:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 9.786041168419047,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 1.5489942397157541
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:3:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 9.422894088491862,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 1.4607523337662764
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:3:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 57.01645381525159,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 2.5349356622832535
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:3:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 53.84433595510068,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 1.814982588692334
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:5:1:False",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 8.129259123078075,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 1.7865528869270961
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:5:1:True",
+      "naturally_closed_decisions": 6,
+      "naturally_closed_net_money": 7.717377388979322,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 1.7075239297173135
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:5:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 45.975285109217666,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -3.0486012370199975
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:100:5:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 24.540782295442355,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": 2.507188094514265
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:1:1:False",
+      "naturally_closed_decisions": 15,
+      "naturally_closed_net_money": 63.97335073856714,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 8.318993955800945
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:1:1:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 60.27537935560601,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 7.1595717788047235
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:1:10:False",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 214.66836740149338,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 15.785248172999465
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:1:10:True",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 200.29903482307228,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 14.76975279343817
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:2:1:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 69.0015803044413,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 10.33413102304412
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:2:1:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 64.83765675072975,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 8.254851614027016
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:2:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 246.33454330650508,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 26.930125605286293
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:2:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 229.0591102458742,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 23.39224947883205
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:3:1:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 45.72018933201793,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 8.142347557635977
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:3:1:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 43.78682137777837,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 7.912108733402928
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:3:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 287.94516713124034,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 12.71969392620236
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:3:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 267.5408812552408,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 9.203710729238319
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:5:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 43.00868891712224,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 8.80908051723341
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:5:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 40.78995163157769,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 8.399175350612623
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:5:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 231.27455080670364,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -15.275292796978812
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:500:5:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 211.08256509231126,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -15.320749804114042
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:1:1:False",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 124.17244394819937,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 15.094409112788847
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:1:1:True",
+      "naturally_closed_decisions": 14,
+      "naturally_closed_net_money": 120.99039915020617,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 14.364369964280643
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:1:10:False",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 428.559167045088,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 32.59822070969678
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:1:10:True",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 399.6171858655579,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 30.31031607518593
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:2:1:False",
+      "naturally_closed_decisions": 15,
+      "naturally_closed_net_money": 137.31701017815797,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 17.188971183870343
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:2:1:True",
+      "naturally_closed_decisions": 15,
+      "naturally_closed_net_money": 131.7908469668544,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 16.381304634666762
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:2:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 489.7226493605259,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 53.77466703079848
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:2:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 457.4628556460536,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 46.7820741453694
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:3:1:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 149.15662890452572,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 25.9896321639879
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:3:1:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 143.69361165911153,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 24.404330989748193
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:3:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 574.4609346318397,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 25.41471106901131
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:3:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 531.7671348791122,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 18.37536920716203
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:5:1:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 149.15662890452572,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 29.025423526260155
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:5:1:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 143.71047208181798,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 28.118584464787425
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:5:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 463.77656248107166,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -30.577905034778173
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:1000:5:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 422.1921962705323,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -30.64280183940565
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:1:1:False",
+      "naturally_closed_decisions": 27,
+      "naturally_closed_net_money": 2035.143750857584,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 355.50951876850024
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:1:1:True",
+      "naturally_closed_decisions": 27,
+      "naturally_closed_net_money": 1989.6605170874454,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 337.48292882541165
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:1:10:False",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 10937.708441135117,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 835.7536285726027
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:1:10:True",
+      "naturally_closed_decisions": 24,
+      "naturally_closed_net_money": 10223.794466584315,
+      "terminal_closed_decisions": 10,
+      "terminal_closed_net_money": 772.7795388215715
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:2:1:False",
+      "naturally_closed_decisions": 22,
+      "naturally_closed_net_money": 2205.2319541642396,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 410.4347596032547
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:2:1:True",
+      "naturally_closed_decisions": 21,
+      "naturally_closed_net_money": 2116.6257433716582,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 392.47238356371014
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:2:10:False",
+      "naturally_closed_decisions": 15,
+      "naturally_closed_net_money": 10224.474773097343,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 1074.1066573000066
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:2:10:True",
+      "naturally_closed_decisions": 16,
+      "naturally_closed_net_money": 8830.705973841319,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 817.1672137519527
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:3:1:False",
+      "naturally_closed_decisions": 21,
+      "naturally_closed_net_money": 2160.637276040117,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 611.0726519587186
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:3:1:True",
+      "naturally_closed_decisions": 20,
+      "naturally_closed_net_money": 2047.171863740008,
+      "terminal_closed_decisions": 5,
+      "terminal_closed_net_money": 574.1128977288097
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:3:10:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 14329.283468235813,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 634.8276128052302
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:3:10:True",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 13306.502573674785,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": 459.6757000720579
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:5:1:False",
+      "naturally_closed_decisions": 22,
+      "naturally_closed_net_money": 2151.4289165606406,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 688.9380952865564
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:5:1:True",
+      "naturally_closed_decisions": 21,
+      "naturally_closed_net_money": 2037.8402899222942,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 668.0066991642649
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:5:10:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 11588.742411573605,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -764.3433152772303
+    },
+    {
+      "case": "ADAPTIVE_EXISTING_SIX:25000:5:10:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 10567.23523023712,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -766.3422123012535
+    },
+    {
+      "case": "TREND_AND_VWAP:100:1:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 10.869035646566381,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.023111132027564298
+    },
+    {
+      "case": "TREND_AND_VWAP:100:1:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 10.441875614532991,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.06747374755101285
+    },
+    {
+      "case": "TREND_AND_VWAP:100:1:10:False",
+      "naturally_closed_decisions": 18,
+      "naturally_closed_net_money": 36.438060614686265,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 2.145051013107964
+    },
+    {
+      "case": "TREND_AND_VWAP:100:1:10:True",
+      "naturally_closed_decisions": 18,
+      "naturally_closed_net_money": 34.217006442460224,
+      "terminal_closed_decisions": 6,
+      "terminal_closed_net_money": 1.8421236100488825
+    },
+    {
+      "case": "TREND_AND_VWAP:100:2:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 8.152119250150545,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:2:1:True",
+      "naturally_closed_decisions": 5,
+      "naturally_closed_net_money": 8.462390993490326,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:2:10:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 36.144497950306814,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 0.8386755303643775
+    },
+    {
+      "case": "TREND_AND_VWAP:100:2:10:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 34.203652879468606,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 0.4990554458389259
+    },
+    {
+      "case": "TREND_AND_VWAP:100:3:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 8.344429730069722,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:3:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 8.054410697474966,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:3:10:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 51.31783246432519,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.21754782728713112
+    },
+    {
+      "case": "TREND_AND_VWAP:100:3:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 48.60032778042042,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.47604957530132974
+    },
+    {
+      "case": "TREND_AND_VWAP:100:5:1:False",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 8.344429730069722,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:5:1:True",
+      "naturally_closed_decisions": 4,
+      "naturally_closed_net_money": 8.054410697474966,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:5:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 30.970040185228736,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:100:5:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 26.905127035293187,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:1:1:False",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 39.778534886724245,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.11285912288875606
+    },
+    {
+      "case": "TREND_AND_VWAP:500:1:1:True",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 39.75038483204663,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.32985273520234915
+    },
+    {
+      "case": "TREND_AND_VWAP:500:1:10:False",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 202.23937067303538,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 13.61056112210754
+    },
+    {
+      "case": "TREND_AND_VWAP:500:1:10:True",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 189.0470350647904,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 10.76811201046347
+    },
+    {
+      "case": "TREND_AND_VWAP:500:2:1:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 44.15384149667163,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.00923179998103782
+    },
+    {
+      "case": "TREND_AND_VWAP:500:2:1:True",
+      "naturally_closed_decisions": 10,
+      "naturally_closed_net_money": 42.39979756276773,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.047334254652911
+    },
+    {
+      "case": "TREND_AND_VWAP:500:2:10:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 184.23970183697114,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 4.198741801935032
+    },
+    {
+      "case": "TREND_AND_VWAP:500:2:10:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 169.39420290100423,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 2.4951498144887796
+    },
+    {
+      "case": "TREND_AND_VWAP:500:3:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 43.87727456848086,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:3:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 42.4271425955209,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:3:10:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 261.6292200889785,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -1.095288322757535
+    },
+    {
+      "case": "TREND_AND_VWAP:500:3:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 241.3861899112875,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -2.375405364083083
+    },
+    {
+      "case": "TREND_AND_VWAP:500:5:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 43.87727456848086,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:5:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 42.4271425955209,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:5:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 154.6951563442792,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:500:5:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 137.50107754445156,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:1:1:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 79.55301242119712,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.22586298878499536
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:1:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 75.7569732441496,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -0.657377093931207
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:1:10:False",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 415.6414086659899,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 27.33587528123573
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:1:10:True",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 388.92763522569163,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 22.664376654101336
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:2:1:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 88.61292027497161,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.01846359996207564
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:2:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 85.08557468104104,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.0949680931960303
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:2:10:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 367.86539583666456,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 9.019201479631304
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:2:10:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 339.281495234626,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 9.439721286003344
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:3:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 87.7749439402811,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:3:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 84.8507938415668,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:3:10:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 523.3490970353587,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -2.1908127924827614
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:3:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 484.20487275523675,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -4.755975589362665
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:5:1:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 87.7749439402811,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:5:1:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 84.8507938415668,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:5:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 309.0296541785623,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:1000:5:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 276.24411836573205,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:1:1:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 1988.895237092207,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -5.548783977647027
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:1:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 1906.479237742631,
+      "terminal_closed_decisions": 3,
+      "terminal_closed_net_money": -16.353644848539876
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:1:10:False",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 10502.139019714032,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 690.8545326344283
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:1:10:True",
+      "naturally_closed_decisions": 19,
+      "naturally_closed_net_money": 9775.411326931868,
+      "terminal_closed_decisions": 7,
+      "terminal_closed_net_money": 579.0884051264327
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:2:1:False",
+      "naturally_closed_decisions": 12,
+      "naturally_closed_net_money": 2197.0198008727125,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -0.46058455548959976
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:2:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 2109.3838880695926,
+      "terminal_closed_decisions": 1,
+      "terminal_closed_net_money": -2.3754006654615907
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:2:10:False",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 9184.117129138662,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 338.3688944696939
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:2:10:True",
+      "naturally_closed_decisions": 13,
+      "naturally_closed_net_money": 8476.557410548647,
+      "terminal_closed_decisions": 4,
+      "terminal_closed_net_money": 235.97668006824256
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:3:1:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 2197.089031480798,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:3:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 2123.2369026325337,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:3:10:False",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 13098.371429787558,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -54.795024080562285
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:3:10:True",
+      "naturally_closed_decisions": 9,
+      "naturally_closed_net_money": 12139.524831886944,
+      "terminal_closed_decisions": 2,
+      "terminal_closed_net_money": -119.01161710129904
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:5:1:False",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 2197.089031480798,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:5:1:True",
+      "naturally_closed_decisions": 11,
+      "naturally_closed_net_money": 2123.2369026325337,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:5:10:False",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 7742.979226382983,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    },
+    {
+      "case": "TREND_AND_VWAP:25000:5:10:True",
+      "naturally_closed_decisions": 8,
+      "naturally_closed_net_money": 6903.784753601608,
+      "terminal_closed_decisions": 0,
+      "terminal_closed_net_money": 0
+    }
+  ]
+}

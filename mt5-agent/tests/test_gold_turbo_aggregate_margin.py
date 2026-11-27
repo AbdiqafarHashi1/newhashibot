@@ -25,5 +25,10 @@ class AggregateMarginTests(unittest.TestCase):
         r.books={'pending':SimpleNamespace(orders={'order':SimpleNamespace(pending_lots=2,unit_margin_money=100)})}
         p=MicroScalper().evaluate(s,COSTS,s.as_of_ms).plan
         self.assertIsNone(r._size(p,client.get_symbol_info('XAUUSD'),client.get_account_info(),dict(slippage_quote_per_side=.005,max_margin_pct=20),2))
+    def test_pending_margin_also_consumes_broker_free_margin(self):
+        s=snapshot();client=Terminal(s);r=GoldTurboRuntime.__new__(GoldTurboRuntime);r.client=client
+        r.books={'pending':SimpleNamespace(orders={'order':SimpleNamespace(pending_lots=.4,unit_margin_money=100)})}
+        p=MicroScalper().evaluate(s,COSTS,s.as_of_ms).plan
+        self.assertIsNone(r._size(p,client.get_symbol_info('XAUUSD'),dict(client.get_account_info(),free_margin=30),dict(slippage_quote_per_side=.005,max_margin_pct=20),2))
 
 if __name__=='__main__':unittest.main()

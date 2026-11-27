@@ -1,0 +1,99 @@
+{
+  "scope": "One known October 14 session, Micro only, $500 / 1% / 0.2% target. Execution-cadence diagnostic, not strategy profitability validation.",
+  "cases": [
+    {
+      "cadence_ms": 5000,
+      "results": [
+        {
+          "lineup": "micro-scalper",
+          "capital": 500.0,
+          "final_equity": 502.861999999992,
+          "net_return_pct": 0.5723999999984075,
+          "maximum_drawdown_pct": 0.23617726813712794,
+          "maximum_margin_pct": 49.82868430120338,
+          "independent_baskets": 1,
+          "individual_orders": 1,
+          "win_rate_pct": 100.0,
+          "profit_factor": null,
+          "expectancy_money": 2.861999999991967,
+          "average_holding_minutes": 0.06888333333333334,
+          "commission_money": 0.42,
+          "account_survived": true,
+          "subscription_adjusted_net_at_100_usd": -97.13800000000799,
+          "monthly_statistics": null,
+          "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+          "entry_reasons": {
+            "MICRO_MOVE_ALREADY_EXTENDED": 282,
+            "NO_DIRECTIONAL_MICRO_TRIGGER": 3680,
+            "MICRO_CONTEXT_DIRECTION_CONFLICT": 50,
+            "NO_QUALIFIED_MICRO_MODEL": 75,
+            "MICRO_BURST_WITHOUT_15S_PERSISTENCE": 8,
+            "MICRO_STRUCTURAL_STOP_TOO_WIDE": 15,
+            "INSUFFICIENT_NET_REWARD": 35,
+            "MICRO_TICK_HISTORY_UNAVAILABLE": 47,
+            "QUALIFIED_RESEARCH_CANDIDATE": 1,
+            "MICRO_DEVELOPING_CANDLE_UNAVAILABLE": 3
+          },
+          "candidate_models": {
+            "MICRO_PULLBACK_RESUME": 1
+          },
+          "baskets_per_selected_session": 1.0
+        }
+      ],
+      "sessions": [
+        {
+          "start": "2026-10-14T08:00:00+00:00",
+          "end_exclusive": "2026-10-14T16:00:00+00:00"
+        }
+      ]
+    },
+    {
+      "cadence_ms": 200,
+      "results": [
+        {
+          "lineup": "micro-scalper",
+          "capital": 500.0,
+          "final_equity": 498.4099999999934,
+          "net_return_pct": -0.31800000000132833,
+          "maximum_drawdown_pct": 0.7171171889004536,
+          "maximum_margin_pct": 49.79257482824345,
+          "independent_baskets": 2,
+          "individual_orders": 2,
+          "win_rate_pct": 50.0,
+          "profit_factor": 0.5110701106990113,
+          "expectancy_money": -0.7950000000033473,
+          "average_holding_minutes": 0.08693666666666666,
+          "commission_money": 0.7,
+          "account_survived": true,
+          "subscription_adjusted_net_at_100_usd": -101.59000000000663,
+          "monthly_statistics": null,
+          "monthly_statistics_reason": "Selected intraday sessions only; not a complete calendar month or continuous account history",
+          "entry_reasons": {
+            "NO_DIRECTIONAL_MICRO_TRIGGER": 32082,
+            "MICRO_MOVE_ALREADY_EXTENDED": 2613,
+            "MICRO_CONTEXT_DIRECTION_CONFLICT": 237,
+            "INSUFFICIENT_NET_REWARD": 170,
+            "MICRO_STRUCTURAL_STOP_TOO_WIDE": 95,
+            "NO_QUALIFIED_MICRO_MODEL": 527,
+            "MICRO_BURST_WITHOUT_15S_PERSISTENCE": 44,
+            "MICRO_TICK_HISTORY_UNAVAILABLE": 264,
+            "QUALIFIED_RESEARCH_CANDIDATE": 2,
+            "OPPORTUNITY_ALREADY_ADMITTED": 6,
+            "MICRO_DEVELOPING_CANDLE_UNAVAILABLE": 11
+          },
+          "candidate_models": {
+            "MICRO_PULLBACK_RESUME": 1,
+            "MICRO_REJECTION": 1
+          },
+          "baskets_per_selected_session": 2.0
+        }
+      ],
+      "sessions": [
+        {
+          "start": "2026-10-14T08:00:00+00:00",
+          "end_exclusive": "2026-10-14T16:00:00+00:00"
+        }
+      ]
+    }
+  ]
+}

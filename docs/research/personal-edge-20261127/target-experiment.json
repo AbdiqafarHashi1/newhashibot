@@ -1,0 +1,25 @@
+{
+  "reason": "Observed 0.2% basket profit exits dominate many winners while losses are larger. Test the user-requested 0.4% target once, without changing entries, scalp hold times or risk.",
+  "baseline_target_pct": 0.2,
+  "candidate_target_pct": 0.4,
+  "risk_pct": 1,
+  "capitals": [
+    500,
+    25000
+  ],
+  "days": [
+    "23",
+    "26",
+    "27",
+    "28",
+    "29",
+    "30"
+  ],
+  "hours_utc": [
+    8,
+    16
+  ],
+  "lineups": "All five singles and adaptive",
+  "status": "DIAGNOSTIC_DEVELOPMENT_COMPARISON_NOT_UNSEEN_VALIDATION",
+  "acceptance": "Report every arm; do not promote merely because one known period improves."
+}

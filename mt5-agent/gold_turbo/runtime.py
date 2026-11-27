@@ -234,7 +234,7 @@ class GoldTurboRuntime:
         friction=plan.fee_slippage_price*spec['contract_size']*conversion
         unit=small['loss']/minimum+friction
         pending_margin=sum(o.pending_lots*o.unit_margin_money for b in self.books.values() for o in b.orders.values())
-        margin_room=min(a['free_margin'],max(0,a['equity']*lease['max_margin_pct']/100-a.get('margin',0)-pending_margin))
+        margin_room=min(max(0,a['free_margin']-pending_margin),max(0,a['equity']*lease['max_margin_pct']/100-a.get('margin',0)-pending_margin))
         unit_margin=small['margin']/minimum
         if not math.isfinite(unit_margin) or unit_margin<=0:return None
         raw=min(budget/unit,spec['volume_max'],margin_room/unit_margin)
