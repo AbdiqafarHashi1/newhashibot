@@ -1,0 +1,18 @@
+{
+  "tests": {
+    "python": 168,
+    "typescript": 53,
+    "replay": 6
+  },
+  "cash_audited_accounts": 166,
+  "simple_accounts": 120,
+  "paired_accounts": 46,
+  "catalogue_ids": 21,
+  "ui_bundles_compiled": [
+    "AccountStrategySelection",
+    "GoldTurboControls",
+    "BrowserLedgerLab"
+  ],
+  "paid_live_activated": false,
+  "existing_accounts_silently_reassigned": false
+}

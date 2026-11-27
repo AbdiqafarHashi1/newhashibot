@@ -1,0 +1,54 @@
+{
+  "paired": {
+    "sha256": "28febdae0fe01cb6e8501785c18dfee2e275541624b3ea622a188cbda3dfb883",
+    "module_sha256": {
+      "weekend_guard.py": "522835b0fddbed49b0b484252a37018ed8ebafc43b941f9da7bedf2a23cad376",
+      "gold_turbo/strategy_contracts.py": "0a7cfa87c9b64fe44a4c9aed8418b3cd2363deb66032a4b5df76c142be07884b",
+      "gold_turbo/management.py": "4fbbae4b72260c975bc69dfde573c2a839ef25b05ccb319193e214c849610635",
+      "gold_turbo/simple_intraday.py": "faf4226a4d3beaa914db900dab24e831c4dfa167161c4c5a68cdf0b0f641ca1e",
+      "gold_turbo/arbitration.py": "c18f6972c151429da8e885e179b8a79e3fb931e203d870b036e3d2f75e35a9fe",
+      "gold_turbo/runtime.py": "b8a6777d63a42d013a70970a10fbcc92085695bd9554ce93043dbd641f1e9043",
+      "gold_turbo/momentum.py": "2a6c899c845917380eaada9c50c5b18dfc3ceaf5b1cb6e8c1363bd115c2d6a59",
+      "gold_turbo/intelligence.py": "018615462124b1afc731a30305d243f834b7180b5f617f41012c4cfb74b10d87",
+      "gold_turbo/features.py": "ac63aca810543fb1a18dc12d0d242bfc1cd8f3fcfedde7042391223dab803d59",
+      "gold_turbo/basket_strategy.py": "a1d17f2cdcd719dc6e6b123ed20e278ca25b9e28fe79fe5925b4069545fbb543",
+      "gold_turbo/basket.py": "6fe194d0993cbc56ba01c88fffae74be091daad7209adf87eb70216e3b2d81dd",
+      "gold_turbo/contracts.py": "cb7b26c2c01bba8fe3eccd07b587a0eafebbf844b2c6b944b4c3fd7faada0520",
+      "gold_turbo/__init__.py": "3ea4fc1682c70ba800e2e5d78c394a698025a1459282e8ab772454b0bb23fe0c",
+      "gold_turbo/trend.py": "7b8734aa4d7f550931d854383779bbaafcd19d02aaad1738c2ca179962e6995e",
+      "gold_turbo/range_scalper.py": "fef80d7310adc67dec19d7c06d364752b754ed2bfde52f2c830084e36a95967a",
+      "gold_turbo/micro.py": "a2f8a6a79761fb65eb218e961c2e4ed51ebbee3ff8d04f42168e0740270685c3"
+    },
+    "receipts": [
+      "baseline",
+      "strategy-exits",
+      "opening",
+      "full-exits"
+    ]
+  },
+  "orb": {
+    "sha256": "3caaef526fbcee48f9dcc51d5f79e46a08b951b88091070ae210be8c85165380",
+    "module_sha256": {
+      "weekend_guard.py": "522835b0fddbed49b0b484252a37018ed8ebafc43b941f9da7bedf2a23cad376",
+      "gold_turbo/strategy_contracts.py": "0a7cfa87c9b64fe44a4c9aed8418b3cd2363deb66032a4b5df76c142be07884b",
+      "gold_turbo/management.py": "4fbbae4b72260c975bc69dfde573c2a839ef25b05ccb319193e214c849610635",
+      "gold_turbo/simple_intraday.py": "faf4226a4d3beaa914db900dab24e831c4dfa167161c4c5a68cdf0b0f641ca1e",
+      "gold_turbo/arbitration.py": "c18f6972c151429da8e885e179b8a79e3fb931e203d870b036e3d2f75e35a9fe",
+      "gold_turbo/runtime.py": "b8a6777d63a42d013a70970a10fbcc92085695bd9554ce93043dbd641f1e9043",
+      "gold_turbo/momentum.py": "d9b5af619c27dce0040fd57bdd762c0b3ffd157bd7c5a481fd026aa2aff11d12",
+      "gold_turbo/intelligence.py": "018615462124b1afc731a30305d243f834b7180b5f617f41012c4cfb74b10d87",
+      "gold_turbo/features.py": "ac63aca810543fb1a18dc12d0d242bfc1cd8f3fcfedde7042391223dab803d59",
+      "gold_turbo/basket_strategy.py": "a1d17f2cdcd719dc6e6b123ed20e278ca25b9e28fe79fe5925b4069545fbb543",
+      "gold_turbo/basket.py": "6fe194d0993cbc56ba01c88fffae74be091daad7209adf87eb70216e3b2d81dd",
+      "gold_turbo/contracts.py": "cb7b26c2c01bba8fe3eccd07b587a0eafebbf844b2c6b944b4c3fd7faada0520",
+      "gold_turbo/__init__.py": "3ea4fc1682c70ba800e2e5d78c394a698025a1459282e8ab772454b0bb23fe0c",
+      "gold_turbo/trend.py": "7b8734aa4d7f550931d854383779bbaafcd19d02aaad1738c2ca179962e6995e",
+      "gold_turbo/range_scalper.py": "fef80d7310adc67dec19d7c06d364752b754ed2bfde52f2c830084e36a95967a",
+      "gold_turbo/micro.py": "a2f8a6a79761fb65eb218e961c2e4ed51ebbee3ff8d04f42168e0740270685c3"
+    },
+    "receipts": [
+      "orb-runtime",
+      "orb-stress"
+    ]
+  }
+}

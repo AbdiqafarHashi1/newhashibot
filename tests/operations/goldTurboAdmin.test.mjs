@@ -4,6 +4,15 @@ import {goldTurboDraft,validateGoldTurboConfig,saveGoldTurboConfig,safeGoldTurbo
 import {TURBO_IDS} from '../../supabase/functions/_shared/gold-turbo-lease.ts';
 const account=()=>({id:'execution',customer_id:'owner',provider_account_identity:'mt5',provider:'MT5_PERSONAL',environment:'demo',account_mode:'PERSONAL',execution_enabled:true,runtime_control:'START',policy_overrides:{policy_configuration:{allowedStrategies:['keep-original']},other:'preserve'}});
 const config=()=>({...goldTurboDraft(null),enabled:true,commission_quote_per_lot_per_side:1,slippage_quote_per_side:.005});
+test('standalone strategy exit selection is explicit and cannot disable protection',()=>{
+ assert.equal(validateGoldTurboConfig(account(),config()).profit_exit_mode,'EQUITY_TARGET');
+ assert.equal(validateGoldTurboConfig(account(),{...config(),profit_exit_mode:'STRATEGY_EXITS'}).profit_exit_mode,'STRATEGY_EXITS');
+ assert.throws(()=>validateGoldTurboConfig(account(),{...config(),profit_exit_mode:'REMOVE_STOPS'}));
+});
+test('only baseline and evaluated opening-range Momentum models are exposed to Admin',()=>{
+ assert.equal(validateGoldTurboConfig(account(),{...config(),momentum_entry_variant:'SESSION_BREAKOUT'}).momentum_entry_variant,'SESSION_BREAKOUT');
+ assert.throws(()=>validateGoldTurboConfig(account(),{...config(),momentum_entry_variant:'SIMPLE_PULLBACK'}));
+});
 function database(){
  const db={account:account(),audits:[],failAudit:false,conflict:false};
  db.from=name=>{const filters=[];let patch;

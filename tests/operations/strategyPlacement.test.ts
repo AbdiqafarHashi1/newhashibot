@@ -24,4 +24,6 @@ test('placement never grants live execution or overrides provider availability',
  assert.deepEqual(defaultTierStrategies('MT5_PROP','live','PROP_FUNDED'),[]);
  assert.match(executionStrategyDisplayName('gold.frontier-compression-15-24-1.5-5-h96','x'),/Paused/);
  assert.equal(defaultTierStrategies('BINANCE','testnet','PERSONAL').length,1);
+ assert.deepEqual(executionStrategyPresets('BINANCE','testnet','PERSONAL').find(p=>p.id==='crypto-eth-only')?.ids,['crypto.complementary-ema-pullback']);
+ assert.deepEqual(executionStrategyPresets('MT5_PROP','demo','PROP_FUNDED').find(p=>p.id==='crypto-eth-only'),undefined);
 });

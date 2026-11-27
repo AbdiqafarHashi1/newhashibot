@@ -3,7 +3,8 @@
 Primary execution can be M1 or M5, with M15 context. No tick-velocity burst is an
 entry by itself. Thresholds are explicit research hypotheses, not measured edge.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass,replace
+from .simple_intraday import MODELS,simple_intraday_signal,simple_atr
 from .contracts import positive
 from .features import candle_shape
 from .strategy_contracts import (EntryMemory, common_rejection, context_direction,
@@ -14,6 +15,7 @@ MOMENTUM_ID = 'gold.turbo-momentum-scalper'
 
 @dataclass(frozen=True)
 class MomentumConfig:
+    entry_variant: str = 'BASELINE_RETEST'
     primary_timeframe_ms: int = 60_000
     impulse_body_atr: float = .60
     impulse_body_fraction: float = .65
@@ -40,6 +42,8 @@ class MomentumConfig:
 
     def __post_init__(self):
         validate_config(self)
+        if self.entry_variant not in ('BASELINE_RETEST',)+MODELS:raise ValueError('MOMENTUM_ENTRY_VARIANT_INVALID')
+        if self.entry_variant!='BASELINE_RETEST' and self.primary_timeframe_ms!=60000:raise ValueError('SIMPLE_MOMENTUM_M1_REQUIRED')
         if type(self.primary_timeframe_ms) is not int or self.primary_timeframe_ms not in (60_000, 300_000):
             raise ValueError('MOMENTUM_PRIMARY_FRAME_INVALID')
         if type(self.compression_bars) is not int or not 3 <= self.compression_bars <= 30:
@@ -77,6 +81,19 @@ class MomentumScalper:
         if not primary or not context or len(context.usable_completed) < 3 or not primary.indicators.atr14:
             return reject(self.strategy_id, now_ms, 'MOMENTUM_PRIMARY_M15_CONTEXT_UNAVAILABLE')
         atr = primary.indicators.atr14
+        if cfg.entry_variant!='BASELINE_RETEST':
+            atr=simple_atr(primary.usable_completed)
+            if atr is None:return reject(self.strategy_id,now_ms,'SIMPLE_ATR_UNAVAILABLE')
+            signal=simple_intraday_signal(primary.usable_completed,atr,cfg.entry_variant,now_ms)
+            if signal is None:
+                self.memory.clear_setup()
+                return reject(self.strategy_id,now_ms,'NO_SIMPLE_INTRADAY_SETUP')
+            tick=snapshot.latest_tick
+            if abs(tick.bid-signal.reference)>.25*abs(signal.reference-signal.stop):return reject(self.strategy_id,now_ms,'SIMPLE_ENTRY_CHASE')
+            distance=tick.bid-signal.stop if signal.side==1 else signal.stop-tick.ask
+            move=signal.target-tick.bid if signal.side==1 else tick.ask-signal.target
+            if distance<=0 or move<=0:return reject(self.strategy_id,now_ms,'SIMPLE_GEOMETRY_INVALID')
+            return propose(self.strategy_id,snapshot,now_ms,costs,self.memory,replace(cfg,maximum_hold_ms=signal.maximum_hold_ms),side='LONG' if signal.side==1 else 'SHORT',model=signal.model,anchor=signal.anchor,stop_distance=distance,invalidation_bid=signal.stop,atr=atr,target_move=move,features=(('entry_variant',cfg.entry_variant),),early_failure_velocity_atr_per_second=None)
         forming = primary.developing
         if forming is None or not forming.usable or not forming.open_ms <= now_ms < forming.end_ms:
             return reject(self.strategy_id, now_ms, 'MOMENTUM_DEVELOPING_CANDLE_UNAVAILABLE')

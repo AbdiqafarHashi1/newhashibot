@@ -10,7 +10,7 @@ const invalidate = (ref: {
     current: number;
 }) => { ref.current++; };
 const saved = async () => normalizeLedger((await import('../../../data/saved-ledger-trades.json')).default.trades);
-const lineups: Record<Lineup, string> = { PERSONAL_5: 'Personal · 5 engines', VIP_8: 'VIP · 8 sources · 1 trade/day', PROP_8: 'Prop · 8-engine selection', ALL_16: 'All 16 reviewed configurations' };
+const lineups: Record<Lineup, string> = { PERSONAL_5: `Personal · ${LAB_LINEUPS.PERSONAL_5.length} selected engines`, VIP_8: `VIP · ${LAB_LINEUPS.VIP_8.length} sources · 1 trade/day`, PROP_8: `Prop · ${LAB_LINEUPS.PROP_8.length} curated Forex engines`, ALL_16: 'All 16 retained configurations' };
 const exits: Record<ExitMode, string> = { ORIGINAL: 'Original recorded exit', FIXED_1R: 'Fixed 1R estimate', FIXED_2R: 'Fixed 2R estimate', FIXED_3R: 'Fixed 3R estimate', BREAKEVEN_1_5R: '1.5R breakeven estimate' };
 const initial: BacktestOptions = { strategyIds: LAB_LINEUPS.PERSONAL_5, startingBalance: 10000, monthlyFee: 100, startDate: '2026-09-16', endDate: '2026-10-31', profile: 'STANDARD', customRiskPct: null, exitMode: 'ORIGINAL', leverage: 15, marginEnabled: true, cryptoGuard: false, weekendMultiplier: true, maxOpenPositions: 3, oneTradePerDay: false, productEntryFilters: true };
 const inputClass = 'mt-1 min-h-11 min-w-0 max-w-full w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100';

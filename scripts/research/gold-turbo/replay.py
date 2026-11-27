@@ -156,7 +156,7 @@ def summarize(t,name):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--days',default='06,14,22');p.add_argument('--start-hour',type=int,default=8);p.add_argument('--end-hour',type=int,default=16);p.add_argument('--cadence-ms',type=int,default=5000);p.add_argument('--capitals',default='100,500,1000,25000');p.add_argument('--native-quote-bars',action='store_true');p.add_argument('--research-risk-pct',type=float,choices=[1,2,3,5]);p.add_argument('--research-basket-target-pct',type=float,choices=[.2,.4]);p.add_argument('--lineups',default='');p.add_argument('--slippage',type=float,default=.02);p.add_argument('--output',type=Path,default=ROOT/'.tmp/gold-turbo-baseline.json');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--days',default='06,14,22');p.add_argument('--start-hour',type=int,default=8);p.add_argument('--end-hour',type=int,default=16);p.add_argument('--cadence-ms',type=int,default=5000);p.add_argument('--capitals',default='100,500,1000,25000');p.add_argument('--native-quote-bars',action='store_true');p.add_argument('--research-risk-pct',type=float,choices=[1,2,3,5]);p.add_argument('--research-strategy-exits',action='store_true');p.add_argument('--research-momentum-variant',choices=['BASELINE_RETEST','SESSION_BREAKOUT']);p.add_argument('--research-basket-target-pct',type=float,choices=[.2,.4]);p.add_argument('--lineups',default='');p.add_argument('--slippage',type=float,default=.02);p.add_argument('--output',type=Path,default=ROOT/'.tmp/gold-turbo-baseline.json');a=p.parse_args()
     execution_source_hashes={str(v.relative_to(AGENT_ROOT)):hashlib.sha256(v.read_bytes()).hexdigest() for v in sorted((AGENT_ROOT/'gold_turbo').glob('*.py'))}
     execution_protocol=json.loads((AGENT_ROOT/'PERSONAL_RESEARCH_ONLY.json').read_text()) if a.research_risk_pct is not None else None
     execution_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
@@ -168,6 +168,10 @@ def main():
     cases=[];temp=tempfile.TemporaryDirectory()
     if a.research_risk_pct is not None and not (AGENT_ROOT/'PERSONAL_RESEARCH_ONLY.json').is_file():raise ValueError('RESEARCH_SOURCE_COPY_REQUIRED')
     if a.research_basket_target_pct is not None and a.research_risk_pct is None:raise ValueError('RESEARCH_SOURCE_COPY_REQUIRED')
+    if (a.research_strategy_exits or a.research_momentum_variant) and a.research_risk_pct is None:raise ValueError('RESEARCH_SOURCE_COPY_REQUIRED')
+    if a.research_momentum_variant:
+        from gold_turbo.momentum import MomentumScalper,MomentumConfig
+        FACTORIES[MomentumScalper.strategy_id]=lambda:MomentumScalper(MomentumConfig(entry_variant=a.research_momentum_variant))
     selected=set(a.lineups.split(',')) if a.lineups else set(LINEUPS)
     if not selected.issubset(LINEUPS):raise ValueError('UNKNOWN_LINEUP')
     for name,(ids,mode) in LINEUPS.items():
@@ -176,6 +180,8 @@ def main():
             t=ScenarioTerminal(cap,slip=a.slippage);r,lease=runtime(t,ids,mode,Path(temp.name)/f'{name}-{cap}');
             if a.research_risk_pct is not None:lease.update(risk_pct=a.research_risk_pct,daily_loss_pct=15,total_loss_pct=60,max_open_risk_pct=15,max_margin_pct=50,session_profit_lock_pct=20,session_trailing_pct=5)
             if a.research_basket_target_pct is not None:lease['basket_target_pct']=a.research_basket_target_pct
+            if a.research_strategy_exits:lease['profit_exit_mode']='STRATEGY_EXITS'
+            if a.research_momentum_variant:lease['momentum_entry_variant']=a.research_momentum_variant
             cases.append((name,t,r,lease))
     eng=None;session=-1;count=0;next_step=0;refresh=-1;quote_count=0;start=time.monotonic();last_progress=start
     with zipfile.ZipFile(archive) as z:
@@ -214,6 +220,7 @@ def main():
     result=dict(schema='gold-turbo-tick-baseline/v1',bar_aggregation_policy='OBSERVED_NONEMPTY_NATIVE_QUOTE_BUCKETS' if a.native_quote_bars else 'COMPLETE_M1_BUCKETS',personal_research_risk_pct=a.research_risk_pct,personal_research_protocol=execution_protocol,strategy_file_sha256=execution_source_hashes,strategy_code_commit=execution_commit,data_manifest=manifest,archive_sha256=digest,sessions=[dict(start=utc(s),end_exclusive=utc(e)) for s,e in spans],processed_original_quotes=quote_count,decision_observations=count,cadence_ms=a.cadence_ms,elapsed_seconds=time.monotonic()-start,assumptions=dict(account_currency='USD',contract_size_oz=100,minimum_lot=.01,lot_step=.01,leverage=100,broker_min_stop_price=.1,commission_per_lot_per_side_usd=3.5,adverse_slippage_price_per_side=a.slippage,execution_latency_ms=0,news_calendar='UNAVAILABLE: explicit clear-news scenario, not news-filter validation',swap='zero: forced flat at each selected session end',monthly_subscription_usd_scenario=100,risk_per_decision_pct='runtime capped .25 <=500, .20 <=5000, .15 above',daily_loss_pct=1.5,peak_loss_pct=8,max_open_risk_pct=1,max_margin_pct=20,basket_target_pct=.2),limitations=['Dates are explicit in sessions; October was already used in earlier research, not untouched market validation','Scenario broker specs, commission and leverage must be replaced by actual customer broker evidence','5-second decision cadence differs from 200ms live worker; every original quote checks broker stops and targets','Zero order latency, no partial fills/requotes/disconnects; does not qualify live execution','No retained historical economic calendar; production fails closed without one','Selected sessions cannot establish monthly return, profitable-month percentage, survival probability or fee viability','No claim that new strategies are profitable or commercially qualified'],results=rows,closed_baskets={f'{name}:{t.initial:g}':t.baskets for name,t,_,_ in cases},fills={f'{name}:{t.initial:g}':t.fills for name,t,_,_ in cases})
     if a.research_risk_pct is not None:result['assumptions'].update(risk_per_decision_pct=a.research_risk_pct,daily_loss_pct=15,peak_loss_pct=60,max_open_risk_pct=15,max_margin_pct=50,session_profit_lock_pct=20,session_trailing_pct=5)
     if a.research_basket_target_pct is not None:result['assumptions']['basket_target_pct']=a.research_basket_target_pct
+    result['assumptions'].update(non_flagship_profit_exit_mode='STRATEGY_EXITS' if a.research_strategy_exits else 'EQUITY_TARGET',standalone_momentum_variant=a.research_momentum_variant or 'BASELINE_RETEST')
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(result,indent=2,allow_nan=False)+'\n');print('SAVED',a.output,round(time.monotonic()-start,1),flush=True)
 
 

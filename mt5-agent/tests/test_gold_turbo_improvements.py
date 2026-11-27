@@ -44,14 +44,14 @@ class ImprovementTests(unittest.TestCase):
         return s,r,m
     def test_adaptive_prefers_range_fit_over_large_hypothetical_target(self):
         s,r,m=self.candidates();runtime=GoldTurboRuntime.__new__(GoldTurboRuntime)
-        runtime.engines={d.strategy_id:SimpleNamespace(evaluate=lambda *a,d=d:d) for d in (m,r)}
+        runtime.engines={d.strategy_id:SimpleNamespace(config=MomentumScalper().config,evaluate=lambda *a,d=d:d) for d in (m,r)}
         runtime._record_decision=lambda d:None
         c=dict(strategy_ids=[m.strategy_id,r.strategy_id],selection_mode='ADAPTIVE')
         self.assertEqual(runtime._candidates(s,COSTS,c,s.as_of_ms)[0][0],r.strategy_id)
         self.assertEqual(runtime._candidates(s,COSTS,dict(c,selection_mode='CUSTOM'),s.as_of_ms)[0][0],m.strategy_id)
     def test_flagship_uses_same_regime_suitability_before_geometry(self):
         s,r,m=self.candidates();basket=BasketScalper();basket._direct_models=lambda *a:[]
-        basket.engines=tuple(SimpleNamespace(evaluate=lambda *a,d=d:d) for d in (m,r))
+        basket.engines=tuple(SimpleNamespace(config=MomentumScalper().config,evaluate=lambda *a,d=d:d) for d in (m,r))
         d=basket.evaluate(s,COSTS,s.as_of_ms)
         self.assertEqual(dict(d.features)['selected_source_strategy'],r.strategy_id)
         self.assertEqual(dict(d.features)['regime_fit_ordinal'],2)

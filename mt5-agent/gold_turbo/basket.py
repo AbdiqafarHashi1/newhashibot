@@ -85,6 +85,7 @@ class BasketEnvelope:
 
 @dataclass(frozen=True)
 class BasketConfig:
+    profit_exit_mode: str = 'EQUITY_TARGET'
     profit_target_equity_pct: float = .20
     trailing_start_equity_pct: float = .15
     trailing_keep_fraction: float = .50
@@ -98,6 +99,7 @@ class BasketConfig:
     hedge_maximum_duration_ms: int = 30_000
 
     def __post_init__(self):
+        if self.profit_exit_mode not in ('EQUITY_TARGET','STRATEGY_EXITS'):raise ValueError('BASKET_PROFIT_EXIT_MODE_INVALID')
         for name in ('profit_target_equity_pct', 'trailing_start_equity_pct', 'trailing_keep_fraction', 'hedge_maximum_ratio'):
             positive(getattr(self, name), 'BASKET_CONFIG_INVALID:'+name)
         for name in ('maximum_age_ms', 'maximum_facts_age_ms', 'maximum_orders', 'hedge_maximum_duration_ms'):
@@ -456,9 +458,9 @@ class BasketBook:
             reason = 'BASKET_VOLATILITY_SHOCK'
         elif (1 if self.base_side == 'LONG' else -1)*(tick.bid-self.base_plan.invalidation_bid) <= 0:
             reason = 'BASKET_DIRECTIONAL_INVALIDATION'
-        elif net >= self.envelope.initial_equity*self.config.profit_target_equity_pct/100:
+        elif self.config.profit_exit_mode=='EQUITY_TARGET' and net >= self.envelope.initial_equity*self.config.profit_target_equity_pct/100:
             reason = 'NET_BASKET_PROFIT_TARGET'
-        elif self.peak_net_money >= self.envelope.initial_equity*self.config.trailing_start_equity_pct/100 and net <= self.peak_net_money*self.config.trailing_keep_fraction:
+        elif self.config.profit_exit_mode=='EQUITY_TARGET' and self.peak_net_money >= self.envelope.initial_equity*self.config.trailing_start_equity_pct/100 and net <= self.peak_net_money*self.config.trailing_keep_fraction:
             reason = 'BASKET_TRAILING_PROFIT_LOCK'
         if reason:
             self.close_all(reason, now_ms)

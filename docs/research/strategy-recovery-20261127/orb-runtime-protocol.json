@@ -1,0 +1,16 @@
+{
+  "days": "All 22 October weekdays",
+  "capital": 25000,
+  "risk_pct": 1,
+  "daily": 15,
+  "peak": 60,
+  "entry_margin": 50,
+  "decision_cadence_ms": 200,
+  "hours_utc": [
+    13,
+    15
+  ],
+  "entry_model": "SESSION_BREAKOUT",
+  "non_flagship_profit_exit_mode": "STRATEGY_EXITS",
+  "purpose": "Production-cadence local runtime check of a fixed simple Gold intraday adaptation; explicit research risk limits differ from the C++ STANDARD-limit screen. Known October, no pristine holdout."
+}

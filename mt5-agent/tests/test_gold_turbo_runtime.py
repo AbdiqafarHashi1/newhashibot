@@ -86,6 +86,29 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(self.runtime.last_reason,'BASKET_MARGIN_EXCEEDED')
         self.runtime.step()
         self.assertEqual(len(self.terminal.sends),1)
+    def test_strategy_profit_mode_is_bound_to_original_basket_and_survives_restart(self):
+        self.runtime.set_lease(dict(self.lease,profit_exit_mode='STRATEGY_EXITS'))
+        self.runtime.step()
+        book=next(iter(self.runtime.books.values()))
+        self.assertEqual(book.config.profit_exit_mode,'STRATEGY_EXITS')
+        self.runtime.set_lease(dict(self.lease,profit_exit_mode='EQUITY_TARGET'))
+        self.assertEqual(book.config.profit_exit_mode,'STRATEGY_EXITS')
+        restored=GoldTurboRuntime(self.terminal,self.scope,self.dir.name,lambda:{'high_impact_in_window':False},lambda:self.now)
+        self.assertEqual(next(iter(restored.books.values())).config.profit_exit_mode,'STRATEGY_EXITS')
+        with self.assertRaisesRegex(ValueError,'PROFIT_EXIT_MODE'):
+            self.runtime.set_lease(dict(self.lease,profit_exit_mode='REMOVE_STOPS'))
+    def test_server_momentum_model_selection_preserves_admission_cooldown(self):
+        sid='gold.turbo-momentum-scalper'
+        lease=dict(self.lease,strategy_ids=[sid],momentum_entry_variant='SESSION_BREAKOUT')
+        self.runtime.set_lease(lease);self.runtime.step()
+        engine=self.runtime.engines[sid]
+        self.assertEqual(engine.config.entry_variant,'SESSION_BREAKOUT')
+        engine.memory.admitted_at=self.now-1000
+        self.runtime.set_lease(dict(lease,momentum_entry_variant='BASELINE_RETEST'));self.runtime.step()
+        self.assertIs(self.runtime.engines[sid],engine)
+        self.assertEqual(engine.memory.admitted_at,self.now-1000)
+        with self.assertRaisesRegex(ValueError,'MOMENTUM_VARIANT'):
+            self.runtime.set_lease(dict(lease,momentum_entry_variant='SIMPLE_PULLBACK'))
     def test_expiry_closes_only_journal_owned_positions(self):
         self.runtime.step();self.advance();self.runtime.step()
         self.terminal.positions.append(dict(ticket='foreign',identifier='foreign',symbol='EURUSD',side='buy',quantity=.1,entry_price=1.1,sl=1,tp=1.2,magic=9,comment='manual',time=self.now//1000))
@@ -201,7 +224,7 @@ class RuntimeTests(unittest.TestCase):
         stronger=replace(base,strategy_id=MomentumScalper.strategy_id,plan=replace(base.plan,
             strategy_id=MomentumScalper.strategy_id,planned_net_reward=base.plan.planned_net_reward*2))
         for sid,decision in ((MicroScalper.strategy_id,base),(MomentumScalper.strategy_id,stronger)):
-            self.runtime.engines[sid]=SimpleNamespace(evaluate=lambda *a,d=decision:d)
+            self.runtime.engines[sid]=SimpleNamespace(config=MomentumScalper().config,evaluate=lambda *a,d=decision:d)
         config=dict(self.lease,strategy_ids=[MicroScalper.strategy_id,MomentumScalper.strategy_id],selection_mode='ADAPTIVE')
         adaptive=self.runtime._candidates(self.snap,None,config,self.now)
         self.assertEqual(adaptive[0][0],MomentumScalper.strategy_id)
@@ -212,7 +235,7 @@ class RuntimeTests(unittest.TestCase):
         base=MicroScalper().evaluate(self.snap,__import__('test_gold_turbo_scalpers').COSTS,self.now)
         opposite=replace(base,strategy_id=MomentumScalper.strategy_id,decision='SHORT')
         for sid,decision in ((MicroScalper.strategy_id,base),(MomentumScalper.strategy_id,opposite)):
-            self.runtime.engines[sid]=SimpleNamespace(evaluate=lambda *a,d=decision:d)
+            self.runtime.engines[sid]=SimpleNamespace(config=MomentumScalper().config,evaluate=lambda *a,d=decision:d)
         config=dict(self.lease,strategy_ids=[MicroScalper.strategy_id,MomentumScalper.strategy_id],selection_mode='ADAPTIVE')
         self.assertEqual(self.runtime._candidates(self.snap,None,config,self.now),[])
         self.assertEqual(self.runtime.last_reason,'ADAPTIVE_DIRECTION_CONFLICT')

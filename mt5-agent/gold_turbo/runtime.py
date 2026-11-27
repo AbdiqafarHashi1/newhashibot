@@ -110,6 +110,8 @@ class GoldTurboRuntime:
             v=value.get(key)
             if isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or v<0:raise ValueError('TURBO_COST_CONFIG_REQUIRED')
         if value.get('selection_mode','CUSTOM') not in ('SINGLE','CUSTOM','ADAPTIVE') or (value.get('selection_mode')=='SINGLE' and len(value.get('strategy_ids',[]))!=1):raise ValueError('TURBO_SELECTION_MODE_INVALID')
+        if value.get('profit_exit_mode','EQUITY_TARGET') not in ('EQUITY_TARGET','STRATEGY_EXITS'):raise ValueError('TURBO_PROFIT_EXIT_MODE_INVALID')
+        if value.get('momentum_entry_variant','BASELINE_RETEST') not in ('BASELINE_RETEST','SESSION_BREAKOUT'):raise ValueError('TURBO_MOMENTUM_VARIANT_INVALID')
         if not value.get('strategy_ids') or any(s not in FACTORIES for s in value['strategy_ids']) or value.get('hedge_enabled') is not False or value.get('expiry_policy')!='CLOSE':raise ValueError('TURBO_CONFIGURATION_UNSUPPORTED')
         self.subscription_until=value['subscription_until_ms'];self.revoked=False
         self.lease=json.loads(json.dumps(value))
@@ -298,7 +300,11 @@ class GoldTurboRuntime:
             if sid not in self.engines:
                 self.engines[sid]=FACTORIES[sid]()
                 if sid in self._restored_engine_states:self._restore_engine(self.engines[sid],self._restored_engine_states[sid])
-            engine=self.engines[sid];decision=engine.evaluate(snap,costs,now);self._record_decision(decision)
+            engine=self.engines[sid]
+            if sid=='gold.turbo-momentum-scalper':
+                desired=lease.get('momentum_entry_variant','BASELINE_RETEST')
+                if engine.config.entry_variant!=desired:engine.config=replace(engine.config,entry_variant=desired)
+            decision=engine.evaluate(snap,costs,now);self._record_decision(decision)
             if decision.plan:candidates.append((sid,engine,decision))
         if lease.get('selection_mode')=='ADAPTIVE':
             score=lambda c:c[2].plan.planned_net_reward/c[2].plan.planned_loss_with_costs
@@ -403,7 +409,7 @@ class GoldTurboRuntime:
             if new_book:
                 bid=hashlib.sha256((self.scope['account_id']+plan.opportunity_id).encode()).hexdigest()
                 env=BasketEnvelope(self.scope['owner_id'],self.scope['account_id'],bid,self.scope['account_id'],now,self.subscription_until,a['equity'],headroom,a['equity']*lease['max_margin_pct']/100,spec['volume_max'],a['currency'])
-                active=BasketBook(plan,env,facts,now,BasketConfig(profit_target_equity_pct=lease['basket_target_pct'],maximum_age_ms=plan.maximum_hold_ms))
+                active=BasketBook(plan,env,facts,now,BasketConfig(profit_target_equity_pct=lease['basket_target_pct'],maximum_age_ms=plan.maximum_hold_ms,profit_exit_mode=lease.get('profit_exit_mode','EQUITY_TARGET') if sid!=BasketScalper.strategy_id else 'EQUITY_TARGET'))
                 self.books[bid]=active
             try:order=active.reserve(plan,lots,facts,now)
             except ValueError as error:

@@ -1,6 +1,6 @@
 {
   "version": "customer-lineups/20261127",
-  "source_sha256": "5a2201d434243c3b96ff565be01a6201800169e1371c81e993352413717af16e",
+  "source_sha256": "1fcd15a1920c87633ac86f90cc9439c9bcaae8c1686af5538f6438a8f3de33b3",
   "lineups": {
     "CRYPTO_PERSONAL": [
       "crypto.launch-trend-pullback-48-1.5-5"
@@ -63,7 +63,7 @@
       "strategy_id": "crypto.complementary-ema-pullback",
       "status": "ALTERNATIVE",
       "destination": "CRYPTO_PERSONAL_SIGNALS",
-      "decision": "Slower Personal option; perpetual execution screen differs from older spot ledger.",
+      "decision": "ETH-only Personal option; perpetual execution screen differs from older spot ledger.",
       "default_for": [
         "VIP_SIGNALS"
       ]

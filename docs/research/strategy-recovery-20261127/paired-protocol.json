@@ -1,0 +1,46 @@
+{
+  "source": {
+    "purpose": "PERSONAL_FAKE_TERMINAL_RESEARCH_ONLY",
+    "production_runtime_sha256": "13116f1350db9e620f3a8f28fd7421fcdc4ca1f1bd60c74aa58edf189cfb946f",
+    "research_runtime_sha256": "b8a6777d63a42d013a70970a10fbcc92085695bd9554ce93043dbd641f1e9043",
+    "risk_pct": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "daily": 15,
+    "peak": 60,
+    "open": 15,
+    "margin": 50,
+    "basket_target": 0.2,
+    "session_profit_lock": 20,
+    "session_trailing": 5,
+    "limitations": "Source copy accepts only ScenarioTerminal; no bridge authorization or live/account defaults are modified. Higher loss allowances are experimental, not recommended customer defaults.",
+    "non_flagship_profit_modes": [
+      "EQUITY_TARGET",
+      "STRATEGY_EXITS"
+    ]
+  },
+  "days": [
+    "2026-10-06",
+    "2026-10-14",
+    "2026-10-22"
+  ],
+  "hours_utc": [
+    8,
+    16
+  ],
+  "capital": [
+    500,
+    25000
+  ],
+  "risk_pct": 1,
+  "arms": [
+    "BASELINE",
+    "STRATEGY_EXITS",
+    "SESSION_BREAKOUT_WITH_STRATEGY_EXITS"
+  ],
+  "cadence_ms": 5000,
+  "interpretation": "Paired known development sessions; no pristine unseen claim. Flagship retains its basket equity target. Opening model changes standalone Momentum and its adaptive competition, not flagship child engines. No parameter search or defaults promotion."
+}

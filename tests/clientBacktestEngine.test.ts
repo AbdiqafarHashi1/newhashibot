@@ -34,7 +34,7 @@ test('literal verified Admin identity gates routes and CSV tools', () => {
     assert.ok(readFileSync('src/pages/admin/BacktestLab.tsx', 'utf8').includes('<StrictBacktestAdmin>'));
 });
 test('preset counts and single-strategy selection', () => {
-    assert.deepEqual(Object.values(LAB_LINEUPS).map(v => v.length), [5, 8, 8, 16]);
+    assert.deepEqual(Object.values(LAB_LINEUPS).map(v => v.length), [5, 8, 2, 16]);
     assert.ok(Object.values(LAB_LINEUPS).every(v => new Set(v).size === v.length));
     const r = runClientBacktest([trade(), trade({ id: 'b', strategy_id: 'other', symbol: 'ETHUSDT' })], options());
     assert.equal(r.closedTrades, 1);

@@ -1,0 +1,43 @@
+{
+  "models": [
+    "SESSION_BREAKOUT",
+    "SIMPLE_PULLBACK"
+  ],
+  "risk_pct": [
+    0.25,
+    1
+  ],
+  "capital": [
+    100,
+    500,
+    1000,
+    25000
+  ],
+  "periods": [
+    "whole",
+    "earlier",
+    "later"
+  ],
+  "reward_r": 1.5,
+  "hold_minutes": {
+    "SESSION_BREAKOUT": 15,
+    "SIMPLE_PULLBACK": 10
+  },
+  "entries": "08:00\u201315:45 UTC; New York opening box 09:30\u201309:45 local, breaks before 10:30 local; simple impulse/pullback/reclaim independent model",
+  "guards": "ATR-only model scaling; explicit cost/margin/volume/stop checks; no confirmation indicator stack",
+  "no_pristine_holdout": true,
+  "source": "Retained October real bid/ask archive; no download",
+  "limits": "Research qualification 1.5% daily / 8% peak, fixed per-arm sizing; no account/default changes",
+  "source_references": [
+    "https://www.sfi.ch/de/publications/n-24-98-a-profitable-day-trading-strategy-for-the-u.s.-equity-market",
+    "https://www.sfi.ch/en/publications/n-24-97-beat-the-market-an-effective-intraday-momentum-strategy-for-s-p500-etf-spy"
+  ],
+  "caveat": "Published US equity concepts do not verify Gold profitability; these exact adaptations are new hypotheses.",
+  "additional_personal_case": {
+    "model": "SESSION_BREAKOUT",
+    "risk_pct": 1,
+    "daily_loss_pct": 4,
+    "peak_loss_pct": 18,
+    "reason": "Separate the fixed entry rule from tight qualification guard effects, using existing Personal STANDARD limit values; fixed sizing, not dynamic House-Money. Not a new production risk profile."
+  }
+}

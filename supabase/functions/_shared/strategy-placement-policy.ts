@@ -8,7 +8,7 @@ export const STRATEGY_PLACEMENTS:Readonly<Record<string,Placement>>=Object.freez
  'crypto.launch-trend-pullback-48-1.5-5':{status:'CORE',destination:'CRYPTO_PERSONAL_SIGNALS',decision:'Keep primary: positive chronological halves and fresh costed November screen.'},
  'crypto.launch-trend-pullback-48-2-3-h72':{status:'ALTERNATIVE',destination:'CRYPTO_PERSONAL_SIGNALS',decision:'Compare against the primary; do not assume two correlated variants diversify.'},
  'crypto.launch-rsi2-48-3-3-h72':{status:'ALTERNATIVE',destination:'CRYPTO_PERSONAL_SIGNALS',decision:'Replace LTC in the optional roster; fresh positive screen with material drawdown.'},
- 'crypto.complementary-ema-pullback':{status:'ALTERNATIVE',destination:'CRYPTO_PERSONAL_SIGNALS',decision:'Slower Personal option; perpetual execution screen differs from older spot ledger.'},
+ 'crypto.complementary-ema-pullback':{status:'ALTERNATIVE',destination:'CRYPTO_PERSONAL_SIGNALS',decision:'ETH-only Personal option; perpetual execution screen differs from older spot ledger.'},
  'crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006':{status:'ALTERNATIVE',destination:'ADMIN_COMPARISON',decision:'Retain; only two fresh decisions, insufficient evidence for default promotion.'},
  'crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006':{status:'PAUSED',destination:'ADMIN_COMPARISON',decision:'Remove from commercial presets; fresh screen negative.'},
  'forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008':{status:'CORE',destination:'FOREX_PERSONAL_PROP_SIGNALS',decision:'Curated Forex candidate; fresh FX and firm-rule qualification remain required.'},

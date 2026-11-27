@@ -13,6 +13,17 @@ test('scoped permission selects all five, expires within 30s and never enables l
 test('finite subscription also caps lease expiry',()=>{
  assert.equal(buildGoldTurboLease(account,mt5,binding,{...entitlement,valid_until:new Date(now+1000).toISOString()},scope,now).expires_at_ms,now+1000);
 });
+test('profit mode reaches the local lease without changing demo risk or subscription',()=>{
+ const a={...account,policy_overrides:{gold_turbo:{...account.policy_overrides.gold_turbo,profit_exit_mode:'STRATEGY_EXITS'}}};
+ const lease=buildGoldTurboLease(a,mt5,binding,entitlement,scope,now);
+ assert.equal(lease.profit_exit_mode,'STRATEGY_EXITS');assert.equal(lease.daily_loss_pct,1.5);assert.equal(lease.hedge_enabled,false);
+ assert.throws(()=>buildGoldTurboLease({...a,policy_overrides:{gold_turbo:{...a.policy_overrides.gold_turbo,profit_exit_mode:'REMOVE_STOPS'}}},mt5,binding,entitlement,scope,now));
+});
+test('opening-range choice is server-scoped; failed replacement is not authorized',()=>{
+ const configured=value=>({...account,policy_overrides:{gold_turbo:{...account.policy_overrides.gold_turbo,momentum_entry_variant:value}}});
+ assert.equal(buildGoldTurboLease(configured('SESSION_BREAKOUT'),mt5,binding,entitlement,scope,now).momentum_entry_variant,'SESSION_BREAKOUT');
+ assert.throws(()=>buildGoldTurboLease(configured('SIMPLE_PULLBACK'),mt5,binding,entitlement,scope,now));
+});
 test('foreign, live, Prop and disabled account states cannot receive local authority',()=>{
  for(const change of [{customer_id:'other'},{environment:'live'},{account_mode:'PROP_FUNDED'},{execution_enabled:false},{runtime_control:'PAUSE'}])
   assert.throws(()=>buildGoldTurboLease({...account,...change},mt5,binding,entitlement,scope,now));

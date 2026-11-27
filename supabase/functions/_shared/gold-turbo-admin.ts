@@ -12,13 +12,15 @@ export const TURBO_FIELDS=[
 ] as const;
 export type GoldTurboConfig={enabled:boolean;selection_mode:'SINGLE'|'CUSTOM'|'ADAPTIVE';strategy_ids:string[];expiry_policy:'CLOSE';hedge_enabled:false;[key:string]:unknown};
 export function turboAccountEligible(account:any){return ['MT5','MT5_PERSONAL'].includes(String(account?.provider).toUpperCase())&&account?.environment==='demo'&&account?.account_mode==='PERSONAL';}
-export function goldTurboDraft(value:any):GoldTurboConfig{return {enabled:false,selection_mode:'ADAPTIVE',strategy_ids:[...TURBO_IDS],expiry_policy:'CLOSE',hedge_enabled:false,...Object.fromEntries(TURBO_FIELDS.map(([k,,v])=>[k,v])),...(value??{})};}
+export function goldTurboDraft(value:any):GoldTurboConfig{return {enabled:false,selection_mode:'ADAPTIVE',strategy_ids:[...TURBO_IDS],expiry_policy:'CLOSE',hedge_enabled:false,profit_exit_mode:'EQUITY_TARGET',momentum_entry_variant:'BASELINE_RETEST',...Object.fromEntries(TURBO_FIELDS.map(([k,,v])=>[k,v])),...(value??{})};}
 export function validateGoldTurboConfig(account:any,value:any):GoldTurboConfig{
  if(!turboAccountEligible(account))throw Error('TURBO_PERSONAL_DEMO_ACCOUNT_REQUIRED');
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('TURBO_CONFIG_REQUIRED');
- const keys=new Set(['enabled','selection_mode','strategy_ids','expiry_policy','hedge_enabled',...TURBO_FIELDS.map(f=>f[0])]);
+ const keys=new Set(['enabled','selection_mode','strategy_ids','expiry_policy','hedge_enabled','profit_exit_mode','momentum_entry_variant',...TURBO_FIELDS.map(f=>f[0])]);
  if(Object.keys(value).some(k=>!keys.has(k)))throw Error('TURBO_UNKNOWN_SETTING');
  const c=goldTurboDraft(value);
+ if(!['EQUITY_TARGET','STRATEGY_EXITS'].includes(c.profit_exit_mode as string))throw Error('TURBO_PROFIT_EXIT_MODE_INVALID');
+ if(!['BASELINE_RETEST','SESSION_BREAKOUT'].includes(c.momentum_entry_variant as string))throw Error('TURBO_MOMENTUM_VARIANT_INVALID');
  if(typeof c.enabled!=='boolean'||!['SINGLE','CUSTOM','ADAPTIVE'].includes(c.selection_mode)||c.hedge_enabled!==false||c.expiry_policy!=='CLOSE')throw Error('TURBO_MODE_OR_PROTECTION_INVALID');
  if(!Array.isArray(c.strategy_ids)||!c.strategy_ids.length||new Set(c.strategy_ids).size!==c.strategy_ids.length||c.strategy_ids.some(id=>!TURBO_IDS.includes(id as typeof TURBO_IDS[number])))throw Error('TURBO_STRATEGY_SELECTION_REQUIRED');
  if(c.selection_mode==='SINGLE'&&c.strategy_ids.length!==1)throw Error('TURBO_SINGLE_STRATEGY_REQUIRED');

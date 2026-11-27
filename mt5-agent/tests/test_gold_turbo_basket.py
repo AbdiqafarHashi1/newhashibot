@@ -164,6 +164,17 @@ class ReservationTests(unittest.TestCase):
 
 
 class AccountingAndClosureTests(unittest.TestCase):
+    def test_strategy_exit_mode_removes_soft_profit_cap_but_keeps_hard_loss(self):
+        for mode in ('EQUITY_TARGET','STRATEGY_EXITS'):
+            book,snap,plan,f=setup(BasketConfig(profit_exit_mode=mode))
+            fill(book,plan,f)
+            result=book.evaluate(tick_snapshot(snap,plan.reference_entry+1),f,snap.as_of_ms)
+            self.assertEqual(book.state,'CLOSING' if mode=='EQUITY_TARGET' else 'OPEN')
+            restored=BasketBook.from_json(book.to_json())
+            self.assertEqual(restored.config.profit_exit_mode,mode)
+        result=book.evaluate(tick_snapshot(snap,plan.reference_entry-2),f,snap.as_of_ms)
+        self.assertEqual(book.state,'CLOSING')
+        self.assertTrue(book.ready_actions())
     def test_deal_replay_is_idempotent_and_changed_replay_rejected(self):
         book, snap, plan, f = setup()
         order = fill(book, plan, f)

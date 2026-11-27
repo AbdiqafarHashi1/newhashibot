@@ -13,7 +13,7 @@ These are explicit default selections and development decisions, not claims of v
 | crypto.launch-trend-pullback-48-1.5-5 | CORE | CRYPTO_PERSONAL_SIGNALS | CRYPTO_PERSONAL, VIP_SIGNALS | Keep primary: positive chronological halves and fresh costed November screen. |
 | crypto.launch-trend-pullback-48-2-3-h72 | ALTERNATIVE | CRYPTO_PERSONAL_SIGNALS | VIP_SIGNALS | Compare against the primary; do not assume two correlated variants diversify. |
 | crypto.launch-rsi2-48-3-3-h72 | ALTERNATIVE | CRYPTO_PERSONAL_SIGNALS | VIP_SIGNALS | Replace LTC in the optional roster; fresh positive screen with material drawdown. |
-| crypto.complementary-ema-pullback | ALTERNATIVE | CRYPTO_PERSONAL_SIGNALS | VIP_SIGNALS | Slower Personal option; perpetual execution screen differs from older spot ledger. |
+| crypto.complementary-ema-pullback | ALTERNATIVE | CRYPTO_PERSONAL_SIGNALS | VIP_SIGNALS | ETH-only Personal option; perpetual execution screen differs from older spot ledger. |
 | crypto.native-vwap-reclaim-5-24-2-1.5-dogeusdt-h12-v0.006 | ALTERNATIVE | ADMIN_COMPARISON | Explicit Admin comparison / Turbo demo only | Retain; only two fresh decisions, insufficient evidence for default promotion. |
 | crypto.native-failed-breakout-15-48-3-1.5-ltcusdt-h24-v0.006 | PAUSED | ADMIN_COMPARISON | Explicit Admin comparison / Turbo demo only | Remove from commercial presets; fresh screen negative. |
 | forex.native-rsi2-15-48-2-5-gbpusd-h24-v0.0008 | CORE | FOREX_PERSONAL_PROP_SIGNALS | FOREX_GOLD_PERSONAL, PROP_CHALLENGE, PROP_FUNDED, VIP_SIGNALS | Curated Forex candidate; fresh FX and firm-rule qualification remain required. |
